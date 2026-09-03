@@ -46,67 +46,68 @@ function App() {
       <TopologyBackground />
       <div className="app-container">
 
-      {/* Left Very Dark Deep Blue Floating Pill Sidebar */}
-      <aside className="floating-sidebar-wrapper">
-        <div className="dark-blue-pill-sidebar">
-          {/* Subtle top shine / gloss highlight */}
-          <div className="pill-gloss-highlight" />
+        {/* Left Very Dark Deep Blue Floating Pill Sidebar */}
+        <aside className="floating-sidebar-wrapper">
+          <div className="dark-blue-pill-sidebar">
+            <div className="pill-gloss-highlight" />
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeNav === item.id;
+              return (
+                <button
+                  key={item.id}
+                  className={`pill-nav-btn ${isActive ? 'active' : ''}`}
+                  onClick={() => setActiveNav(item.id)}
+                  title={item.label}
+                  aria-label={item.label}
+                >
+                  <Icon size={24} className="pill-icon" />
+                </button>
+              );
+            })}
+          </div>
+        </aside>
 
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.id;
-            return (
-              <button
-                key={item.id}
-                className={`pill-nav-btn ${isActive ? 'active' : ''}`}
-                onClick={() => setActiveNav(item.id)}
-                title={item.label}
-                aria-label={item.label}
-              >
-                <Icon size={24} className="pill-icon" />
-              </button>
-            );
-          })}
-        </div>
-      </aside>
+        {/* Main Content Area */}
+        <main className="main-content">
+          <div className="center-stage">
+            {/* Logo goes here */}
+          </div>
+        </main>
 
-      {/* Main Content Area: Centered in Middle */}
-      <main className="main-content">
-        <div className="center-stage">
+      </div>
 
-          {/* Center Query Box */}
-          <div className="query-box-wrapper">
-            <div className="query-box">
-              <div className="query-prefix-icon">
-                <Sparkles size={18} className="sparkle-icon" />
-              </div>
-              <input
-                type="text"
-                className="query-input"
-                placeholder="Ask about any satellite scene, coordinates, or change detection..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoFocus
-              />
-              <button
-                className={`query-send-btn ${query.trim() ? 'active' : ''}`}
-                onClick={handleSend}
-                title="Submit Query"
-              >
-                <ArrowUp size={18} />
-              </button>
+      {/* Bottom Center Liquid Glass Query Bar — outside app-container to escape stacking context */}
+      <div className="glass-bar-dock">
+        <div className="glass-bar-container">
+          <div className="glass-bar-inner">
+            <div className="glass-wave2" />
+            <div className="glass-sparkle-icon">
+              <Sparkles size={18} />
             </div>
+            <input
+              type="text"
+              className="glass-bar-input"
+              placeholder="Ask about any satellite scene, coordinates, or change detection..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
+            <button
+              className={`glass-bar-send ${query.trim() ? 'active' : ''}`}
+              onClick={handleSend}
+              title="Submit Query"
+            >
+              <ArrowUp size={16} />
+            </button>
+          </div>
+          <div className="glass-telemetry">
+            <div className="telemetry-live-dot"></div>
+            <span>STAC Sentinel-2 &amp; Landsat-9 Constellations Online</span>
           </div>
         </div>
-
-        {/* Subtle Bottom Telemetry Indicator */}
-        <div className="bottom-telemetry-badge">
-          <div className="telemetry-live-dot"></div>
-          <span>STAC Sentinel-2 & Landsat-9 Constellations Online</span>
-        </div>
-      </main>
-    </div>
+      </div>
     </>
   );
 }
