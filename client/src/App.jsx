@@ -73,18 +73,6 @@ function App() {
       {/* Main Content Area: Centered in Middle */}
       <main className="main-content">
         <div className="center-stage">
-          {/* Middle Center Logo Block */}
-          <div className="logo-center-container">
-            <div className="logo-halo-aura" />
-            <div className="logo-image-frame">
-              {/* Static text layer */}
-              <img
-                src="/satquery-text.png"
-                alt="SATQUERY AI - Earth observation, spoken fluently."
-                className="bold-hero-logo"
-              />
-            </div>
-          </div>
 
           {/* Center Query Box */}
           <div className="query-box-wrapper">
