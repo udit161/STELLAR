@@ -249,21 +249,6 @@ textarea {
   transition: filter 0.35s ease;
 }
 
-/* Astronaut — overlay aligned 1:1 with text layer */
-.astronaut-floatin {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 3;
-  pointer-events: none;
-  /* fly-in once, then gentle float loop */
-  animation:
-    astronautFlyIn 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards,
-    astronautIdle 4s ease-in-out 1.6s infinite;
-}
 
 .bold-hero-logo:hover {
   filter: 
@@ -271,36 +256,6 @@ textarea {
     drop-shadow(0 0 18px rgba(245, 197, 66, 0.1));
 }
 
-/* Astronaut fly-in: starts bottom-left, arcs up to resting position */
-@keyframes astronautFlyIn {
-  0% {
-    /* Start: below and to the left, slightly rotated, scaled down */
-    transform: translate(-220px, 350px) rotate(-25deg) scale(0.55);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  55% {
-    /* Mid-arc: swing up and slightly right */
-    transform: translate(-60px, -40px) rotate(-8deg) scale(0.9);
-  }
-  80% {
-    /* Overshoot slightly — feels bouncy/alive */
-    transform: translate(10px, 8px) rotate(3deg) scale(1.03);
-  }
-  100% {
-    /* Final rest aligned 1:1 */
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: 1;
-  }
-}
-
-/* Idle float after landing */
-@keyframes astronautIdle {
-  0%, 100% { transform: translate(0, 0); }
-  50%       { transform: translate(0, -6px); }
-}
 
 @keyframes logoGentleFloat {
   0%, 100% {

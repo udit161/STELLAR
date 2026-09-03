@@ -82,13 +82,6 @@ function App() {
           <div className="logo-center-container">
             <div className="logo-halo-aura" />
             <div className="logo-image-frame">
-              {/* Astronaut floats in from bottom-left, lands above the text */}
-              <img
-                src="/astronaut.png"
-                alt=""
-                className="astronaut-floatin"
-                aria-hidden="true"
-              />
               {/* Static text layer */}
               <img
                 src="/satquery-text.png"
