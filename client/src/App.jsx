@@ -13,6 +13,7 @@ import {
   Globe,
   CornerDownLeft,
 } from 'lucide-react';
+import { TopologyBackground } from './components/TopologyBackground';
 import './index.css';
 
 function App() {
@@ -43,13 +44,7 @@ function App() {
   return (
     <div className="app-container">
 
-      <div className="space-backdrop">
-        <div className="space-star star-1"></div>
-        <div className="space-star star-2"></div>
-        <div className="space-star star-3"></div>
-        <div className="space-star star-4"></div>
-        <div className="space-star star-5"></div>
-      </div>
+      <TopologyBackground />
 
       {/* Left Very Dark Deep Blue Floating Pill Sidebar */}
       <aside className="floating-sidebar-wrapper">
