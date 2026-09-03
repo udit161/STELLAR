@@ -42,9 +42,9 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-
+    <>
       <TopologyBackground />
+      <div className="app-container">
 
       {/* Left Very Dark Deep Blue Floating Pill Sidebar */}
       <aside className="floating-sidebar-wrapper">
@@ -119,6 +119,7 @@ function App() {
         </div>
       </main>
     </div>
+    </>
   );
 }
 

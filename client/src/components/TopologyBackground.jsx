@@ -1,12 +1,23 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 
 export function TopologyBackground() {
   const mountRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Create container div once
+  if (!containerRef.current) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;overflow:hidden;background:radial-gradient(circle at bottom right,#18181b 0%,#000000 50%,#000000 100%)';
+    containerRef.current = div;
+  }
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    // Append container to body
+    document.body.appendChild(containerRef.current);
 
+    const container = containerRef.current;
     let width = window.innerWidth;
     let height = window.innerHeight;
 
@@ -19,7 +30,14 @@ export function TopologyBackground() {
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    mountRef.current.appendChild(renderer.domElement);
+    renderer.setClearColor(0x000000, 0);
+    renderer.domElement.style.cssText = 'position:absolute;inset:0;';
+    container.appendChild(renderer.domElement);
+
+    // Glow orb
+    const glow = document.createElement('div');
+    glow.style.cssText = 'position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(120px);opacity:0.15;background:white;width:800px;height:800px;';
+    container.appendChild(glow);
 
     const group = new THREE.Group();
     scene.add(group);
@@ -27,70 +45,70 @@ export function TopologyBackground() {
     const numNodes = 120;
     const nodes = [];
     const nodeGeo = new THREE.SphereGeometry(1, 16, 16);
-    const nodeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
-    
-    for(let i = 0; i < numNodes; i++) {
-        let phi = Math.acos(-1 + (2 * i) / numNodes);
-        let theta = Math.sqrt(numNodes * Math.PI) * phi;
-        let x = Math.cos(theta) * Math.sin(phi);
-        let y = Math.sin(theta) * Math.sin(phi);
-        let z = Math.cos(phi);
 
-        let mesh = new THREE.Mesh(nodeGeo, nodeMat);
-        mesh.position.set(x, y, z);
-        mesh.userData = {
-            baseSize: Math.random() * 1.5 + 1.0,
-            pulseSpeed: Math.random() * 0.02 + 0.015,
-            pulseOffset: Math.random() * Math.PI * 2
-        };
-        group.add(mesh);
-        nodes.push(mesh);
+    for (let i = 0; i < numNodes; i++) {
+      let phi = Math.acos(-1 + (2 * i) / numNodes);
+      let theta = Math.sqrt(numNodes * Math.PI) * phi;
+      let x = Math.cos(theta) * Math.sin(phi);
+      let y = Math.sin(theta) * Math.sin(phi);
+      let z = Math.cos(phi);
+
+      let mesh = new THREE.Mesh(
+        nodeGeo,
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
+      );
+      mesh.position.set(x, y, z);
+      mesh.userData = {
+        baseSize: Math.random() * 1.5 + 1.0,
+        pulseSpeed: Math.random() * 0.02 + 0.015,
+        pulseOffset: Math.random() * Math.PI * 2,
+      };
+      group.add(mesh);
+      nodes.push(mesh);
     }
 
     const linePos = [];
     const lineColors = [];
-    for(let i = 0; i < numNodes; i++) {
-        for(let j = i + 1; j < numNodes; j++) {
-            let dist = nodes[i].position.distanceTo(nodes[j].position);
-            const threshold = 0.45;
-            if(dist < threshold) {
-                linePos.push(nodes[i].position.x, nodes[i].position.y, nodes[i].position.z);
-                linePos.push(nodes[j].position.x, nodes[j].position.y, nodes[j].position.z);
-                
-                let alpha = (1 - dist / threshold) * 0.8;
-                lineColors.push(alpha, alpha, alpha);
-                lineColors.push(alpha, alpha, alpha);
-            }
+    for (let i = 0; i < numNodes; i++) {
+      for (let j = i + 1; j < numNodes; j++) {
+        let dist = nodes[i].position.distanceTo(nodes[j].position);
+        const threshold = 0.45;
+        if (dist < threshold) {
+          linePos.push(nodes[i].position.x, nodes[i].position.y, nodes[i].position.z);
+          linePos.push(nodes[j].position.x, nodes[j].position.y, nodes[j].position.z);
+          let alpha = (1 - dist / threshold) * 0.8;
+          lineColors.push(alpha, alpha, alpha);
+          lineColors.push(alpha, alpha, alpha);
         }
+      }
     }
-    
+
     const lineGeo = new THREE.BufferGeometry();
     lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
     lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
     const lineMat = new THREE.LineBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        opacity: 0.65
+      vertexColors: true,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      opacity: 0.65,
     });
     const lines = new THREE.LineSegments(lineGeo, lineMat);
     group.add(lines);
 
     function resize() {
-        if (!mountRef.current) return;
-        width = window.innerWidth;
-        height = window.innerHeight;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
-        
-        const R = width > 768 ? 380 : 200;
-        group.scale.set(R, R, R);
-        
-        const centerX = width > 768 ? width * 0.2 : 0; 
-        const centerY = width > 768 ? -height * 0.05 : -height * 0.2;
-        group.position.set(centerX, centerY, 0);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+
+      const R = width > 768 ? 380 : 200;
+      group.scale.set(R, R, R);
+
+      const centerX = width > 768 ? width * 0.2 : 0;
+      const centerY = width > 768 ? -height * 0.05 : -height * 0.2;
+      group.position.set(centerX, centerY, 0);
     }
 
     window.addEventListener('resize', resize);
@@ -100,62 +118,40 @@ export function TopologyBackground() {
     let animationFrameId;
 
     function animate() {
-        animationFrameId = requestAnimationFrame(animate);
-        time += 1;
-        
-        group.rotation.y = time * 0.0018;
-        group.rotation.x = 0.2;
-        group.rotation.z = time * 0.0006;
+      animationFrameId = requestAnimationFrame(animate);
+      time += 1;
 
-        nodes.forEach(mesh => {
-            let p = mesh.userData;
-            let pulse = (Math.sin((time * p.pulseSpeed) + p.pulseOffset) + 1) / 2;
-            
-            let targetRadius = p.baseSize + pulse * 1.8;
-            let scale = targetRadius / group.scale.x;
-            
-            mesh.scale.set(scale, scale, scale);
-            mesh.material.opacity = 0.4 + (pulse * 0.6);
-        });
+      group.rotation.y = time * 0.0018;
+      group.rotation.x = 0.2;
+      group.rotation.z = time * 0.0006;
 
-        renderer.render(scene, camera);
+      nodes.forEach((mesh) => {
+        let p = mesh.userData;
+        let pulse = (Math.sin(time * p.pulseSpeed + p.pulseOffset) + 1) / 2;
+        let targetRadius = p.baseSize + pulse * 1.8;
+        let scale = targetRadius / group.scale.x;
+        mesh.scale.set(scale, scale, scale);
+        mesh.material.opacity = 0.4 + pulse * 0.6;
+      });
+
+      renderer.render(scene, camera);
     }
-    
+
     animate();
 
     return () => {
-        window.removeEventListener('resize', resize);
-        cancelAnimationFrame(animationFrameId);
-        
-        // Cleanup Three.js memory
-        nodeGeo.dispose();
-        nodeMat.dispose();
-        lineGeo.dispose();
-        lineMat.dispose();
-        
-        if (mountRef.current) {
-            mountRef.current.removeChild(renderer.domElement);
-        }
-        renderer.dispose();
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationFrameId);
+      nodeGeo.dispose();
+      nodes.forEach((m) => m.material.dispose());
+      lineGeo.dispose();
+      lineMat.dispose();
+      renderer.dispose();
+      if (container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
     };
   }, []);
 
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden', background: 'radial-gradient(circle at bottom right, #18181b 0%, #000000 50%, #000000 100%)' }}>
-      <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          borderRadius: '50%',
-          filter: 'blur(120px)',
-          opacity: 0.15,
-          backgroundColor: 'white',
-          width: '800px',
-          height: '800px',
-          zIndex: 0
-      }} />
-      <div ref={mountRef} style={{ position: 'absolute', inset: 0, zIndex: 1 }} />
-    </div>
-  );
+  return null;
 }
