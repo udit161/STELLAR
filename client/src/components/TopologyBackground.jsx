@@ -36,7 +36,7 @@ export function TopologyBackground() {
 
     // Glow orb
     const glow = document.createElement('div');
-    glow.style.cssText = 'position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(120px);opacity:0.15;background:white;width:800px;height:800px;';
+    glow.style.cssText = 'position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(140px);opacity:0.05;background:white;width:800px;height:800px;';
     container.appendChild(glow);
 
     const group = new THREE.Group();
@@ -91,7 +91,7 @@ export function TopologyBackground() {
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      opacity: 0.65,
+      opacity: 0.30,
     });
     const lines = new THREE.LineSegments(lineGeo, lineMat);
     group.add(lines);
@@ -131,7 +131,7 @@ export function TopologyBackground() {
         let targetRadius = p.baseSize + pulse * 1.8;
         let scale = targetRadius / group.scale.x;
         mesh.scale.set(scale, scale, scale);
-        mesh.material.opacity = 0.4 + pulse * 0.6;
+        mesh.material.opacity = 0.18 + pulse * 0.32;
       });
 
       renderer.render(scene, camera);

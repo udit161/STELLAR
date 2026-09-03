@@ -14,6 +14,8 @@ import {
   CornerDownLeft,
 } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
+import ScatterAndReassembleText from './components/ScatterAndReassembleText';
+import ISROBadge from './components/ISROBadge';
 import './index.css';
 
 function App() {
@@ -71,7 +73,7 @@ function App() {
         {/* Main Content Area */}
         <main className="main-content">
           <div className="center-stage">
-            {/* Logo goes here */}
+            <ScatterAndReassembleText />
           </div>
         </main>
 
@@ -108,6 +110,7 @@ function App() {
           </div>
         </div>
       </div>
+      <ISROBadge />
     </>
   );
 }
