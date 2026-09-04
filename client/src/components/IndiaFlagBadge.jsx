@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 
 /**
  * IndiaFlagBadge
@@ -123,7 +123,9 @@ export default function IndiaFlagBadge() {
               overflow: "hidden",
               zIndex: 3,
               background:
-                "linear-gradient(180deg, #FF9933 0%, #FF9933 33%, #f0f0f0 33%, #f0f0f0 66%, #138808 66%, #138808 100%)",
+                "linear-gradient(180deg, #FF9933 0%, #FF9933 33.3%, #f0f0f0 33.3%, #f0f0f0 66.6%, #138808 66.6%, #138808 100%)",
+              /* use relative so we can absolutely pin the chakra to the white stripe center */
+              position: "absolute",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -133,8 +135,17 @@ export default function IndiaFlagBadge() {
               className="india-chakra"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 100 100"
-              width="50"
-              height="50"
+              width="24"
+              height="24"
+              style={{
+                position: "absolute",
+                /* white stripe center = 50% of total height */
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                display: "block",
+                flexShrink: 0,
+              }}
               aria-label="Ashoka Chakra"
             >
               <circle cx="50" cy="50" r="46" fill="none" stroke="#000080" strokeWidth="4" />
@@ -145,11 +156,11 @@ export default function IndiaFlagBadge() {
                   x1={s.x1} y1={s.y1}
                   x2={s.x2} y2={s.y2}
                   stroke="#000080"
-                  strokeWidth="2.2"
+                  strokeWidth="2.8"
                   strokeLinecap="round"
                 />
               ))}
-              <circle cx="50" cy="50" r="42" fill="none" stroke="#000080" strokeWidth="1.2" strokeDasharray="4 3.5" />
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#000080" strokeWidth="1.5" strokeDasharray="4 3.5" />
             </svg>
           </div>
         </div>
