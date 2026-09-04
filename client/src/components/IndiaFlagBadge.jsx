@@ -1,13 +1,5 @@
-import React from "react";
+﻿import React from "react";
 
-/**
- * IndiaFlagBadge
- * ---------------
- * An abstract, continuously morphing blob in the top-left corner
- * inspired by the Indian tricolor (saffron, white, green) and the
- * Ashoka Chakra. Uses the same border-radius keyframe morph pattern
- * as ISROBadge, but with India flag colors.
- */
 export default function IndiaFlagBadge() {
   const spokes = Array.from({ length: 24 }).map((_, i) => {
     const angle = (i * 360) / 24;
@@ -35,6 +27,7 @@ export default function IndiaFlagBadge() {
           100% { border-radius: 58% 42% 52% 48% / 48% 62% 38% 52%; }
         }
 
+        /* Spin applied to the SVG element only — no translate conflict */
         @keyframes chakraSpin {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
@@ -54,13 +47,19 @@ export default function IndiaFlagBadge() {
         .india-badge-wrap:hover .india-ring-mask,
         .india-badge-wrap:hover .india-clip,
         .india-badge-wrap:hover .india-halo { animation-play-state: paused; }
-        .india-badge-wrap:hover .india-chakra { animation-play-state: paused; }
+        .india-badge-wrap:hover .india-chakra-svg { animation-play-state: paused; }
 
         .india-ring      { animation: indiaBlobMorph 9s ease-in-out infinite; }
         .india-ring-mask { animation: indiaBlobMorph 9s ease-in-out infinite; }
         .india-clip      { animation: indiaBlobMorph 9s ease-in-out infinite; }
         .india-halo      { animation: indiaBlobMorph 9s ease-in-out infinite, indiaHaloPulse 3s ease-in-out infinite; }
-        .india-chakra    { animation: chakraSpin 8s linear infinite; transform-origin: center; }
+
+        /* Spin only — centering is handled by the wrapper div */
+        .india-chakra-svg {
+          animation: chakraSpin 8s linear infinite;
+          transform-origin: center center;
+          display: block;
+        }
       `}</style>
 
       <div
@@ -84,8 +83,7 @@ export default function IndiaFlagBadge() {
             style={{
               position: "absolute",
               inset: "-12px",
-              background:
-                "conic-gradient(from 0deg, rgba(255,153,51,0.35), rgba(19,136,8,0.35), rgba(0,0,128,0.25), rgba(255,153,51,0.35))",
+              background: "conic-gradient(from 0deg, rgba(255,153,51,0.35), rgba(19,136,8,0.35), rgba(0,0,128,0.25), rgba(255,153,51,0.35))",
               filter: "blur(14px)",
               zIndex: 0,
             }}
@@ -97,13 +95,12 @@ export default function IndiaFlagBadge() {
             style={{
               position: "absolute",
               inset: "-5px",
-              background:
-                "linear-gradient(180deg, #FF9933 0%, #FF9933 33%, #ffffff 33%, #ffffff 66%, #138808 66%, #138808 100%)",
+              background: "linear-gradient(180deg, #FF9933 0%, #FF9933 33%, #ffffff 33%, #ffffff 66%, #138808 66%, #138808 100%)",
               zIndex: 1,
             }}
           />
 
-          {/* Dark mask to make ring appear as border only */}
+          {/* Dark mask so only the border edge shows */}
           <div
             className="india-ring-mask"
             style={{
@@ -114,7 +111,7 @@ export default function IndiaFlagBadge() {
             }}
           />
 
-          {/* Main clip: tricolor stripes + Ashoka Chakra */}
+          {/* Main clip: tricolor stripes */}
           <div
             className="india-clip"
             style={{
@@ -122,46 +119,52 @@ export default function IndiaFlagBadge() {
               inset: 0,
               overflow: "hidden",
               zIndex: 3,
-              background:
-                "linear-gradient(180deg, #FF9933 0%, #FF9933 33.3%, #f0f0f0 33.3%, #f0f0f0 66.6%, #138808 66.6%, #138808 100%)",
-              /* use relative so we can absolutely pin the chakra to the white stripe center */
-              position: "absolute",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              background: "linear-gradient(180deg, #FF9933 0%, #FF9933 33.3%, #f0f0f0 33.3%, #f0f0f0 66.6%, #138808 66.6%, #138808 100%)",
             }}
           >
-            <svg
-              className="india-chakra"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 100 100"
-              width="24"
-              height="24"
+            {/*
+              Centering wrapper — positioned at exact centre of the white stripe.
+              White stripe spans 33.3%–66.6% of height (88px total).
+              Centre of white stripe = (33.3 + 66.6) / 2 = 50% = 44px from top.
+              So top:50% + translateY(-50%) lands the chakra dead-centre in the white band.
+              translate is on THIS div; rotate is only on the SVG — no conflict.
+            */}
+            <div
               style={{
                 position: "absolute",
-                /* white stripe center = 50% of total height */
                 top: "50%",
                 left: "50%",
                 transform: "translate(-50%, -50%)",
-                display: "block",
-                flexShrink: 0,
+                width: "26px",
+                height: "26px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
-              aria-label="Ashoka Chakra"
             >
-              <circle cx="50" cy="50" r="46" fill="none" stroke="#000080" strokeWidth="4" />
-              <circle cx="50" cy="50" r="6" fill="#000080" />
-              {spokes.map((s, i) => (
-                <line
-                  key={i}
-                  x1={s.x1} y1={s.y1}
-                  x2={s.x2} y2={s.y2}
-                  stroke="#000080"
-                  strokeWidth="2.8"
-                  strokeLinecap="round"
-                />
-              ))}
-              <circle cx="50" cy="50" r="42" fill="none" stroke="#000080" strokeWidth="1.5" strokeDasharray="4 3.5" />
-            </svg>
+              <svg
+                className="india-chakra-svg"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 100 100"
+                width="26"
+                height="26"
+                aria-label="Ashoka Chakra"
+              >
+                <circle cx="50" cy="50" r="46" fill="none" stroke="#000080" strokeWidth="4" />
+                <circle cx="50" cy="50" r="6" fill="#000080" />
+                {spokes.map((s, i) => (
+                  <line
+                    key={i}
+                    x1={s.x1} y1={s.y1}
+                    x2={s.x2} y2={s.y2}
+                    stroke="#000080"
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                  />
+                ))}
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#000080" strokeWidth="1.5" strokeDasharray="4 3.5" />
+              </svg>
+            </div>
           </div>
         </div>
 
