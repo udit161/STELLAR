@@ -16,6 +16,7 @@ import {
 import { TopologyBackground } from './components/TopologyBackground';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import ISROBadge from './components/ISROBadge';
+import IndiaFlagBadge from './components/IndiaFlagBadge';
 import './index.css';
 
 function App() {
@@ -111,6 +112,7 @@ function App() {
         </div>
       </div>
       <ISROBadge />
+      <IndiaFlagBadge />
     </>
   );
 }
