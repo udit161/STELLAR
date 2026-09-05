@@ -1,4 +1,4 @@
-s"""
+"""
 TensorFlow scripts for BigEarthNet fine-tuned model
 """
 
