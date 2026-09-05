@@ -53,29 +53,29 @@ export default function SpaceAnomalies() {
           22%  { transform: translate(82vw,40vh) scale(0.60); opacity:0; }
           100% { transform: translate(82vw,40vh) scale(0.60); opacity:0; }
         }
-        /* MARS 27s-47s (enters right exits left — variety) */
+        /* MARS 27s-47s (Top-Left to Bottom-Right) */
         @keyframes flyMars {
-          0%   { transform: translate(82vw,10vh) scale(0.60); opacity:0; }
+          0%   { transform: translate(8vw,10vh)  scale(0.60); opacity:0; }
           3%   { opacity:0.88; }
-          16%  { transform: translate(42vw,28vh) scale(0.90); opacity:0.88; }
-          22%  { transform: translate(10vw,44vh) scale(0.56); opacity:0; }
-          100% { transform: translate(10vw,44vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(50vw,26vh) scale(0.90); opacity:0.88; }
+          22%  { transform: translate(84vw,42vh) scale(0.56); opacity:0; }
+          100% { transform: translate(84vw,42vh) scale(0.56); opacity:0; }
         }
-        /* ASTEROID BELT 36s-54s */
+        /* ASTEROID CERES 36s-54s */
         @keyframes flyAsteroids {
-          0%   { transform: translate(14vw,14vh) scale(0.70); opacity:0; }
-          3%   { opacity:0.82; }
-          15%  { transform: translate(54vw,30vh) scale(0.90); opacity:0.82; }
-          20%  { transform: translate(80vw,46vh) scale(0.60); opacity:0; }
-          100% { transform: translate(80vw,46vh) scale(0.60); opacity:0; }
-        }
-        /* JUPITER 45s-65s */
-        @keyframes flyJupiter {
-          0%   { transform: translate(80vw,8vh)  scale(0.60); opacity:0; }
+          0%   { transform: translate(10vw,12vh) scale(0.70); opacity:0; }
           3%   { opacity:0.88; }
-          16%  { transform: translate(44vw,22vh) scale(0.92); opacity:0.88; }
-          22%  { transform: translate(8vw,38vh)  scale(0.55); opacity:0; }
-          100% { transform: translate(8vw,38vh)  scale(0.55); opacity:0; }
+          15%  { transform: translate(52vw,28vh) scale(0.95); opacity:0.88; }
+          20%  { transform: translate(82vw,44vh) scale(0.60); opacity:0; }
+          100% { transform: translate(82vw,44vh) scale(0.60); opacity:0; }
+        }
+        /* JUPITER 45s-65s (Top-Left to Bottom-Right) */
+        @keyframes flyJupiter {
+          0%   { transform: translate(6vw,8vh)   scale(0.60); opacity:0; }
+          3%   { opacity:0.88; }
+          16%  { transform: translate(48vw,22vh) scale(0.92); opacity:0.88; }
+          22%  { transform: translate(82vw,38vh) scale(0.55); opacity:0; }
+          100% { transform: translate(82vw,38vh) scale(0.55); opacity:0; }
         }
         /* SATURN 54s-74s */
         @keyframes flySaturn {
@@ -85,13 +85,13 @@ export default function SpaceAnomalies() {
           22%  { transform: translate(80vw,36vh) scale(0.54); opacity:0; }
           100% { transform: translate(80vw,36vh) scale(0.54); opacity:0; }
         }
-        /* URANUS 63s-83s */
+        /* URANUS 63s-83s (Top-Left to Bottom-Right) */
         @keyframes flyUranus {
-          0%   { transform: translate(78vw,12vh) scale(0.60); opacity:0; }
+          0%   { transform: translate(8vw,10vh)  scale(0.60); opacity:0; }
           3%   { opacity:0.84; }
-          16%  { transform: translate(42vw,26vh) scale(0.90); opacity:0.84; }
-          22%  { transform: translate(12vw,42vh) scale(0.56); opacity:0; }
-          100% { transform: translate(12vw,42vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(48vw,24vh) scale(0.90); opacity:0.84; }
+          22%  { transform: translate(82vw,40vh) scale(0.56); opacity:0; }
+          100% { transform: translate(82vw,40vh) scale(0.56); opacity:0; }
         }
         /* NEPTUNE 72s-92s */
         @keyframes flyNeptune {
@@ -101,13 +101,13 @@ export default function SpaceAnomalies() {
           22%  { transform: translate(84vw,40vh) scale(0.56); opacity:0; }
           100% { transform: translate(84vw,40vh) scale(0.56); opacity:0; }
         }
-        /* PLUTO 81s-99s */
+        /* PLUTO 81s-99s (Top-Left to Bottom-Right) */
         @keyframes flyPluto {
-          0%   { transform: translate(76vw,14vh) scale(0.52); opacity:0; }
+          0%   { transform: translate(10vw,12vh) scale(0.52); opacity:0; }
           3%   { opacity:0.78; }
-          15%  { transform: translate(42vw,28vh) scale(0.75); opacity:0.78; }
-          20%  { transform: translate(14vw,44vh) scale(0.48); opacity:0; }
-          100% { transform: translate(14vw,44vh) scale(0.48); opacity:0; }
+          15%  { transform: translate(48vw,26vh) scale(0.75); opacity:0.78; }
+          20%  { transform: translate(82vw,42vh) scale(0.48); opacity:0; }
+          100% { transform: translate(82vw,42vh) scale(0.48); opacity:0; }
         }
 
         @keyframes starTwinkle {
@@ -290,6 +290,19 @@ export default function SpaceAnomalies() {
           </radialGradient>
           <radialGradient id="pluSpec" cx="28%" cy="22%" r="30%">
             <stop offset="0%"   stopColor="rgba(230,220,200,0.50)"/>
+            <stop offset="100%" stopColor="transparent"/>
+          </radialGradient>
+
+          {/* ASTEROID CERES */}
+          <radialGradient id="astG" cx="34%" cy="28%" r="65%">
+            <stop offset="0%"   stopColor="#d8caaf"/>
+            <stop offset="22%"  stopColor="#a8967b"/>
+            <stop offset="52%"  stopColor="#75644d"/>
+            <stop offset="80%"  stopColor="#483a29"/>
+            <stop offset="100%" stopColor="#1f160e"/>
+          </radialGradient>
+          <radialGradient id="astSpec" cx="28%" cy="22%" r="32%">
+            <stop offset="0%"   stopColor="rgba(255,248,220,0.58)"/>
             <stop offset="100%" stopColor="transparent"/>
           </radialGradient>
         </defs>
@@ -495,51 +508,71 @@ export default function SpaceAnomalies() {
         </div>
 
         {/* ======================================================
-            5. ASTEROID BELT — 15 varied 3D rocks + debris
+            5. ASTEROID (CERES) — single large 3D cratered asteroid
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyAsteroids 90s linear infinite 36s both" }}>
-          <svg width="210" height="130" viewBox="0 0 210 130"
-            style={{ filter:"drop-shadow(0 0 12px rgba(160,140,100,0.32))" }}>
-            {[
-              [30, 64, 13, 9,  15,  "#8a7a60","#4a3e2c"],
-              [62, 46, 9,  6,  -22, "#7a6e56","#3e3428"],
-              [92, 72, 15, 10, 32,  "#968060","#504030"],
-              [120,38, 7,  5,  -12, "#6e6452","#3a3020"],
-              [148,64, 11, 7,  46,  "#88785c","#483e2c"],
-              [174,44, 10, 6,  -32, "#7e6e56","#423628"],
-              [48, 82, 7,  4,  62,  "#726452","#3c3424"],
-              [138,84, 9,  5.5,26,  "#8a7860","#46402e"],
-              [108,55, 6,  4,  72,  "#706050","#3a3028"],
-              [80, 30, 5,  3.5,-52, "#7e7060","#403828"],
-              [162,80, 7,  4.5,42,  "#807060","#443c2e"],
-              [20, 40, 5,  3,  22,  "#766856","#3e3426"],
-              [190,62, 7,  5,  -18, "#887868","#483e34"],
-              [55, 22, 4,  3,  57,  "#6e6050","#38302a"],
-              [104,92, 10, 6.5,-38, "#927e62","#4c4030"],
-            ].map(([cx,cy,rx,ry,rot,bc,dc],i)=>(
-              <g key={i} transform={"translate("+cx+","+cy+") rotate("+rot+")"}>
-                <ellipse cx="0" cy="0" rx={rx} ry={ry} fill={bc}/>
-                <ellipse cx={rx*0.28} cy={ry*0.28} rx={rx*0.55} ry={ry*0.55} fill={dc} opacity="0.52"/>
-                <ellipse cx={-rx*0.32} cy={-ry*0.32} rx={rx*0.34} ry={ry*0.30} fill="rgba(255,245,220,0.26)"/>
-                {rx > 8 && (
-                  <>
-                    <circle cx={-rx*0.38} cy={ry*0.14} r={ry*0.26} fill="rgba(0,0,0,0.28)"/>
-                    <circle cx={rx*0.24}  cy={-ry*0.30} r={ry*0.20} fill="rgba(0,0,0,0.22)"/>
-                  </>
-                )}
-                {rx > 12 && (
-                  <circle cx={rx*0.40} cy={ry*0.40} r={ry*0.18} fill="rgba(0,0,0,0.24)"/>
-                )}
+          animation:"flyAsteroids 90s linear infinite 36s both", filter:"url(#shadow3d)" }}>
+          <svg width="115" height="115" viewBox="0 0 115 115"
+            style={{ filter:"drop-shadow(0 0 22px rgba(180,150,110,0.40))" }}>
+            <defs>
+              <clipPath id="astClip">
+                <path d="M57,12 C80,8 102,24 106,48 C110,72 98,96 76,104 C54,110 30,100 14,82 C0,62 10,32 30,16 Z"/>
+              </clipPath>
+            </defs>
+            {/* Irregular rocky asteroid body */}
+            <path d="M57,12 C80,8 102,24 106,48 C110,72 98,96 76,104 C54,110 30,100 14,82 C0,62 10,32 30,16 Z"
+              fill="url(#astG)"/>
+            <g clipPath="url(#astClip)">
+              {/* Surface grooves and regolith fractures */}
+              <path d="M22,48 Q40,40 60,52 Q75,60 90,52" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="3" strokeLinecap="round"/>
+              <path d="M30,72 Q50,64 78,80" fill="none" stroke="rgba(0,0,0,0.30)" strokeWidth="2" strokeLinecap="round"/>
+
+              {/* Major Impact Crater 1 (Occator Crater with bright central ice spot) */}
+              <g transform="rotate(-15,40,38)">
+                <ellipse cx="40" cy="38" rx="16" ry="12" fill="rgba(0,0,0,0.42)"/>
+                <ellipse cx="38" cy="36" rx="13" ry="9" fill="rgba(45,35,25,0.55)"/>
+                <ellipse cx="38" cy="36" rx="7"  ry="4.5" fill="rgba(255,245,210,0.25)"/>
+                {/* Faculae (Bright white ice spots inside Occator) */}
+                <circle cx="38" cy="36" r="3.2" fill="#ffffff" style={{ filter:"drop-shadow(0 0 5px #fff)" }}/>
+                <circle cx="43" cy="38" r="1.8" fill="rgba(255,255,255,0.85)"/>
               </g>
-            ))}
-            {/* Dust / pebbles */}
-            {[[40,52],[72,67],[103,42],[132,72],[162,52],[88,87],[118,27],[150,90],[28,75]].map(([x,y],i)=>(
-              <circle key={i} cx={x} cy={y} r={1.0+(i%3)*0.55} fill="rgba(180,160,120,0.55)"/>
-            ))}
-            <text x="105" y="118" textAnchor="middle" fontSize="7"
-              fill="rgba(180,160,100,0.70)" fontFamily="monospace" letterSpacing="2">ASTEROID BELT</text>
+
+              {/* Major Impact Crater 2 */}
+              <g transform="rotate(20,74,34)">
+                <ellipse cx="74" cy="34" rx="11" ry="8" fill="rgba(0,0,0,0.40)"/>
+                <ellipse cx="72" cy="32" rx="8"  ry="5.5" fill="rgba(40,30,20,0.50)"/>
+                <circle cx="72" cy="32" r="2" fill="rgba(255,245,210,0.20)"/>
+              </g>
+
+              {/* Major Impact Crater 3 */}
+              <g transform="rotate(-25,70,76)">
+                <ellipse cx="70" cy="76" rx="14" ry="10" fill="rgba(0,0,0,0.45)"/>
+                <ellipse cx="68" cy="74" rx="10" ry="7"  fill="rgba(35,25,15,0.55)"/>
+              </g>
+
+              {/* Small craters */}
+              {[[26,76,4],[50,86,3.5],[86,56,4.5],[30,26,3]].map(([cx,cy,r],i)=>(
+                <g key={i}>
+                  <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.36)"/>
+                  <circle cx={cx-0.8} cy={cy-0.8} r={r*0.5} fill="rgba(255,240,200,0.20)"/>
+                </g>
+              ))}
+
+              {/* Specular highlight */}
+              <path d="M57,12 C80,8 102,24 106,48 C110,72 98,96 76,104 C54,110 30,100 14,82 C0,62 10,32 30,16 Z"
+                fill="url(#astSpec)"/>
+              {/* Terminator shadow */}
+              <ellipse cx="82" cy="80" rx="36" ry="42" fill="rgba(0,0,0,0.55)"/>
+            </g>
+
+            {/* Micro-satellite / pebble orbiting asteroid */}
+            <circle cx="102" cy="28" r="2.8" fill="#b8a890" style={{ filter:"drop-shadow(0 0 3px rgba(180,150,110,0.60))" }}/>
+
+            {/* Rim highlight contour */}
+            <path d="M30,16 C10,32 0,62 14,82" fill="none" stroke="rgba(255,245,210,0.22)" strokeWidth="0.8"/>
           </svg>
+          <div style={{ textAlign:"center", marginTop:"3px", fontSize:"6px", fontWeight:700,
+            letterSpacing:"0.15em", color:"rgba(190,165,120,0.85)", fontFamily:"monospace" }}>ASTEROID (CERES)</div>
         </div>
 
         {/* ======================================================
