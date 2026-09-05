@@ -48,7 +48,6 @@ function App() {
   return (
     <>
       <TopologyBackground />
-      <SpaceAnomalies />
       <div className="app-container">
 
         {/* Left Very Dark Deep Blue Floating Pill Sidebar */}

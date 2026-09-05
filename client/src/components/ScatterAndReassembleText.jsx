@@ -6,22 +6,22 @@ const TEXT = "SatQuery AI.".toUpperCase();
 // Color palette (cycled per letter)
 const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082", "#D8D365", "#605B51", "#454040", "#D8D365", "#E6F082", "#D8D365"];
 
-// Multilingual SatQuery AI translations floating around the main title
+// Multilingual SatQuery AI translations floating around the main title (outer perimeter padding, zero overlap)
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-48px",  left: "-2%",   delay: "0s",   dur: "4.2s", color: "#D8D365" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-58px",  left: "26%",  delay: "0.8s", dur: "5.0s", color: "#E6F082" },
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    top: "-58px",  left: "58%",  delay: "1.4s", dur: "4.6s", color: "#D8D365" },
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "86%",  delay: "0.4s", dur: "5.2s", color: "#E6F082" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-68px",  left: "-6%",   delay: "0s",   dur: "4.2s", color: "#D8D365" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-78px",  left: "24%",  delay: "0.8s", dur: "5.0s", color: "#E6F082" },
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    top: "-78px",  left: "54%",  delay: "1.4s", dur: "4.6s", color: "#D8D365" },
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-68px",  left: "84%",  delay: "0.4s", dur: "5.2s", color: "#E6F082" },
 
-  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-135px",delay:"1.2s", dur: "4.4s", color: "#D8D365" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "66%",    right: "-145px",delay:"0.6s", dur: "4.8s", color: "#E6F082" },
+  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "10%",    right: "-185px",delay:"1.2s", dur: "4.4s", color: "#D8D365" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "60%",    right: "-195px",delay:"0.6s", dur: "4.8s", color: "#E6F082" },
 
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-52px",right: "2%",  delay: "1.6s", dur: "5.4s", color: "#D8D365" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-62px",left: "34%",  delay: "0.2s", dur: "4.5s", color: "#E6F082" },
-  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "0%",   delay: "1.0s", dur: "4.9s", color: "#D8D365" },
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-68px",right: "-6%", delay: "1.6s", dur: "5.4s", color: "#D8D365" },
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-78px",left: "36%",  delay: "0.2s", dur: "4.5s", color: "#E6F082" },
+  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-68px",left: "-6%",  delay: "1.0s", dur: "4.9s", color: "#D8D365" },
 
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "66%",    left: "-145px",delay:"0.5s", dur: "5.1s", color: "#E6F082" },
-  { text: "ಸ್ಯಾಟ್ಕ್ವೇਰੀ ಎಐ", lang: "Kannada",  top: "16%",    left: "-135px",delay:"1.8s", dur: "4.7s", color: "#D8D365" },
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "60%",    left: "-195px",delay:"0.5s", dur: "5.1s", color: "#E6F082" },
+  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-185px",delay:"1.8s", dur: "4.7s", color: "#D8D365" },
 ];
 
 const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
@@ -228,18 +228,17 @@ export default function ScatterAndReassembleText() {
 
         @keyframes langFloatBob {
           0%, 100% {
-            transform: translateY(0px) scale(1);
+            transform: translateY(0px);
             opacity: 0.85;
           }
           50% {
-            transform: translateY(-8px) scale(1.04);
-            opacity: 1;
-            text-shadow: 0 0 14px rgba(216,211,101,0.7);
+            transform: translateY(-6px);
+            opacity: 0.98;
           }
         }
       `}</style>
 
-      {/* Multilingual Floating Texts around Main Logo */}
+      {/* Multilingual Floating Texts around Main Logo (Clean, crisp, no heavy glow) */}
       {MULTILINGUAL_TEXTS.map((item, idx) => (
         <span
           key={idx}
@@ -260,7 +259,6 @@ export default function ScatterAndReassembleText() {
             zIndex: 14,
             opacity: 0.9,
             animation: `langFloatBob ${item.dur} ease-in-out infinite alternate ${item.delay}`,
-            filter: "drop-shadow(0 0 6px rgba(216,211,101,0.35))",
           }}
         >
           {item.text}
