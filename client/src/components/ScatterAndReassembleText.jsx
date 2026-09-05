@@ -6,6 +6,24 @@ const TEXT = "SatQuery AI.".toUpperCase();
 // Color palette (cycled per letter)
 const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082", "#D8D365", "#605B51", "#454040", "#D8D365", "#E6F082", "#D8D365"];
 
+// Multilingual SatQuery AI translations floating around the main title
+const MULTILINGUAL_TEXTS = [
+  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-48px",  left: "-2%",   delay: "0s",   dur: "4.2s", color: "#D8D365" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-58px",  left: "26%",  delay: "0.8s", dur: "5.0s", color: "#E6F082" },
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    top: "-58px",  left: "58%",  delay: "1.4s", dur: "4.6s", color: "#D8D365" },
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "86%",  delay: "0.4s", dur: "5.2s", color: "#E6F082" },
+
+  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-135px",delay:"1.2s", dur: "4.4s", color: "#D8D365" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "66%",    right: "-145px",delay:"0.6s", dur: "4.8s", color: "#E6F082" },
+
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-52px",right: "2%",  delay: "1.6s", dur: "5.4s", color: "#D8D365" },
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-62px",left: "34%",  delay: "0.2s", dur: "4.5s", color: "#E6F082" },
+  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "0%",   delay: "1.0s", dur: "4.9s", color: "#D8D365" },
+
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "66%",    left: "-145px",delay:"0.5s", dur: "5.1s", color: "#E6F082" },
+  { text: "ಸ್ಯಾಟ್ಕ್ವೇਰੀ ಎಐ", lang: "Kannada",  top: "16%",    left: "-135px",delay:"1.8s", dur: "4.7s", color: "#D8D365" },
+];
+
 const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
 const SCATTER_TRANSITION_MS = 1200;  // letters fly apart
 const SCATTER_HOLD_MS       = 700;   // pause while scattered
@@ -207,7 +225,47 @@ export default function ScatterAndReassembleText() {
           from { stroke-dashoffset: 0; }
           to   { stroke-dashoffset: 360; }
         }
+
+        @keyframes langFloatBob {
+          0%, 100% {
+            transform: translateY(0px) scale(1);
+            opacity: 0.85;
+          }
+          50% {
+            transform: translateY(-8px) scale(1.04);
+            opacity: 1;
+            text-shadow: 0 0 14px rgba(216,211,101,0.7);
+          }
+        }
       `}</style>
+
+      {/* Multilingual Floating Texts around Main Logo */}
+      {MULTILINGUAL_TEXTS.map((item, idx) => (
+        <span
+          key={idx}
+          style={{
+            position: "absolute",
+            top: item.top,
+            bottom: item.bottom,
+            left: item.left,
+            right: item.right,
+            fontSize: "20px",
+            fontWeight: 800,
+            fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+            color: item.color,
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+            userSelect: "none",
+            zIndex: 14,
+            opacity: 0.9,
+            animation: `langFloatBob ${item.dur} ease-in-out infinite alternate ${item.delay}`,
+            filter: "drop-shadow(0 0 6px rgba(216,211,101,0.35))",
+          }}
+        >
+          {item.text}
+        </span>
+      ))}
 
       {/* Glowing 3D Orbit Trajectory Line (Single Sleek Ring) */}
       <svg width="100%" height="100%" viewBox="0 0 1000 350"
