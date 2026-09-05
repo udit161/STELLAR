@@ -8,20 +8,17 @@ const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082
 
 // Multilingual SatQuery AI translations floating around the main title (uneven staggered positions, zero overlap with '.')
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-52px",  left: "-8%",   delay: "0s",   dur: "4.2s", color: "#D8D365" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-96px",  left: "18%",  delay: "0.8s", dur: "5.0s", color: "#E6F082" },
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    top: "-58px",  left: "52%",  delay: "1.4s", dur: "4.6s", color: "#D8D365" },
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-92px",  left: "82%",  delay: "0.4s", dur: "5.2s", color: "#E6F082" },
-
-  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "5%",     right: "-230px",delay:"1.2s", dur: "4.4s", color: "#D8D365" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "75%",    right: "-240px",delay:"0.6s", dur: "4.8s", color: "#E6F082" },
-
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-55px",right: "-12%", delay: "1.6s", dur: "5.4s", color: "#D8D365" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-95px",left: "34%",  delay: "0.2s", dur: "4.5s", color: "#E6F082" },
-  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-58px",left: "-8%",  delay: "1.0s", dur: "4.9s", color: "#D8D365" },
-
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "75%",    left: "-230px",delay:"0.5s", dur: "5.1s", color: "#E6F082" },
-  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "5%",     left: "-220px",delay:"1.8s", dur: "4.7s", color: "#D8D365" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "#D8D365" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "#E6F082" }, // Shifted high & left, completely clear of '.'
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "#D8D365" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "#E6F082" }, // High top-right, shifted away from Telugu
+  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "#D8D365" }, // High on right, well clear of '.'
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "#E6F082" }, // Deep below right side, clear of '.'
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "#D8D365" }, // Shifted to bottom, uneven & separated from Bengali
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "#E6F082" },
+  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "#D8D365" },
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "#E6F082" },
+  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "#D8D365" },
 ];
 
 const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
@@ -226,19 +223,21 @@ export default function ScatterAndReassembleText() {
           to   { stroke-dashoffset: 360; }
         }
 
-        @keyframes langFloatBob {
+        @keyframes langTwinkleFloat {
           0%, 100% {
-            transform: translateY(0px);
-            opacity: 0.85;
+            transform: translateY(0px) scale(0.96);
+            opacity: 0.32;
+            filter: brightness(0.85);
           }
           50% {
-            transform: translateY(-6px);
-            opacity: 0.98;
+            transform: translateY(-7px) scale(1.03);
+            opacity: 1;
+            filter: brightness(1.25);
           }
         }
       `}</style>
 
-      {/* Multilingual Floating Texts around Main Logo (Clean, crisp, no heavy glow) */}
+      {/* Multilingual Floating Texts around Main Logo (Twinkling with 0.2s staggered delay) */}
       {MULTILINGUAL_TEXTS.map((item, idx) => (
         <span
           key={idx}
@@ -257,8 +256,7 @@ export default function ScatterAndReassembleText() {
             pointerEvents: "none",
             userSelect: "none",
             zIndex: 14,
-            opacity: 0.9,
-            animation: `langFloatBob ${item.dur} ease-in-out infinite alternate ${item.delay}`,
+            animation: `langTwinkleFloat 2.6s ease-in-out infinite alternate ${item.delay}`,
           }}
         >
           {item.text}
