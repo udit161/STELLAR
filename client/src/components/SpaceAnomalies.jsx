@@ -24,89 +24,89 @@ export default function SpaceAnomalies() {
     <>
       <style>{`
         /* ====================================================
-           SOLAR SYSTEM SEQUENTIAL FLYBY  —  240s cycle
+           SOLAR SYSTEM SEQUENTIAL FLYBY  —  90s cycle
            One object visible at a time, crossing viewport
            diagonal: top-left (India badge) to bottom-right (ISRO badge)
            ==================================================== */
 
-        /* MERCURY 0s-22s */
+        /* MERCURY 0s-20s */
         @keyframes flyMercury {
           0%   { transform: translate(8vw,10vh)  scale(0.60); opacity:0; }
           3%   { opacity:0.88; }
-          14%  { transform: translate(52vw,28vh) scale(0.88); opacity:0.88; }
-          18%  { transform: translate(86vw,44vh) scale(0.55); opacity:0; }
+          16%  { transform: translate(52vw,28vh) scale(0.88); opacity:0.88; }
+          22%  { transform: translate(86vw,44vh) scale(0.55); opacity:0; }
           100% { transform: translate(86vw,44vh) scale(0.55); opacity:0; }
         }
-        /* VENUS 24s-46s */
+        /* VENUS 9s-29s */
         @keyframes flyVenus {
           0%   { transform: translate(10vw,8vh)  scale(0.62); opacity:0; }
           3%   { opacity:0.86; }
-          14%  { transform: translate(50vw,26vh) scale(0.92); opacity:0.86; }
-          18%  { transform: translate(84vw,42vh) scale(0.58); opacity:0; }
+          16%  { transform: translate(50vw,26vh) scale(0.92); opacity:0.86; }
+          22%  { transform: translate(84vw,42vh) scale(0.58); opacity:0; }
           100% { transform: translate(84vw,42vh) scale(0.58); opacity:0; }
         }
-        /* EARTH 48s-70s */
+        /* EARTH 18s-38s */
         @keyframes flyEarth {
           0%   { transform: translate(6vw,12vh)  scale(0.65); opacity:0; }
           3%   { opacity:0.90; }
-          14%  { transform: translate(48vw,24vh) scale(0.95); opacity:0.90; }
-          18%  { transform: translate(82vw,40vh) scale(0.60); opacity:0; }
+          16%  { transform: translate(48vw,24vh) scale(0.95); opacity:0.90; }
+          22%  { transform: translate(82vw,40vh) scale(0.60); opacity:0; }
           100% { transform: translate(82vw,40vh) scale(0.60); opacity:0; }
         }
-        /* MARS 72s-94s (enters right exits left — variety) */
+        /* MARS 27s-47s (enters right exits left — variety) */
         @keyframes flyMars {
           0%   { transform: translate(82vw,10vh) scale(0.60); opacity:0; }
           3%   { opacity:0.88; }
-          14%  { transform: translate(42vw,28vh) scale(0.90); opacity:0.88; }
-          18%  { transform: translate(10vw,44vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(42vw,28vh) scale(0.90); opacity:0.88; }
+          22%  { transform: translate(10vw,44vh) scale(0.56); opacity:0; }
           100% { transform: translate(10vw,44vh) scale(0.56); opacity:0; }
         }
-        /* ASTEROID BELT 96s-112s */
+        /* ASTEROID BELT 36s-54s */
         @keyframes flyAsteroids {
           0%   { transform: translate(14vw,14vh) scale(0.70); opacity:0; }
           3%   { opacity:0.82; }
-          12%  { transform: translate(54vw,30vh) scale(0.90); opacity:0.82; }
-          16%  { transform: translate(80vw,46vh) scale(0.60); opacity:0; }
+          15%  { transform: translate(54vw,30vh) scale(0.90); opacity:0.82; }
+          20%  { transform: translate(80vw,46vh) scale(0.60); opacity:0; }
           100% { transform: translate(80vw,46vh) scale(0.60); opacity:0; }
         }
-        /* JUPITER 114s-138s */
+        /* JUPITER 45s-65s */
         @keyframes flyJupiter {
           0%   { transform: translate(80vw,8vh)  scale(0.60); opacity:0; }
           3%   { opacity:0.88; }
-          14%  { transform: translate(44vw,22vh) scale(0.92); opacity:0.88; }
-          18%  { transform: translate(8vw,38vh)  scale(0.55); opacity:0; }
+          16%  { transform: translate(44vw,22vh) scale(0.92); opacity:0.88; }
+          22%  { transform: translate(8vw,38vh)  scale(0.55); opacity:0; }
           100% { transform: translate(8vw,38vh)  scale(0.55); opacity:0; }
         }
-        /* SATURN 140s-162s */
+        /* SATURN 54s-74s */
         @keyframes flySaturn {
           0%   { transform: translate(10vw,6vh)  scale(0.58); opacity:0; }
           3%   { opacity:0.85; }
-          14%  { transform: translate(46vw,22vh) scale(0.88); opacity:0.85; }
-          18%  { transform: translate(80vw,36vh) scale(0.54); opacity:0; }
+          16%  { transform: translate(46vw,22vh) scale(0.88); opacity:0.85; }
+          22%  { transform: translate(80vw,36vh) scale(0.54); opacity:0; }
           100% { transform: translate(80vw,36vh) scale(0.54); opacity:0; }
         }
-        /* URANUS 164s-186s */
+        /* URANUS 63s-83s */
         @keyframes flyUranus {
           0%   { transform: translate(78vw,12vh) scale(0.60); opacity:0; }
           3%   { opacity:0.84; }
-          14%  { transform: translate(42vw,26vh) scale(0.90); opacity:0.84; }
-          18%  { transform: translate(12vw,42vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(42vw,26vh) scale(0.90); opacity:0.84; }
+          22%  { transform: translate(12vw,42vh) scale(0.56); opacity:0; }
           100% { transform: translate(12vw,42vh) scale(0.56); opacity:0; }
         }
-        /* NEPTUNE 188s-210s */
+        /* NEPTUNE 72s-92s */
         @keyframes flyNeptune {
           0%   { transform: translate(12vw,10vh) scale(0.62); opacity:0; }
           3%   { opacity:0.88; }
-          14%  { transform: translate(50vw,24vh) scale(0.92); opacity:0.88; }
-          18%  { transform: translate(84vw,40vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(50vw,24vh) scale(0.92); opacity:0.88; }
+          22%  { transform: translate(84vw,40vh) scale(0.56); opacity:0; }
           100% { transform: translate(84vw,40vh) scale(0.56); opacity:0; }
         }
-        /* PLUTO 212s-228s */
+        /* PLUTO 81s-99s */
         @keyframes flyPluto {
           0%   { transform: translate(76vw,14vh) scale(0.52); opacity:0; }
           3%   { opacity:0.78; }
-          12%  { transform: translate(42vw,28vh) scale(0.75); opacity:0.78; }
-          16%  { transform: translate(14vw,44vh) scale(0.48); opacity:0; }
+          15%  { transform: translate(42vw,28vh) scale(0.75); opacity:0.78; }
+          20%  { transform: translate(14vw,44vh) scale(0.48); opacity:0; }
           100% { transform: translate(14vw,44vh) scale(0.48); opacity:0; }
         }
 
@@ -337,7 +337,7 @@ export default function SpaceAnomalies() {
             1. MERCURY — heavily cratered grey body
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyMercury 240s linear infinite 0s both", filter:"url(#shadow3d)" }}>
+          animation:"flyMercury 90s linear infinite 0s both", filter:"url(#shadow3d)" }}>
           <svg width="72" height="72" viewBox="0 0 72 72"
             style={{ filter:"drop-shadow(0 0 12px rgba(180,170,160,0.40))" }}>
             <defs><clipPath id="mercClip"><circle cx="36" cy="36" r="32"/></clipPath></defs>
@@ -368,7 +368,7 @@ export default function SpaceAnomalies() {
             2. VENUS — thick sulphuric cloud atmosphere
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyVenus 240s linear infinite 24s both", filter:"url(#shadow3d)" }}>
+          animation:"flyVenus 90s linear infinite 9s both", filter:"url(#shadow3d)" }}>
           <svg width="88" height="88" viewBox="0 0 88 88"
             style={{ filter:"drop-shadow(0 0 20px rgba(220,160,0,0.40))" }}>
             <defs><clipPath id="venClip"><circle cx="44" cy="44" r="38"/></clipPath></defs>
@@ -400,7 +400,7 @@ export default function SpaceAnomalies() {
             3. EARTH — continents, oceans, polar caps, clouds
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyEarth 240s linear infinite 48s both", filter:"url(#shadow3d)" }}>
+          animation:"flyEarth 90s linear infinite 18s both", filter:"url(#shadow3d)" }}>
           <svg width="110" height="110" viewBox="0 0 110 110"
             style={{ filter:"drop-shadow(0 0 24px rgba(14,165,233,0.42))" }}>
             <defs><clipPath id="earthClip"><circle cx="55" cy="55" r="50"/></clipPath></defs>
@@ -448,7 +448,7 @@ export default function SpaceAnomalies() {
             4. MARS — Valles Marineris, Olympus Mons, polar ice
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyMars 240s linear infinite 72s both", filter:"url(#shadow3d)" }}>
+          animation:"flyMars 90s linear infinite 27s both", filter:"url(#shadow3d)" }}>
           <svg width="90" height="90" viewBox="0 0 90 90"
             style={{ filter:"drop-shadow(0 0 18px rgba(200,70,30,0.45))" }}>
             <defs><clipPath id="marsClip"><circle cx="45" cy="45" r="42"/></clipPath></defs>
@@ -498,7 +498,7 @@ export default function SpaceAnomalies() {
             5. ASTEROID BELT — 15 varied 3D rocks + debris
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyAsteroids 240s linear infinite 96s both" }}>
+          animation:"flyAsteroids 90s linear infinite 36s both" }}>
           <svg width="210" height="130" viewBox="0 0 210 130"
             style={{ filter:"drop-shadow(0 0 12px rgba(160,140,100,0.32))" }}>
             {[
@@ -546,7 +546,7 @@ export default function SpaceAnomalies() {
             6. JUPITER — 5 bands, GRS, 3 Galilean moons
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyJupiter 240s linear infinite 114s both", filter:"url(#shadow3d)" }}>
+          animation:"flyJupiter 90s linear infinite 45s both", filter:"url(#shadow3d)" }}>
           <svg width="148" height="148" viewBox="0 0 148 148"
             style={{ filter:"drop-shadow(0 0 30px rgba(217,119,6,0.38))" }}>
             <defs><clipPath id="jupClip"><circle cx="74" cy="74" r="66"/></clipPath></defs>
@@ -595,7 +595,7 @@ export default function SpaceAnomalies() {
             7. SATURN — layered ring system, Titan moon
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flySaturn 240s linear infinite 140s both", filter:"url(#shadow3d)" }}>
+          animation:"flySaturn 90s linear infinite 54s both", filter:"url(#shadow3d)" }}>
           <svg width="240" height="148" viewBox="0 0 240 148"
             style={{ filter:"drop-shadow(0 0 28px rgba(245,158,11,0.34))" }}>
             <defs>
@@ -650,7 +650,7 @@ export default function SpaceAnomalies() {
             8. URANUS — near-vertical tilted rings (97° tilt), icy
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyUranus 240s linear infinite 164s both", filter:"url(#shadow3d)" }}>
+          animation:"flyUranus 90s linear infinite 63s both", filter:"url(#shadow3d)" }}>
           <svg width="140" height="140" viewBox="0 0 140 140"
             style={{ filter:"drop-shadow(0 0 22px rgba(94,207,207,0.40))" }}>
             <defs>
@@ -702,7 +702,7 @@ export default function SpaceAnomalies() {
             9. NEPTUNE — Great Dark Spot, Scooter, ring arcs
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyNeptune 240s linear infinite 188s both", filter:"url(#shadow3d)" }}>
+          animation:"flyNeptune 90s linear infinite 72s both", filter:"url(#shadow3d)" }}>
           <svg width="116" height="116" viewBox="0 0 116 116"
             style={{ filter:"drop-shadow(0 0 24px rgba(28,100,220,0.44))" }}>
             <defs><clipPath id="nepClip"><circle cx="58" cy="58" r="50"/></clipPath></defs>
@@ -747,7 +747,7 @@ export default function SpaceAnomalies() {
             10. PLUTO — Tombaugh Regio heart, Charon
             ====================================================== */}
         <div style={{ position:"absolute", top:0, left:0, opacity:0,
-          animation:"flyPluto 240s linear infinite 212s both", filter:"url(#shadow3d)" }}>
+          animation:"flyPluto 90s linear infinite 81s both", filter:"url(#shadow3d)" }}>
           <svg width="68" height="68" viewBox="0 0 68 68"
             style={{ filter:"drop-shadow(0 0 10px rgba(160,140,120,0.38))" }}>
             <defs><clipPath id="pluClip"><circle cx="34" cy="34" r="28"/></clipPath></defs>
