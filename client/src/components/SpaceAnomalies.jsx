@@ -31,83 +31,83 @@ export default function SpaceAnomalies() {
 
         /* MERCURY 0s-20s */
         @keyframes flyMercury {
-          0%   { transform: translate(8vw,10vh)  scale(0.60); opacity:0; }
+          0%   { transform: translate(8vw,10vh)  scale(0.44); opacity:0; }
           3%   { opacity:0.88; }
-          16%  { transform: translate(52vw,28vh) scale(0.88); opacity:0.88; }
-          22%  { transform: translate(86vw,44vh) scale(0.55); opacity:0; }
-          100% { transform: translate(86vw,44vh) scale(0.55); opacity:0; }
+          16%  { transform: translate(52vw,28vh) scale(0.48); opacity:0.88; }
+          22%  { transform: translate(86vw,44vh) scale(0.44); opacity:0; }
+          100% { transform: translate(86vw,44vh) scale(0.44); opacity:0; }
         }
         /* VENUS 9s-29s */
         @keyframes flyVenus {
-          0%   { transform: translate(10vw,8vh)  scale(0.62); opacity:0; }
+          0%   { transform: translate(10vw,8vh)  scale(0.46); opacity:0; }
           3%   { opacity:0.86; }
-          16%  { transform: translate(50vw,26vh) scale(0.92); opacity:0.86; }
-          22%  { transform: translate(84vw,42vh) scale(0.58); opacity:0; }
-          100% { transform: translate(84vw,42vh) scale(0.58); opacity:0; }
+          16%  { transform: translate(50vw,26vh) scale(0.50); opacity:0.86; }
+          22%  { transform: translate(84vw,42vh) scale(0.46); opacity:0; }
+          100% { transform: translate(84vw,42vh) scale(0.46); opacity:0; }
         }
         /* EARTH 18s-38s */
         @keyframes flyEarth {
-          0%   { transform: translate(6vw,12vh)  scale(0.65); opacity:0; }
+          0%   { transform: translate(6vw,12vh)  scale(0.48); opacity:0; }
           3%   { opacity:0.90; }
-          16%  { transform: translate(48vw,24vh) scale(0.95); opacity:0.90; }
-          22%  { transform: translate(82vw,40vh) scale(0.60); opacity:0; }
-          100% { transform: translate(82vw,40vh) scale(0.60); opacity:0; }
+          16%  { transform: translate(48vw,24vh) scale(0.52); opacity:0.90; }
+          22%  { transform: translate(82vw,40vh) scale(0.48); opacity:0; }
+          100% { transform: translate(82vw,40vh) scale(0.48); opacity:0; }
         }
         /* MARS 27s-47s (Top-Left to Bottom-Right) */
         @keyframes flyMars {
-          0%   { transform: translate(8vw,10vh)  scale(0.60); opacity:0; }
+          0%   { transform: translate(8vw,10vh)  scale(0.45); opacity:0; }
           3%   { opacity:0.88; }
-          16%  { transform: translate(50vw,26vh) scale(0.90); opacity:0.88; }
-          22%  { transform: translate(84vw,42vh) scale(0.56); opacity:0; }
-          100% { transform: translate(84vw,42vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(50vw,26vh) scale(0.49); opacity:0.88; }
+          22%  { transform: translate(84vw,42vh) scale(0.45); opacity:0; }
+          100% { transform: translate(84vw,42vh) scale(0.45); opacity:0; }
         }
         /* ASTEROID CERES 36s-54s */
         @keyframes flyAsteroids {
-          0%   { transform: translate(10vw,12vh) scale(0.70); opacity:0; }
+          0%   { transform: translate(10vw,12vh) scale(0.46); opacity:0; }
           3%   { opacity:0.88; }
-          15%  { transform: translate(52vw,28vh) scale(0.95); opacity:0.88; }
-          20%  { transform: translate(82vw,44vh) scale(0.60); opacity:0; }
-          100% { transform: translate(82vw,44vh) scale(0.60); opacity:0; }
+          15%  { transform: translate(52vw,28vh) scale(0.50); opacity:0.88; }
+          20%  { transform: translate(82vw,44vh) scale(0.46); opacity:0; }
+          100% { transform: translate(82vw,44vh) scale(0.46); opacity:0; }
         }
         /* JUPITER 45s-65s (Top-Left to Bottom-Right) */
         @keyframes flyJupiter {
-          0%   { transform: translate(6vw,8vh)   scale(0.60); opacity:0; }
+          0%   { transform: translate(6vw,8vh)   scale(0.48); opacity:0; }
           3%   { opacity:0.88; }
-          16%  { transform: translate(48vw,22vh) scale(0.92); opacity:0.88; }
-          22%  { transform: translate(82vw,38vh) scale(0.55); opacity:0; }
-          100% { transform: translate(82vw,38vh) scale(0.55); opacity:0; }
+          16%  { transform: translate(48vw,22vh) scale(0.54); opacity:0.88; }
+          22%  { transform: translate(82vw,38vh) scale(0.48); opacity:0; }
+          100% { transform: translate(82vw,38vh) scale(0.48); opacity:0; }
         }
         /* SATURN 54s-74s */
         @keyframes flySaturn {
-          0%   { transform: translate(10vw,6vh)  scale(0.58); opacity:0; }
+          0%   { transform: translate(10vw,6vh)  scale(0.46); opacity:0; }
           3%   { opacity:0.85; }
-          16%  { transform: translate(46vw,22vh) scale(0.88); opacity:0.85; }
-          22%  { transform: translate(80vw,36vh) scale(0.54); opacity:0; }
-          100% { transform: translate(80vw,36vh) scale(0.54); opacity:0; }
+          16%  { transform: translate(46vw,22vh) scale(0.52); opacity:0.85; }
+          22%  { transform: translate(80vw,36vh) scale(0.46); opacity:0; }
+          100% { transform: translate(80vw,36vh) scale(0.46); opacity:0; }
         }
         /* URANUS 63s-83s (Top-Left to Bottom-Right) */
         @keyframes flyUranus {
-          0%   { transform: translate(8vw,10vh)  scale(0.60); opacity:0; }
+          0%   { transform: translate(8vw,10vh)  scale(0.45); opacity:0; }
           3%   { opacity:0.84; }
-          16%  { transform: translate(48vw,24vh) scale(0.90); opacity:0.84; }
-          22%  { transform: translate(82vw,40vh) scale(0.56); opacity:0; }
-          100% { transform: translate(82vw,40vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(48vw,24vh) scale(0.49); opacity:0.84; }
+          22%  { transform: translate(82vw,40vh) scale(0.45); opacity:0; }
+          100% { transform: translate(82vw,40vh) scale(0.45); opacity:0; }
         }
         /* NEPTUNE 72s-92s */
         @keyframes flyNeptune {
-          0%   { transform: translate(12vw,10vh) scale(0.62); opacity:0; }
+          0%   { transform: translate(12vw,10vh) scale(0.46); opacity:0; }
           3%   { opacity:0.88; }
-          16%  { transform: translate(50vw,24vh) scale(0.92); opacity:0.88; }
-          22%  { transform: translate(84vw,40vh) scale(0.56); opacity:0; }
-          100% { transform: translate(84vw,40vh) scale(0.56); opacity:0; }
+          16%  { transform: translate(50vw,24vh) scale(0.50); opacity:0.88; }
+          22%  { transform: translate(84vw,40vh) scale(0.46); opacity:0; }
+          100% { transform: translate(84vw,40vh) scale(0.46); opacity:0; }
         }
         /* PLUTO 81s-99s (Top-Left to Bottom-Right) */
         @keyframes flyPluto {
-          0%   { transform: translate(10vw,12vh) scale(0.52); opacity:0; }
+          0%   { transform: translate(10vw,12vh) scale(0.38); opacity:0; }
           3%   { opacity:0.78; }
-          15%  { transform: translate(48vw,26vh) scale(0.75); opacity:0.78; }
-          20%  { transform: translate(82vw,42vh) scale(0.48); opacity:0; }
-          100% { transform: translate(82vw,42vh) scale(0.48); opacity:0; }
+          15%  { transform: translate(48vw,26vh) scale(0.42); opacity:0.78; }
+          20%  { transform: translate(82vw,42vh) scale(0.38); opacity:0; }
+          100% { transform: translate(82vw,42vh) scale(0.38); opacity:0; }
         }
 
         @keyframes starTwinkle {

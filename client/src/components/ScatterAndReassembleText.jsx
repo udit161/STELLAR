@@ -164,37 +164,37 @@ export default function ScatterAndReassembleText() {
   return (
     <div style={{ position: "relative", perspective: "1200px", transformStyle: "preserve-3d" }}>
       <style>{`
-        /* Smooth 3D Spiral Orbit around SatQuery AI (24s cycle — 40% slower) */
+        /* Smooth 3D Spiral Orbit around SatQuery AI (24s cycle — constant small scale) */
         @keyframes orbitChandrayaan {
           0% {
-            transform: translate3d(-36vw, -12vh, -90px) rotate(-12deg) scale(0.65);
+            transform: translate3d(-36vw, -12vh, -90px) rotate(-12deg) scale(0.46);
             opacity: 0.45;
             z-index: 0;
-            filter: drop-shadow(0 0 5px rgba(14,165,233,0.25)) blur(1px);
+            filter: drop-shadow(0 0 4px rgba(14,165,233,0.25)) blur(1px);
           }
           25% {
-            transform: translate3d(0vw, -16vh, 0px) rotate(4deg) scale(0.85);
+            transform: translate3d(0vw, -16vh, 0px) rotate(4deg) scale(0.49);
             opacity: 0.85;
             z-index: 2;
-            filter: drop-shadow(0 0 10px rgba(14,165,233,0.55));
+            filter: drop-shadow(0 0 8px rgba(14,165,233,0.5));
           }
           50% {
-            transform: translate3d(36vw, 10vh, 110px) rotate(22deg) scale(1.15);
-            opacity: 1;
+            transform: translate3d(36vw, 10vh, 110px) rotate(22deg) scale(0.52);
+            opacity: 0.95;
             z-index: 25;
-            filter: drop-shadow(0 0 20px rgba(14,165,233,0.9));
+            filter: drop-shadow(0 0 12px rgba(14,165,233,0.7));
           }
           75% {
-            transform: translate3d(0vw, 18vh, 20px) rotate(4deg) scale(0.90);
+            transform: translate3d(0vw, 18vh, 20px) rotate(4deg) scale(0.49);
             opacity: 0.88;
             z-index: 25;
-            filter: drop-shadow(0 0 14px rgba(14,165,233,0.7));
+            filter: drop-shadow(0 0 10px rgba(14,165,233,0.6));
           }
           100% {
-            transform: translate3d(-36vw, -12vh, -90px) rotate(-12deg) scale(0.65);
+            transform: translate3d(-36vw, -12vh, -90px) rotate(-12deg) scale(0.46);
             opacity: 0.45;
             z-index: 0;
-            filter: drop-shadow(0 0 5px rgba(14,165,233,0.25)) blur(1px);
+            filter: drop-shadow(0 0 4px rgba(14,165,233,0.25)) blur(1px);
           }
         }
 
