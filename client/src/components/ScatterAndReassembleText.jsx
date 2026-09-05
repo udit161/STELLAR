@@ -6,22 +6,22 @@ const TEXT = "SatQuery AI.".toUpperCase();
 // Color palette (cycled per letter)
 const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082", "#D8D365", "#605B51", "#454040", "#D8D365", "#E6F082", "#D8D365"];
 
-// Multilingual SatQuery AI translations floating around the main title (outer perimeter padding, zero overlap)
+// Multilingual SatQuery AI translations floating around the main title (uneven staggered positions, zero overlap with '.')
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-68px",  left: "-6%",   delay: "0s",   dur: "4.2s", color: "#D8D365" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-78px",  left: "24%",  delay: "0.8s", dur: "5.0s", color: "#E6F082" },
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    top: "-78px",  left: "54%",  delay: "1.4s", dur: "4.6s", color: "#D8D365" },
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-68px",  left: "84%",  delay: "0.4s", dur: "5.2s", color: "#E6F082" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-52px",  left: "-8%",   delay: "0s",   dur: "4.2s", color: "#D8D365" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-96px",  left: "18%",  delay: "0.8s", dur: "5.0s", color: "#E6F082" },
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    top: "-58px",  left: "52%",  delay: "1.4s", dur: "4.6s", color: "#D8D365" },
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-92px",  left: "82%",  delay: "0.4s", dur: "5.2s", color: "#E6F082" },
 
-  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "10%",    right: "-185px",delay:"1.2s", dur: "4.4s", color: "#D8D365" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "60%",    right: "-195px",delay:"0.6s", dur: "4.8s", color: "#E6F082" },
+  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "5%",     right: "-230px",delay:"1.2s", dur: "4.4s", color: "#D8D365" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "75%",    right: "-240px",delay:"0.6s", dur: "4.8s", color: "#E6F082" },
 
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-68px",right: "-6%", delay: "1.6s", dur: "5.4s", color: "#D8D365" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-78px",left: "36%",  delay: "0.2s", dur: "4.5s", color: "#E6F082" },
-  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-68px",left: "-6%",  delay: "1.0s", dur: "4.9s", color: "#D8D365" },
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-55px",right: "-12%", delay: "1.6s", dur: "5.4s", color: "#D8D365" },
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-95px",left: "34%",  delay: "0.2s", dur: "4.5s", color: "#E6F082" },
+  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-58px",left: "-8%",  delay: "1.0s", dur: "4.9s", color: "#D8D365" },
 
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "60%",    left: "-195px",delay:"0.5s", dur: "5.1s", color: "#E6F082" },
-  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-185px",delay:"1.8s", dur: "4.7s", color: "#D8D365" },
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "75%",    left: "-230px",delay:"0.5s", dur: "5.1s", color: "#E6F082" },
+  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "5%",     left: "-220px",delay:"1.8s", dur: "4.7s", color: "#D8D365" },
 ];
 
 const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
