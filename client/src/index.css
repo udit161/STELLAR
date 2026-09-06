@@ -13,10 +13,10 @@
                           --cyan-accent: #22d3ee;
                           --red-accent: #ff3d2b;
 
-                          --palette-purple-1: rgb(99, 89, 133);
-                          --palette-purple-2: rgb(68, 60, 104);
-                          --palette-purple-3: rgb(57, 48, 83);
-                          --palette-purple-4: rgb(24, 18, 43);
+                          --palette-purple-1: rgb(228, 90, 146);
+                          --palette-purple-2: rgb(255, 172, 172);
+                          --palette-purple-3: rgb(228, 90, 146);
+                          --palette-purple-4: rgb(255, 172, 172);
 
                           --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                           --font-heading: 'Outfit', var(--font-sans);
