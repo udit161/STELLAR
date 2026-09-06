@@ -168,15 +168,21 @@ export default function ScatterAndReassembleText() {
   }, []);
 
   return (
-    <div style={{ position: "relative", perspective: "1200px", transformStyle: "preserve-3d" }}>
+    <div style={{ position: "relative", perspective: "1200px", transformStyle: "preserve-3d", transform: "scale(0.8)", transformOrigin: "center center" }}>
       <style>{`
-        /* Continuous 3D Circular Orbit around SatQuery AI text */
+        /* Smooth 3D Orbital Trajectory with 8-point trigonometric keyframes */
         @keyframes orbitChandrayaan {
           0% {
-            transform: translate3d(-36vw, -12vh, -90px) rotate(-12deg) scale(0.46);
+            transform: translate3d(-36vw, 0vh, -100px) rotate(-12deg) scale(0.45);
             opacity: 0.45;
             z-index: 0;
             filter: drop-shadow(0 0 4px rgba(14,165,233,0.25)) blur(1px);
+          }
+          12.5% {
+            transform: translate3d(-25vw, -11vh, -50px) rotate(-6deg) scale(0.47);
+            opacity: 0.65;
+            z-index: 1;
+            filter: drop-shadow(0 0 6px rgba(14,165,233,0.35));
           }
           25% {
             transform: translate3d(0vw, -16vh, 0px) rotate(4deg) scale(0.49);
@@ -184,11 +190,23 @@ export default function ScatterAndReassembleText() {
             z-index: 2;
             filter: drop-shadow(0 0 8px rgba(14,165,233,0.5));
           }
+          37.5% {
+            transform: translate3d(25vw, -6vh, 55px) rotate(14deg) scale(0.51);
+            opacity: 0.92;
+            z-index: 20;
+            filter: drop-shadow(0 0 10px rgba(14,165,233,0.65));
+          }
           50% {
-            transform: translate3d(36vw, 10vh, 110px) rotate(22deg) scale(0.52);
-            opacity: 0.95;
+            transform: translate3d(36vw, 10vh, 110px) rotate(22deg) scale(0.53);
+            opacity: 0.96;
             z-index: 25;
             filter: drop-shadow(0 0 12px rgba(14,165,233,0.7));
+          }
+          62.5% {
+            transform: translate3d(22vw, 17vh, 70px) rotate(14deg) scale(0.51);
+            opacity: 0.92;
+            z-index: 25;
+            filter: drop-shadow(0 0 11px rgba(14,165,233,0.65));
           }
           75% {
             transform: translate3d(0vw, 18vh, 20px) rotate(4deg) scale(0.49);
@@ -196,8 +214,14 @@ export default function ScatterAndReassembleText() {
             z-index: 25;
             filter: drop-shadow(0 0 10px rgba(14,165,233,0.6));
           }
+          87.5% {
+            transform: translate3d(-22vw, 11vh, -40px) rotate(-6deg) scale(0.47);
+            opacity: 0.65;
+            z-index: 0;
+            filter: drop-shadow(0 0 6px rgba(14,165,233,0.35)) blur(0.5px);
+          }
           100% {
-            transform: translate3d(-36vw, -12vh, -90px) rotate(-12deg) scale(0.46);
+            transform: translate3d(-36vw, 0vh, -100px) rotate(-12deg) scale(0.45);
             opacity: 0.45;
             z-index: 0;
             filter: drop-shadow(0 0 4px rgba(14,165,233,0.25)) blur(1px);
@@ -205,8 +229,8 @@ export default function ScatterAndReassembleText() {
         }
 
         @keyframes pulsePlume {
-          0%   { transform: translateY(-50%) scaleX(0.7); opacity: 0.65; }
-          100% { transform: translateY(-50%) scaleX(1.25); opacity: 1; }
+          0%   { transform: translateY(-50%) scaleX(0.75); opacity: 0.65; }
+          100% { transform: translateY(-50%) scaleX(1.2); opacity: 0.95; }
         }
 
         @keyframes orbitDash {
@@ -216,12 +240,12 @@ export default function ScatterAndReassembleText() {
 
         @keyframes langTwinkleFloat {
           0%, 100% {
-            transform: translateY(0px) scale(0.96);
+            transform: translate3d(0, 0px, 0) scale(0.96);
             opacity: 0.65;
             filter: brightness(1.0);
           }
           50% {
-            transform: translateY(-7px) scale(1.03);
+            transform: translate3d(0, -8px, 0) scale(1.03);
             opacity: 1;
             filter: brightness(1.35);
           }
@@ -242,13 +266,15 @@ export default function ScatterAndReassembleText() {
             fontWeight: 800,
             fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
             color: item.color,
-            textShadow: `0 0 16px rgba(53, 162, 159, 0.45), 0 0 3px ${item.color}`,
+            textShadow: `0 0 16px rgba(253, 175, 123, 0.4), 0 0 3px ${item.color}`,
             letterSpacing: "0.02em",
             whiteSpace: "nowrap",
             pointerEvents: "none",
             userSelect: "none",
             zIndex: 14,
-            animation: `langTwinkleFloat 2.6s ease-in-out infinite alternate ${item.delay}`,
+            animation: `langTwinkleFloat 3.2s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate ${item.delay}`,
+            willChange: "transform, opacity",
+            backfaceVisibility: "hidden",
           }}
         >
           {item.text}
@@ -285,7 +311,9 @@ export default function ScatterAndReassembleText() {
         top: "50%",
         left: "50%",
         transformStyle: "preserve-3d",
-        animation: "orbitChandrayaan 24s linear infinite",
+        animation: "orbitChandrayaan 28s cubic-bezier(0.37, 0, 0.63, 1) infinite",
+        willChange: "transform, opacity, filter",
+        backfaceVisibility: "hidden",
         pointerEvents: "none",
       }}>
         <ChandrayaanSatellite />
@@ -319,24 +347,24 @@ export default function ScatterAndReassembleText() {
           let transition;
           if (phase === "scattered") {
             transition = {
-              duration: SCATTER_TRANSITION_MS / 1000,
-              ease: "easeInOut",
+              duration: 1.4,
+              ease: [0.25, 0.1, 0.25, 1],
             };
           } else if (phase === "reassembling") {
             transition = {
               type: "spring",
-              stiffness: 60,
-              damping: 22,
-              mass: 1,
+              stiffness: 42,
+              damping: 18,
+              mass: 0.8,
               restDelta: 0.001,
               restSpeed: 0.001,
             };
           } else {
             transition = {
-              opacity: { duration: 0.4, ease: "easeOut" },
+              opacity: { duration: 0.5, ease: "easeOut" },
               y: {
-                duration,
-                ease: "easeInOut",
+                duration: duration * 1.1,
+                ease: [0.42, 0, 0.58, 1],
                 repeat: Infinity,
                 repeatType: "mirror",
               },
@@ -355,6 +383,8 @@ export default function ScatterAndReassembleText() {
                 userSelect: "none",
                 color: isSpace ? "transparent" : (PALETTE[i] ?? "#D8D365"),
                 lineHeight: 1,
+                willChange: "transform, opacity",
+                backfaceVisibility: "hidden",
               }}
               animate={animateTarget}
               transition={transition}
