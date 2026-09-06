@@ -643,22 +643,22 @@
                           padding: 12px 12px 12px 22px;
                           border-radius: 100px;
 
-                          /* True black glass — deep, clean, premium */
+                          /* True black glass — 70% opaque, merges with background */
                           background:
                             linear-gradient(160deg,
-                              rgba(18, 18, 22, 0.95) 0%,
-                              rgba(8, 8, 12, 0.97) 40%,
-                              rgba(14, 14, 18, 0.96) 70%,
-                              rgba(10, 10, 14, 0.95) 100%);
-                          backdrop-filter: blur(60px) saturate(120%);
-                          -webkit-backdrop-filter: blur(60px) saturate(120%);
+                              rgba(18, 18, 22, 0.70) 0%,
+                              rgba(8, 8, 12, 0.72) 40%,
+                              rgba(14, 14, 18, 0.70) 70%,
+                              rgba(10, 10, 14, 0.68) 100%);
+                          backdrop-filter: blur(40px) saturate(130%);
+                          -webkit-backdrop-filter: blur(40px) saturate(130%);
 
                           /* Clean monochrome border — no glow */
-                          border: 1px solid rgba(255, 255, 255, 0.09);
+                          border: 1px solid rgba(255, 255, 255, 0.07);
                           box-shadow:
-                            0 8px 32px rgba(0, 0, 0, 0.65),
-                            0 2px 8px rgba(0, 0, 0, 0.4),
-                            inset 0 1px 0 rgba(255, 255, 255, 0.07);
+                            0 8px 32px rgba(0, 0, 0, 0.45),
+                            0 2px 8px rgba(0, 0, 0, 0.3),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
                           transition: border-color 0.35s ease, box-shadow 0.35s ease;
                           position: relative;
