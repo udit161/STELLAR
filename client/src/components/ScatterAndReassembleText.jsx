@@ -8,17 +8,17 @@ const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082
 
 // Multilingual SatQuery AI translations floating around the main title (uneven staggered positions, zero overlap with '.')
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "rgb(99, 89, 133)" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "rgb(68, 60, 104)" }, // Shifted high & left, completely clear of '.'
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "rgb(57, 48, 83)" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "rgb(24, 18, 43)" }, // High top-right, shifted away from Telugu
-  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "rgb(99, 89, 133)" }, // High on right, well clear of '.'
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "rgb(68, 60, 104)" }, // Deep below right side, clear of '.'
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "rgb(57, 48, 83)" }, // Shifted to bottom, uneven & separated from Bengali
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "rgb(24, 18, 43)" },
-  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "rgb(99, 89, 133)" },
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "rgb(68, 60, 104)" },
-  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "rgb(57, 48, 83)" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "rgb(7, 25, 82)" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "rgb(11, 102, 106)" }, // Shifted high & left, completely clear of '.'
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "rgb(53, 162, 159)" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "rgb(151, 254, 237)" }, // High top-right, shifted away from Telugu
+  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "rgb(7, 25, 82)" }, // High on right, well clear of '.'
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "rgb(11, 102, 106)" }, // Deep below right side, clear of '.'
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "rgb(53, 162, 159)" }, // Shifted to bottom, uneven & separated from Bengali
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "rgb(151, 254, 237)" },
+  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "rgb(7, 25, 82)" },
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "rgb(11, 102, 106)" },
+  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "rgb(53, 162, 159)" },
 ];
 
 const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
@@ -58,128 +58,119 @@ function ChandrayaanSatellite() {
       <div style={{
         position: "absolute",
         left: "-18px",
-        top: "38%",
+        top: "50%",
         transform: "translateY(-50%)",
-        width: "20px",
-        height: "9px",
-        background: "radial-gradient(ellipse at right, rgba(56,189,248,0.95), rgba(59,130,246,0.5), transparent)",
+        width: "22px",
+        height: "5px",
+        background: "radial-gradient(ellipse at right, #38bdf8 0%, #818cf8 60%, transparent 100%)",
         borderRadius: "50% 0 0 50%",
-        filter: "blur(1.5px)",
-        animation: "pulsePlume 0.8s ease-in-out infinite alternate"
+        filter: "blur(1px) drop-shadow(0 0 8px #38bdf8)",
+        animation: "pulsePlume 0.2s ease-in-out infinite alternate",
       }} />
 
-      {/* Sleek Compact SVG Body (58x33px) */}
-      <svg width="58" height="33" viewBox="0 0 96 54" style={{ overflow: "visible", filter: "drop-shadow(0 0 8px rgba(56,189,248,0.45))" }}>
+      {/* Main Bus & Solar Panels Assembly */}
+      <svg width="68" height="38" viewBox="0 0 110 60" style={{ filter: "drop-shadow(0 0 14px rgba(14,165,233,0.7))" }}>
         <defs>
-          <linearGradient id="chGold" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ffe082" />
-            <stop offset="35%" stopColor="#ffb300" />
-            <stop offset="70%" stopColor="#ff8f00" />
-            <stop offset="100%" stopColor="#6d4c41" />
+          <linearGradient id="goldMLI" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fef08a" />
+            <stop offset="35%" stopColor="#eab308" />
+            <stop offset="70%" stopColor="#ca8a04" />
+            <stop offset="100%" stopColor="#854d0e" />
           </linearGradient>
           <linearGradient id="solarCell" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#1e3a8a" />
-            <stop offset="50%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#172554" />
+            <stop offset="0%" stopColor="#0c4a6e" />
+            <stop offset="50%" stopColor="#0284c7" />
+            <stop offset="100%" stopColor="#0369a1" />
           </linearGradient>
         </defs>
 
-        {/* Left Solar Panel Array */}
-        <g transform="translate(4, 15)">
-          <rect x="0" y="0" width="26" height="24" rx="2" fill="url(#solarCell)" stroke="#60a5fa" strokeWidth="0.8" />
-          <line x1="8.6" y1="0" x2="8.6" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
-          <line x1="17.3" y1="0" x2="17.3" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
-          <line x1="0" y1="12" x2="26" y2="12" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
-          <rect x="26" y="9" width="6" height="6" fill="#94a3b8" />
+        {/* Left Solar Array (Ultra Detailed 3-Panel) */}
+        <g>
+          <rect x="2" y="16" width="30" height="28" rx="2" fill="#020617" stroke="#38bdf8" strokeWidth="0.8" />
+          <rect x="4" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
+          <rect x="13" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
+          <rect x="22" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
+          <line x1="2" y1="30" x2="32" y2="30" stroke="#bae6fd" strokeWidth="0.5" opacity="0.6" />
+          {/* Strut connector */}
+          <line x1="32" y1="30" x2="38" y2="30" stroke="#cbd5e1" strokeWidth="1.5" />
         </g>
 
-        {/* Right Solar Panel Array */}
-        <g transform="translate(66, 15)">
-          <rect x="0" y="0" width="26" height="24" rx="2" fill="url(#solarCell)" stroke="#60a5fa" strokeWidth="0.8" />
-          <line x1="8.6" y1="0" x2="8.6" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
-          <line x1="17.3" y1="0" x2="17.3" y2="24" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
-          <line x1="0" y1="12" x2="26" y2="12" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
-          <rect x="-6" y="9" width="6" height="6" fill="#94a3b8" />
+        {/* Central Satellite Body (Gold MLI Foil Wrapped Cubesat) */}
+        <g>
+          <rect x="38" y="14" width="34" height="32" rx="3" fill="url(#goldMLI)" stroke="#fef08a" strokeWidth="0.7" />
+          {/* MLI Foil Texture Grid */}
+          <line x1="46" y1="14" x2="46" y2="46" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
+          <line x1="55" y1="14" x2="55" y2="46" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
+          <line x1="64" y1="14" x2="64" y2="46" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
+          <line x1="38" y1="24" x2="72" y2="24" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
+          <line x1="38" y1="34" x2="72" y2="34" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
+
+          {/* High-Gain Parabolic Dish Antenna */}
+          <path d="M55,14 Q55,4 65,3" fill="none" stroke="#e2e8f0" strokeWidth="1.2" />
+          <circle cx="66" cy="3" r="3.5" fill="#f8fafc" stroke="#64748b" strokeWidth="0.8" />
+          <circle cx="66" cy="3" r="1.2" fill="#0284c7" />
+
+          {/* Optical Earth Sensor Aperture */}
+          <circle cx="55" cy="30" r="4.5" fill="#020617" stroke="#38bdf8" strokeWidth="1" />
+          <circle cx="55" cy="30" r="2.5" fill="#0ea5e9" />
+          <circle cx="54" cy="29" r="0.8" fill="#ffffff" />
         </g>
 
-        {/* Central Satellite Body (Gold Thermal Blanket) */}
-        <rect x="32" y="10" width="32" height="34" rx="4" fill="url(#chGold)" stroke="#ffa000" strokeWidth="1" />
-        <path d="M32,18 L64,18 M32,27 L64,27 M32,36 L64,36 M42,10 L42,44 M54,10 L54,44" stroke="rgba(0,0,0,0.25)" strokeWidth="0.7" />
-
-        {/* High-Gain Parabolic Dish Antenna */}
-        <g transform="translate(48, 6)">
-          <path d="M-10,-4 Q0,-12 10,-4 Z" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.8" />
-          <line x1="0" y1="-8" x2="0" y2="-13" stroke="#cbd5e1" strokeWidth="1.2" />
-          <circle cx="0" cy="-13" r="1.5" fill="#ef4444" />
+        {/* Right Solar Array (Ultra Detailed 3-Panel) */}
+        <g>
+          <line x1="72" y1="30" x2="78" y2="30" stroke="#cbd5e1" strokeWidth="1.5" />
+          <rect x="78" y="16" width="30" height="28" rx="2" fill="#020617" stroke="#38bdf8" strokeWidth="0.8" />
+          <rect x="80" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
+          <rect x="89" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
+          <rect x="98" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
+          <line x1="78" y1="30" x2="108" y2="30" stroke="#bae6fd" strokeWidth="0.5" opacity="0.6" />
         </g>
-
-        {/* Main Liquid Rocket Thruster */}
-        <rect x="42" y="44" width="12" height="7" rx="1" fill="#475569" />
-        <polygon points="40,51 56,51 52,44 44,44" fill="#334155" />
-
-        {/* ISRO / Indian Flag Tricolor Badge */}
-        <rect x="36" y="24" width="24" height="2" fill="#ff9933" />
-        <rect x="36" y="26" width="24" height="2" fill="#ffffff" />
-        <rect x="36" y="28" width="24" height="2" fill="#138808" />
-        <circle cx="48" cy="27" r="0.8" fill="#000080" />
       </svg>
-
-      <span style={{
-        marginTop: "1px",
-        fontSize: "6.5px",
-        fontWeight: 800,
-        letterSpacing: "0.12em",
-        color: "rgba(56,189,248,0.9)",
-        fontFamily: "monospace",
-        textShadow: "0 0 5px rgba(56,189,248,0.7)",
-        whiteSpace: "nowrap"
-      }}>
-        CHANDRAYAAN-3
-      </span>
     </div>
   );
 }
 
 export default function ScatterAndReassembleText() {
-  const letters        = useMemo(() => TEXT.split(""), []);
+  const letters = useMemo(() => TEXT.split(""), []);
   const scatterOffsets = useMemo(() => letters.map((_, i) => getScatterOffset(i)), [letters]);
   const floatParams    = useMemo(() => letters.map((_, i) => getFloatParams(i)),   [letters]);
 
-  const [phase, setPhase] = useState("reassembling");
+  const [phase, setPhase] = useState("reassembled");
 
   useEffect(() => {
-    let tid;
+    let t1, t2, t3;
 
-    const runCycle = (isFirst = false) => {
-      const holdMs = isFirst ? 400 : FLOAT_HOLD_MS;
-
-      tid = setTimeout(() => {
+    function runCycle() {
+      // 1. Float cleanly
+      t1 = setTimeout(() => {
         setPhase("scattered");
 
-        tid = setTimeout(() => {
+        // 2. Pause scattered
+        t2 = setTimeout(() => {
           setPhase("reassembling");
 
-          tid = setTimeout(() => {
-            setPhase("floating");
-            runCycle(false);
+          // 3. Spring reassemble
+          t3 = setTimeout(() => {
+            setPhase("reassembled");
+            runCycle();
           }, REASSEMBLE_SETTLE_MS);
-
         }, SCATTER_TRANSITION_MS + SCATTER_HOLD_MS);
-      }, holdMs);
+      }, FLOAT_HOLD_MS);
+    }
+
+    runCycle();
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
     };
-
-    tid = setTimeout(() => {
-      setPhase("floating");
-      runCycle(true);
-    }, REASSEMBLE_SETTLE_MS);
-
-    return () => clearTimeout(tid);
   }, []);
 
   return (
     <div style={{ position: "relative", perspective: "1200px", transformStyle: "preserve-3d" }}>
       <style>{`
-        /* Smooth 3D Spiral Orbit around SatQuery AI (24s cycle — constant small scale) */
+        /* Continuous 3D Circular Orbit around SatQuery AI text */
         @keyframes orbitChandrayaan {
           0% {
             transform: translate3d(-36vw, -12vh, -90px) rotate(-12deg) scale(0.46);
@@ -251,7 +242,7 @@ export default function ScatterAndReassembleText() {
             fontWeight: 800,
             fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
             color: item.color,
-            textShadow: `0 0 16px rgba(99, 89, 133, 0.45), 0 0 3px ${item.color}`,
+            textShadow: `0 0 16px rgba(53, 162, 159, 0.45), 0 0 3px ${item.color}`,
             letterSpacing: "0.02em",
             whiteSpace: "nowrap",
             pointerEvents: "none",
