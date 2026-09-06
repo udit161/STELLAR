@@ -8,17 +8,17 @@ const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082
 
 // Multilingual SatQuery AI translations floating around the main title (uneven staggered positions, zero overlap with '.')
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "rgb(68, 49, 153)" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "rgb(121, 44, 162)" },
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "rgb(193, 51, 131)" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "rgb(224, 84, 84)" },
-  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "rgb(68, 49, 153)" },
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "rgb(121, 44, 162)" },
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "rgb(193, 51, 131)" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "rgb(224, 84, 84)" },
-  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "rgb(68, 49, 153)" },
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "rgb(121, 44, 162)" },
-  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "rgb(193, 51, 131)" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "rgb(99, 89, 133)" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "rgb(68, 60, 104)" }, // Shifted high & left, completely clear of '.'
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "rgb(57, 48, 83)" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "rgb(24, 18, 43)" }, // High top-right, shifted away from Telugu
+  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "rgb(99, 89, 133)" }, // High on right, well clear of '.'
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "rgb(68, 60, 104)" }, // Deep below right side, clear of '.'
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "rgb(57, 48, 83)" }, // Shifted to bottom, uneven & separated from Bengali
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "rgb(24, 18, 43)" },
+  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "rgb(99, 89, 133)" },
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "rgb(68, 60, 104)" },
+  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "rgb(57, 48, 83)" },
 ];
 
 const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
@@ -226,13 +226,13 @@ export default function ScatterAndReassembleText() {
         @keyframes langTwinkleFloat {
           0%, 100% {
             transform: translateY(0px) scale(0.96);
-            opacity: 0.55;
-            filter: brightness(0.95);
+            opacity: 0.65;
+            filter: brightness(1.0);
           }
           50% {
             transform: translateY(-7px) scale(1.03);
             opacity: 1;
-            filter: brightness(1.3);
+            filter: brightness(1.35);
           }
         }
       `}</style>
@@ -251,7 +251,7 @@ export default function ScatterAndReassembleText() {
             fontWeight: 800,
             fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
             color: item.color,
-            textShadow: `0 0 14px ${item.color}, 0 0 2px ${item.color}`,
+            textShadow: `0 0 16px rgba(99, 89, 133, 0.45), 0 0 3px ${item.color}`,
             letterSpacing: "0.02em",
             whiteSpace: "nowrap",
             pointerEvents: "none",
