@@ -14,7 +14,7 @@ import {
   CornerDownLeft,
 } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
-import SpaceAnomalies from './components/SpaceAnomalies';
+import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
@@ -48,6 +48,7 @@ function App() {
   return (
     <>
       <TopologyBackground />
+      <TwinklingStars />
       <div className="app-container">
 
         {/* Left Very Dark Deep Blue Floating Pill Sidebar */}
