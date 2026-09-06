@@ -8,17 +8,17 @@ const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082
 
 // Multilingual SatQuery AI translations floating around the main title (uneven staggered positions, zero overlap with '.')
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "rgb(7, 25, 82)" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "rgb(11, 102, 106)" }, // Shifted high & left, completely clear of '.'
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "rgb(53, 162, 159)" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "rgb(151, 254, 237)" }, // High top-right, shifted away from Telugu
-  { text: "સતક્વેરી એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "rgb(7, 25, 82)" }, // High on right, well clear of '.'
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "rgb(11, 102, 106)" }, // Deep below right side, clear of '.'
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "rgb(53, 162, 159)" }, // Shifted to bottom, uneven & separated from Bengali
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "rgb(151, 254, 237)" },
-  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "rgb(7, 25, 82)" },
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "rgb(11, 102, 106)" },
-  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "rgb(53, 162, 159)" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "rgb(190, 123, 114)" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "rgb(253, 175, 123)" }, // Shifted high & left, completely clear of '.'
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "rgb(190, 123, 114)" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "rgb(253, 175, 123)" }, // High top-right, shifted away from Telugu
+  { text: "સમયાનુસાર એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "rgb(190, 123, 114)" }, // High on right, well clear of '.'
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "rgb(253, 175, 123)" }, // Deep below right side, clear of '.'
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "rgb(190, 123, 114)" }, // Shifted to bottom, uneven & separated from Bengali
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "rgb(253, 175, 123)" },
+  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "rgb(190, 123, 114)" },
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "rgb(253, 175, 123)" },
+  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "rgb(190, 123, 114)" },
 ];
 
 const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
