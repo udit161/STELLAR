@@ -20,7 +20,6 @@ import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
-import AuthPage from './pages/AuthPage';
 import Scene from './pages/Scene';
 import { isAuthenticated, getUser, logout } from './services/authService';
 import './index.css';
