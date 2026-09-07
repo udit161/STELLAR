@@ -13,6 +13,7 @@ import {
   Globe,
   CornerDownLeft,
   LogOut,
+  Compass,
 } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
@@ -20,6 +21,7 @@ import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
 import AuthPage from './pages/AuthPage';
+import Scene from './pages/Scene';
 import { isAuthenticated, getUser, logout } from './services/authService';
 import './index.css';
 
@@ -28,6 +30,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(getUser());
   const [query, setQuery] = useState('');
   const [activeNav, setActiveNav] = useState('home');
+  const [showIntro, setShowIntro] = useState(true);
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
@@ -40,6 +43,10 @@ function App() {
     setCurrentUser(null);
   };
 
+  // First thing visitors see on the website: ConstellationField WebGL Intro Scene
+  if (showIntro) {
+    return <Scene onEnter={() => setShowIntro(false)} />;
+  }
 
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
