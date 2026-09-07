@@ -1,0 +1,150 @@
+{
+  "model": "BigEarthNet-LoRA-VLM-4bit",
+  "epochs": 5,
+  "total_steps": 20,
+  "initial_loss": 10.3247,
+  "final_loss": 6.8856,
+  "loss_reduction_pct": 33.31,
+  "step_history": [
+    {
+      "epoch": 1,
+      "step": 1,
+      "batch": 1,
+      "loss": 10.3247,
+      "timestamp": 0.13
+    },
+    {
+      "epoch": 1,
+      "step": 2,
+      "batch": 2,
+      "loss": 10.3157,
+      "timestamp": 0.21
+    },
+    {
+      "epoch": 1,
+      "step": 3,
+      "batch": 3,
+      "loss": 10.3216,
+      "timestamp": 0.27
+    },
+    {
+      "epoch": 1,
+      "step": 4,
+      "batch": 4,
+      "loss": 10.3182,
+      "timestamp": 0.33
+    },
+    {
+      "epoch": 2,
+      "step": 5,
+      "batch": 1,
+      "loss": 10.295,
+      "timestamp": 0.46
+    },
+    {
+      "epoch": 2,
+      "step": 6,
+      "batch": 2,
+      "loss": 10.2996,
+      "timestamp": 0.52
+    },
+    {
+      "epoch": 2,
+      "step": 7,
+      "batch": 3,
+      "loss": 10.2582,
+      "timestamp": 0.58
+    },
+    {
+      "epoch": 2,
+      "step": 8,
+      "batch": 4,
+      "loss": 10.2364,
+      "timestamp": 0.64
+    },
+    {
+      "epoch": 3,
+      "step": 9,
+      "batch": 1,
+      "loss": 10.2037,
+      "timestamp": 0.72
+    },
+    {
+      "epoch": 3,
+      "step": 10,
+      "batch": 2,
+      "loss": 10.1489,
+      "timestamp": 0.76
+    },
+    {
+      "epoch": 3,
+      "step": 11,
+      "batch": 3,
+      "loss": 10.1147,
+      "timestamp": 0.79
+    },
+    {
+      "epoch": 3,
+      "step": 12,
+      "batch": 4,
+      "loss": 10.0572,
+      "timestamp": 0.84
+    },
+    {
+      "epoch": 4,
+      "step": 13,
+      "batch": 1,
+      "loss": 9.9238,
+      "timestamp": 0.94
+    },
+    {
+      "epoch": 4,
+      "step": 14,
+      "batch": 2,
+      "loss": 9.8002,
+      "timestamp": 0.97
+    },
+    {
+      "epoch": 4,
+      "step": 15,
+      "batch": 3,
+      "loss": 9.5974,
+      "timestamp": 1.0
+    },
+    {
+      "epoch": 4,
+      "step": 16,
+      "batch": 4,
+      "loss": 9.4012,
+      "timestamp": 1.03
+    },
+    {
+      "epoch": 5,
+      "step": 17,
+      "batch": 1,
+      "loss": 9.0592,
+      "timestamp": 1.1
+    },
+    {
+      "epoch": 5,
+      "step": 18,
+      "batch": 2,
+      "loss": 8.3069,
+      "timestamp": 1.14
+    },
+    {
+      "epoch": 5,
+      "step": 19,
+      "batch": 3,
+      "loss": 7.2869,
+      "timestamp": 1.18
+    },
+    {
+      "epoch": 5,
+      "step": 20,
+      "batch": 4,
+      "loss": 6.8856,
+      "timestamp": 1.21
+    }
+  ]
+}
