@@ -1,186 +1,64 @@
 /**
- * ConstellationField — "topo-field" variant
- * -------------------------------------------------------------------------
- * Original implementation written for this project. It is NOT a copy of,
- * or reconstruction from, any "@designcodeio/threeui" package — that
- * package could not be verified or fetched, so nothing from it was used.
- * This is a raw-WebGL topographic contour-band field built from scratch
- * to match the prop interface you specified:
- *
- *   <ConstellationField
- *     variant="topo-field"
- *     mode="dark" | "light"
- *     speed={number}       // animation rate
- *     size={number}        // feature scale of the terrain
- *     length={number}      // contour band thickness / stretch
- *     density={number}     // number of contour bands
- *     opacity={number}     // overall alpha
- *     hue={number}         // 0–360
- *     saturation={number}  // 0–1
- *     brightness={number}  // 0–1
- *   />
- *
- * How it works:
- *  - A fullscreen triangle is drawn with raw WebGL (no three.js / libraries).
- *  - The fragment shader builds a fractal-noise heightfield (fbm of value
- *    noise), animates it by drifting the sample domain over time, and
- *    slices it into contour bands (like a topographic map) whose spacing
- *    is controlled by `density` and whose crispness by `length`.
- *  - Color is derived from HSB (hue/saturation/brightness props) with a
- *    dark or light base determined by `mode`.
- *  - Respects prefers-reduced-motion (freezes animation, still renders a
- *    static frame) and resizes with devicePixelRatio-aware canvas sizing.
+ * ConstellationField — Interface Lines & Topographic Field Canvas Animation
+ * Renders faint interface line-fields or organic contour bands.
  */
 
 import { useEffect, useRef } from "react";
 
-const VERTEX_SRC = `
-attribute vec2 aPosition;
-varying vec2 vUv;
-void main() {
-  vUv = aPosition * 0.5 + 0.5;
-  gl_Position = vec4(aPosition, 0.0, 1.0);
-}
-`;
+// Simple seeded noise implementation for topo-field
+function createNoise() {
+  const perm = new Uint8Array(512);
+  const grad = [
+    [1, 1], [-1, 1], [1, -1], [-1, -1],
+    [1, 0], [-1, 0], [0, 1], [0, -1],
+  ];
 
-const FRAGMENT_SRC = `
-precision highp float;
+  for (let i = 0; i < 256; i++) perm[i] = i;
+  for (let i = 255; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [perm[i], perm[j]] = [perm[j], perm[i]];
+  }
+  for (let i = 0; i < 256; i++) perm[i + 256] = perm[i];
 
-varying vec2 vUv;
+  function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+  function lerp(a, b, t) { return a + t * (b - a); }
+  function dot2(g, x, y) { return g[0] * x + g[1] * y; }
 
-uniform vec2 uResolution;
-uniform float uTime;
-uniform float uSpeed;
-uniform float uSize;
-uniform float uLength;
-uniform float uDensity;
-uniform float uOpacity;
-uniform float uHue;
-uniform float uSaturation;
-uniform float uBrightness;
-uniform float uDark; // 1.0 = dark mode
+  return function noise2D(x, y) {
+    const X = Math.floor(x) & 255;
+    const Y = Math.floor(y) & 255;
+    const xf = x - Math.floor(x);
+    const yf = y - Math.floor(y);
+    const u = fade(xf);
+    const v = fade(yf);
 
-// ---- organic hash & fbm fractal noise -------------------------------------
+    const aa = perm[perm[X] + Y] % 8;
+    const ab = perm[perm[X] + Y + 1] % 8;
+    const ba = perm[perm[X + 1] + Y] % 8;
+    const bb = perm[perm[X + 1] + Y + 1] % 8;
 
-float hash(vec2 p) {
-  p = fract(p * vec2(123.34, 456.21));
-  p += dot(p, p + 45.32);
-  return fract(p.x * p.y);
-}
-
-float noise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-
-  float a = hash(i);
-  float b = hash(i + vec2(1.0, 0.0));
-  float c = hash(i + vec2(0.0, 1.0));
-  float d = hash(i + vec2(1.0, 1.0));
-
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+    return lerp(
+      lerp(dot2(grad[aa], xf, yf), dot2(grad[ba], xf - 1, yf), u),
+      lerp(dot2(grad[ab], xf, yf - 1), dot2(grad[bb], xf - 1, yf - 1), u),
+      v
+    );
+  };
 }
 
-float fbm(vec2 p) {
-  float value = 0.0;
-  float amplitude = 0.5;
-  float frequency = 1.0;
-  for (int i = 0; i < 5; i++) {
-    value += amplitude * noise(p * frequency);
+function fbm(noise, x, y, octaves = 4) {
+  let value = 0;
+  let amplitude = 0.5;
+  let frequency = 1.0;
+  for (let i = 0; i < octaves; i++) {
+    value += amplitude * noise(x * frequency, y * frequency);
     frequency *= 2.04;
     amplitude *= 0.52;
   }
   return value;
 }
 
-vec3 hsb2rgb(vec3 c) {
-  vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
-  rgb = rgb * rgb * (3.0 - 2.0 * rgb);
-  return c.z * mix(vec3(1.0), rgb, c.y);
-}
-
-void main() {
-  vec2 uv = vUv;
-  vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
-  vec2 p = (uv - 0.5) * aspect;
-
-  // Smooth continuous diagonal drift rate
-  float t = uTime * uSpeed * 0.05;
-
-  // Domain scaling for organic terrain landscape features
-  float scale = mix(4.5, 1.8, clamp(uSize, 0.1, 3.0) / 3.0);
-  vec2 samplePos = p * scale + vec2(t * 0.45, t * 0.3);
-
-  // Secondary warping for organic fluid landscape motion
-  vec2 warp = vec2(fbm(samplePos + 2.4 + t * 0.1), fbm(samplePos - 1.8 - t * 0.08));
-  float elevation = fbm(samplePos + warp * 0.55);
-
-  // Density & contour band frequency
-  float bands = mix(12.0, 36.0, clamp(uDensity, 0.1, 3.0) / 3.0);
-  float bandPos = elevation * bands;
-
-  // Sharp, thin glowing contour bands
-  float lineDist = abs(fract(bandPos) - 0.5);
-  float thickness = mix(0.28, 0.04, clamp(uLength, 0.1, 3.0) / 3.0);
-  float contour = smoothstep(thickness, thickness * 0.25, lineDist);
-
-  // Gradient elevation shading between bands
-  float fillShade = smoothstep(0.15, 0.85, elevation);
-
-  // Base Colors: Always Deep Near-Black Dark Space
-  vec3 bgDark = vec3(0.012, 0.015, 0.025); // Deep dark abyss
-  vec3 accentColor = vec3(0.92, 0.72, 0.22); // Amber gold glowing contours
-
-  if (uHue > 0.0) {
-    accentColor = hsb2rgb(vec3(mod(uHue, 360.0) / 360.0, uSaturation, uBrightness));
-  }
-
-  // Elevation gradient tint
-  vec3 darkLayer = mix(bgDark, vec3(0.04, 0.06, 0.12), fillShade);
-  vec3 color = mix(darkLayer, accentColor * 0.85, contour * 0.75);
-
-  // Additional subtle inner glow on high elevation contours
-  float highGlow = smoothstep(0.65, 0.95, elevation) * contour;
-  color += accentColor * highGlow * 0.6;
-
-  // Radial Vignette Falloff (Center reads brightest, edge fades into dark abyss)
-  float dist = length(p);
-  float vig = smoothstep(1.2, 0.25, dist);
-  color = mix(bgDark, color, vig);
-
-  gl_FragColor = vec4(color, clamp(uOpacity, 0.0, 1.0));
-}
-`;
-
-function compileShader(gl, type, source) {
-  const shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const info = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw new Error(`Shader compile error: ${info}`);
-  }
-  return shader;
-}
-
-function createProgram(gl, vertexSrc, fragmentSrc) {
-  const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexSrc);
-  const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentSrc);
-  const program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const info = gl.getProgramInfoLog(program);
-    gl.deleteProgram(program);
-    throw new Error(`Program link error: ${info}`);
-  }
-  return program;
-}
-
 export function ConstellationField({
-  variant = "topo-field",
+  variant = "interface-lines",
   mode = "dark",
   speed = 1.0,
   size = 1.0,
@@ -190,168 +68,225 @@ export function ConstellationField({
   hue = 0,
   saturation = 1.0,
   brightness = 1.0,
-  className = "",
-  style,
 }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
-  const glStateRef = useRef(null);
-
-  // Keep latest prop values available inside the animation loop without
-  // tearing down/rebuilding the WebGL context on every render.
-  const propsRef = useRef({
-    speed,
-    size,
-    length,
-    density,
-    opacity,
-    hue,
-    saturation,
-    brightness,
-    mode,
-  });
-  propsRef.current = {
-    speed,
-    size,
-    length,
-    density,
-    opacity,
-    hue,
-    saturation,
-    brightness,
-    mode,
-  };
+  const noiseRef = useRef(null);
 
   useEffect(() => {
-    if (variant !== "topo-field") return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gl =
-      canvas.getContext("webgl", { alpha: true, antialias: true }) ||
-      canvas.getContext("experimental-webgl", { alpha: true, antialias: true });
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    if (!gl) {
-      console.warn("ConstellationField: WebGL is not available in this browser.");
-      return;
+    let width = 0;
+    let height = 0;
+
+    // Interface lines particles state
+    const particleCount = Math.floor(65 * density);
+    const particles = [];
+
+    function initParticles(w, h) {
+      particles.length = 0;
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.4 * speed,
+          vy: (Math.random() - 0.5) * 0.4 * speed,
+          radius: (1.2 + Math.random() * 1.5) * size,
+          pulse: Math.random() * Math.PI * 2,
+        });
+      }
     }
-
-    let program;
-    try {
-      program = createProgram(gl, VERTEX_SRC, FRAGMENT_SRC);
-    } catch (err) {
-      console.error("ConstellationField shader error:", err);
-      return;
-    }
-
-    gl.useProgram(program);
-
-    // Fullscreen triangle (covers viewport, avoids a seam-prone quad)
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 3, -1, -1, 3]),
-      gl.STATIC_DRAW
-    );
-
-    const aPosition = gl.getAttribLocation(program, "aPosition");
-    gl.enableVertexAttribArray(aPosition);
-    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-
-    const uniforms = {
-      uResolution: gl.getUniformLocation(program, "uResolution"),
-      uTime: gl.getUniformLocation(program, "uTime"),
-      uSpeed: gl.getUniformLocation(program, "uSpeed"),
-      uSize: gl.getUniformLocation(program, "uSize"),
-      uLength: gl.getUniformLocation(program, "uLength"),
-      uDensity: gl.getUniformLocation(program, "uDensity"),
-      uOpacity: gl.getUniformLocation(program, "uOpacity"),
-      uHue: gl.getUniformLocation(program, "uHue"),
-      uSaturation: gl.getUniformLocation(program, "uSaturation"),
-      uBrightness: gl.getUniformLocation(program, "uBrightness"),
-      uDark: gl.getUniformLocation(program, "uDark"),
-    };
-
-    glStateRef.current = { gl, program, positionBuffer };
-
-    const reducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const displayWidth = Math.max(1, Math.floor(canvas.clientWidth * dpr));
-      const displayHeight = Math.max(1, Math.floor(canvas.clientHeight * dpr));
-      if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
-        canvas.width = displayWidth;
-        canvas.height = displayHeight;
-        gl.viewport(0, 0, displayWidth, displayHeight);
+      width = Math.floor(canvas.clientWidth * dpr);
+      height = Math.floor(canvas.clientHeight * dpr);
+      canvas.width = width;
+      canvas.height = height;
+
+      if (variant === "interface-lines") {
+        initParticles(width, height);
       }
     }
 
-    const resizeObserver =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
-    if (resizeObserver) resizeObserver.observe(canvas);
-    window.addEventListener("resize", resize);
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(canvas);
     resize();
 
-    const startTime = performance.now();
-
-    function render(now) {
-      const elapsed = reducedMotion ? 0 : (now - startTime) / 1000;
-      const p = propsRef.current;
-
-      gl.useProgram(program);
-      gl.uniform2f(uniforms.uResolution, canvas.width, canvas.height);
-      gl.uniform1f(uniforms.uTime, elapsed);
-      gl.uniform1f(uniforms.uSpeed, p.speed);
-      gl.uniform1f(uniforms.uSize, p.size);
-      gl.uniform1f(uniforms.uLength, p.length);
-      gl.uniform1f(uniforms.uDensity, p.density);
-      gl.uniform1f(uniforms.uOpacity, p.opacity);
-      gl.uniform1f(uniforms.uHue, p.hue);
-      gl.uniform1f(uniforms.uSaturation, p.saturation);
-      gl.uniform1f(uniforms.uBrightness, p.brightness);
-      gl.uniform1f(uniforms.uDark, p.mode === "dark" ? 1.0 : 0.0);
-
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-      if (!reducedMotion) {
-        rafRef.current = requestAnimationFrame(render);
-      }
+    // Noise generator for topo-field
+    if (variant === "topo-field" && !noiseRef.current) {
+      noiseRef.current = createNoise();
     }
 
-    rafRef.current = requestAnimationFrame(render);
+    let lastTime = performance.now();
+
+    function renderInterfaceLines(now) {
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Background color base
+      const isDark = mode === "dark";
+      ctx.fillStyle = isDark ? "#02040a" : "#f8fafc";
+      ctx.fillRect(0, 0, width, height);
+
+      // Color hsl setup
+      const baseHue = (210 + hue) % 360;
+      const baseSat = Math.floor(70 * saturation);
+      const baseLight = isDark ? Math.floor(65 * brightness) : Math.floor(35 * brightness);
+
+      const maxDist = 140 * length;
+      const maxDistSq = maxDist * maxDist;
+
+      // Update particle positions
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx * speed * (dt * 60);
+        p.y += p.vy * speed * (dt * 60);
+        p.pulse += dt * 1.5 * speed;
+
+        if (p.x < -20) p.x = width + 20;
+        if (p.x > width + 20) p.x = -20;
+        if (p.y < -20) p.y = height + 20;
+        if (p.y > height + 20) p.y = -20;
+      }
+
+      // Draw faint interface connecting lines
+      ctx.lineWidth = 1.0;
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p2.x - p1.x;
+          const dy = p2.y - p1.y;
+          const distSq = dx * dx + dy * dy;
+
+          if (distSq < maxDistSq) {
+            const dist = Math.sqrt(distSq);
+            const lineAlpha = (1 - dist / maxDist) * 0.35 * opacity;
+
+            ctx.strokeStyle = `hsla(${baseHue}, ${baseSat}%, ${baseLight}%, ${lineAlpha})`;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw nodes/points with subtle glow
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const pulseAlpha = (0.5 + 0.5 * Math.sin(p.pulse)) * opacity;
+
+        // Outer faint glow
+        ctx.fillStyle = `hsla(${baseHue}, ${baseSat}%, ${baseLight}%, ${0.15 * pulseAlpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner solid point
+        ctx.fillStyle = `hsla(${baseHue}, ${baseSat}%, ${baseLight + 15}%, ${0.8 * pulseAlpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      rafRef.current = requestAnimationFrame(renderInterfaceLines);
+    }
+
+    // Render topographic variant if specified
+    const startTime = performance.now();
+    function renderTopoField() {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const t = elapsed * speed * 0.05;
+      const noise = noiseRef.current || createNoise();
+
+      const RENDER_SCALE = 0.25;
+      const renderW = Math.max(1, Math.floor(width * RENDER_SCALE));
+      const renderH = Math.max(1, Math.floor(height * RENDER_SCALE));
+
+      const offscreen = document.createElement("canvas");
+      offscreen.width = renderW;
+      offscreen.height = renderH;
+      const offCtx = offscreen.getContext("2d");
+
+      if (offCtx) {
+        const imgData = offCtx.createImageData(renderW, renderH);
+        const data = imgData.data;
+        const aspect = renderW / renderH;
+        const bands = 12 + density * 8;
+
+        for (let py = 0; py < renderH; py++) {
+          for (let px = 0; px < renderW; px++) {
+            const u = px / renderW;
+            const v = py / renderH;
+            const cx = (u - 0.5) * aspect;
+            const cy = v - 0.5;
+
+            const scale = 3.0;
+            const sx = cx * scale + t * 0.45;
+            const sy = cy * scale + t * 0.3;
+
+            const wx = fbm(noise, sx + 2.4 + t * 0.1, sy + 2.4 + t * 0.1, 3);
+            const wy = fbm(noise, sx - 1.8 - t * 0.08, sy - 1.8 - t * 0.08, 3);
+            const elevation = fbm(noise, sx + wx * 0.55, sy + wy * 0.55, 4);
+
+            const bandPos = (elevation + 1) * 0.5 * bands;
+            const lineDist = Math.abs((bandPos % 1) - 0.5);
+            const contour = Math.max(0, 1 - lineDist / 0.12);
+            const contourSmooth = contour * contour;
+
+            const fillShade = (elevation + 1) * 0.5;
+            const dist = Math.sqrt(cx * cx + cy * cy);
+            const vig = Math.max(0, Math.min(1, 1 - (dist - 0.25) / 0.95));
+
+            const bgR = 2, bgG = 4, bgB = 10;
+            const r = (bgR + contourSmooth * 235) * vig;
+            const g = (bgG + contourSmooth * 184) * vig;
+            const b = (bgB + contourSmooth * 255) * vig;
+
+            const idx = (py * renderW + px) * 4;
+            data[idx] = Math.min(255, Math.max(0, r));
+            data[idx + 1] = Math.min(255, Math.max(0, g));
+            data[idx + 2] = Math.min(255, Math.max(0, b));
+            data[idx + 3] = Math.floor(opacity * 255);
+          }
+        }
+
+        offCtx.putImageData(imgData, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(offscreen, 0, 0, width, height);
+      }
+
+      rafRef.current = requestAnimationFrame(renderTopoField);
+    }
+
+    if (variant === "interface-lines") {
+      rafRef.current = requestAnimationFrame(renderInterfaceLines);
+    } else {
+      rafRef.current = requestAnimationFrame(renderTopoField);
+    }
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      window.removeEventListener("resize", resize);
-      if (resizeObserver) resizeObserver.disconnect();
-
-      const ext = gl.getExtension("WEBGL_lose_context");
-      if (ext) ext.loseContext();
-      glStateRef.current = null;
+      resizeObserver.disconnect();
     };
-    // Context is intentionally created once; live prop changes flow in via
-    // propsRef and are read each frame, so we don't rebuild the GL context
-    // on every prop tweak (that would cause flicker/perf issues).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variant]);
+  }, [variant, mode, speed, size, length, density, opacity, hue, saturation, brightness]);
 
   return (
     <canvas
       ref={canvasRef}
-      className={`constellation-field constellation-field--topo ${className}`}
+      className="constellation-field"
       style={{
         display: "block",
         width: "100%",
         height: "100%",
-        ...style,
       }}
       aria-hidden="true"
     />
