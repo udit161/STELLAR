@@ -1,0 +1,13 @@
+.shader-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #050505;
+}
+
+.constellation-field--topo {
+  position: absolute;
+  inset: 0;
+}
