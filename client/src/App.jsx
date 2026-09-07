@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Home,
   Bell,
@@ -12,17 +12,38 @@ import {
   Activity,
   Globe,
   CornerDownLeft,
+  LogOut,
 } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
+import AuthPage from './pages/AuthPage';
+import { isAuthenticated, getUser, logout } from './services/authService';
 import './index.css';
 
 function App() {
+  const [authed, setAuthed] = useState(isAuthenticated());
+  const [currentUser, setCurrentUser] = useState(getUser());
   const [query, setQuery] = useState('');
   const [activeNav, setActiveNav] = useState('home');
+
+  const handleAuthSuccess = (user) => {
+    setCurrentUser(user);
+    setAuthed(true);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setAuthed(false);
+    setCurrentUser(null);
+  };
+
+  // If not authenticated, show login/signup page
+  if (!authed) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
 
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
@@ -80,6 +101,15 @@ function App() {
           </div>
         </main>
 
+        {/* Logout button */}
+        <button
+          className="logout-fab"
+          onClick={handleLogout}
+          title={`Logout${currentUser?.username ? ` (${currentUser.username})` : ''}`}
+        >
+          <LogOut size={18} />
+        </button>
+
       </div>
 
       {/* Bottom Center Liquid Glass Query Bar — outside app-container to escape stacking context */}
@@ -120,3 +150,4 @@ function App() {
 }
 
 export default App;
+
