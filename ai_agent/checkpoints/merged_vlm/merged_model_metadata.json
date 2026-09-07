@@ -1,0 +1,15 @@
+{
+  "model": "BigEarthNet-LoRA-VLM-4bit-Merged",
+  "merge_status": "complete",
+  "peft_required": false,
+  "in_channels": 14,
+  "embed_dim": 512,
+  "total_parameters": 6903232,
+  "trainable_parameters": 6903232,
+  "merged_checkpoint": "final_lora_adapter.pt",
+  "lora_config": {
+    "r": 16,
+    "lora_alpha": 32
+  },
+  "output_file": "C:\\SIH\\SatQueryAI\\ai_agent\\checkpoints\\merged_vlm\\merged_vlm_final.pt"
+}
