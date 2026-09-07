@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apogee — Celestial Auth Experience</title>
+  <meta name="description" content="Apogee space-themed liquid metal glass login and signup experience." />
+  
+  <!-- Google Fonts: Space Grotesk & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTEM & CSS CUSTOM PROPERTIES
+       ========================================================================== */
+    :root {
+      /* Palette */
+      --color-void: #05060d;
+      --color-space-dark: #0a0f26;
+      --color-space-mid: #131a3d;
+      --color-violet: #8b6bff;
+      --color-violet-deep: #5b3bff;
+      --color-teal: #3fe7c8;
+      --color-starlight: #eef1ff;
+      --color-muted: #98a1c7;
+      --color-metal: #d9e1ff;
+
+      /* Typography */
+      --font-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+      /* Animation Specs */
+      --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--color-void);
+      color: var(--color-starlight);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Focus Rings for Accessibility */
+    :focus-visible {
+      outline: 2px solid var(--color-teal);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    /* Screen Reader Only Utility */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ==========================================================================
+       2. FULL-BLEED STARFIELD CANVAS & NEBULA BACKGROUND
+       ========================================================================== */
+    .viewport-container {
+      position: relative;
+      min-height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(1.5rem, 4vw, 3rem);
+      z-index: 1;
+    }
+
+    #starfield {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .nebula-wash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(91, 59, 255, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(63, 231, 200, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(10, 15, 38, 0.8) 0%, var(--color-void) 100%);
+    }
+
+    /* ==========================================================================
+       3. MAIN TWO-COLUMN LAYOUT STRUCTURE
+       ========================================================================== */
+    .apogee-layout {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1120px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: clamp(2rem, 5vw, 4rem);
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .apogee-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        max-width: 480px;
+      }
+    }
+
+    /* ==========================================================================
+       4. HERO COLUMN & INTERACTIVE ASTRONAUT SVG
+       ========================================================================== */
+    .hero-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .hero-stage {
+        align-items: center;
+        text-align: center;
+      }
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      background: rgba(19, 26, 61, 0.6);
+      border: 1px solid rgba(217, 225, 255, 0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .brand-badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-teal);
+      box-shadow: 0 0 10px var(--color-teal);
+      animation: pulseGlow 2s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { opacity: 0.5; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1.2); }
+    }
+
+    .brand-badge-text {
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      color: var(--color-metal);
+      text-transform: uppercase;
+    }
+
+    /* Astronaut Helmet Wrapper */
+    .astronaut-viewport {
+      position: relative;
+      width: clamp(220px, 30vw, 320px);
+      height: clamp(220px, 30vw, 320px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1000px;
+    }
+
+    @media (max-width: 900px) {
+      .astronaut-viewport {
+        width: 190px;
+        height: 190px;
+      }
+    }
+
+    .astronaut-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .astronaut-bobbing {
+      animation: floatBob 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatBob {
+      0% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(1.5deg); }
+      100% { transform: translateY(4px) rotate(-1deg); }
+    }
+
+    .helmet-svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 15px 35px rgba(5, 6, 13, 0.8)) drop-shadow(0 0 25px rgba(139, 107, 255, 0.25));
+    }
+
+    .antenna-led {
+      animation: antennaPulse 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes antennaPulse {
+      0% { fill: #3fe7c8; filter: drop-shadow(0 0 2px #3fe7c8); }
+      100% { fill: #8b6bff; filter: drop-shadow(0 0 8px #8b6bff); }
+    }
+
+    .orbit-ring-svg {
+      transform-origin: 150px 150px;
+      animation: orbitSpin 16s linear infinite;
+    }
+
+    @keyframes orbitSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .hero-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .hero-heading {
+      font-family: var(--font-heading);
+      font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 0%, var(--color-metal) 60%, var(--color-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 1.8vw, 1.15rem);
+      line-height: 1.6;
+      color: var(--color-muted);
+      max-width: 440px;
+    }
+
+    .hero-telemetry {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-family: var(--font-heading);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: rgba(152, 161, 199, 0.7);
+      text-transform: uppercase;
+      margin-top: 0.5rem;
+    }
+
+    .telemetry-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .telemetry-divider {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(152, 161, 199, 0.4);
+    }
+
+    /* ==========================================================================
+       5. LIQUID METAL GLASS CARD & CONIC BORDER WRAPPER
+       ========================================================================== */
+    .card-border-wrapper {
+      position: relative;
+      border-radius: 24px;
+      padding: 1.5px;
+      background: conic-gradient(
+        from var(--border-angle, 0deg),
+        rgba(139, 107, 255, 0.8) 0%,
+        rgba(63, 231, 200, 0.8) 33%,
+        rgba(217, 225, 255, 0.9) 66%,
+        rgba(139, 107, 255, 0.8) 100%
+      );
+      animation: rotateBorder 12s linear infinite;
+      box-shadow: 
+        0 25px 50px -12px rgba(5, 6, 13, 0.7),
+        0 0 40px rgba(139, 107, 255, 0.15);
+      transition: transform 0.4s var(--ease-out-back);
+    }
+
+    @property --border-angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    @keyframes rotateBorder {
+      to { --border-angle: 360deg; }
+    }
+
+    .glass-card {
+      position: relative;
+      border-radius: 22.5px;
+      background: rgba(10, 15, 38, 0.72);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      padding: clamp(1.8rem, 4vw, 2.6rem);
+      overflow: hidden;
+    }
+
+    /* Dynamic Sheen Highlight on Mousemove */
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(139, 107, 255, 0.14),
+        transparent 80%
+      );
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Metal Top Reflection Edge */
+    .glass-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(217, 225, 255, 0.4), transparent);
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       6. AUTH TAB HEADER & SLIDING PILL INDICATOR
+       ========================================================================== */
+    .auth-tab-nav {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: rgba(5, 6, 13, 0.6);
+      padding: 0.3rem;
+      border-radius: 14px;
+      border: 1px solid rgba(217, 225, 255, 0.08);
+      margin-bottom: 2rem;
+      z-index: 2;
+    }
+
+    .tab-pill-indicator {
+      position: absolute;
+      top: 0.3rem;
+      bottom: 0.3rem;
+      left: 0.3rem;
+      width: calc(50% - 0.3rem);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(139, 107, 255, 0.25) 0%, rgba(91, 59, 255, 0.35) 100%);
+      border: 1px solid rgba(139, 107, 255, 0.5);
+      box-shadow: 0 4px 15px rgba(91, 59, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: transform 0.35s var(--ease-out-back);
+      z-index: 1;
+    }
+
+    .auth-tab-btn {
+      position: relative;
+      z-index: 2;
+      background: none;
+      border: none;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-heading);
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--color-muted);
+      cursor: pointer;
+      transition: color 0.3s ease;
+      text-align: center;
+    }
+
+    .auth-tab-btn.active {
+      color: var(--color-starlight);
+    }
+
+    .auth-tab-btn:hover:not(.active) {
+      color: var(--color-metal);
+    }
+
+    /* ==========================================================================
+       7. FORM PANELS & CROSSFADE TRANSITION
+       ========================================================================== */
+    .forms-viewport {
+      position: relative;
+      z-index: 2;
+      overflow: hidden;
+      transition: height 0.35s var(--ease-smooth);
+    }
+
+    .form-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(20px);
+      transition: opacity 0.35s ease, transform 0.35s var(--ease-smooth), visibility 0.35s;
+    }
+
+    .form-panel.active {
+      position: relative;
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+    }
+
+    .form-panel.slide-out-left {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .form-label {
+      font-family: var(--font-heading);
+      font-size: 0.84rem;
+      font-weight: 500;
+      color: var(--color-metal);
+      letter-spacing: 0.02em;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      width: 18px;
+      height: 18px;
+      color: var(--color-muted);
+      pointer-events: none;
+      transition: color 0.3s ease;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.85rem 1rem 0.85rem 2.8rem;
+      background: rgba(5, 6, 13, 0.5);
+      border: 1px solid rgba(152, 161, 199, 0.2);
+      border-radius: 12px;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--color-starlight);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    }
+
+    .form-input::placeholder {
+      color: rgba(152, 161, 199, 0.45);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-teal);
+      background: rgba(5, 6, 13, 0.75);
+      box-shadow: 0 0 18px rgba(63, 231, 200, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .form-input:focus + .input-icon,
+    .input-wrapper:focus-within .input-icon {
+      color: var(--color-teal);
+    }
+
+    /* Password Toggle Button */
+    .password-toggle {
+      position: absolute;
+      right: 0.8rem;
+      background: none;
+      border: none;
+      color: var(--color-muted);
+      padding: 0.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: color 0.2s ease;
+    }
+
+    .password-toggle:hover {
+      color: var(--color-starlight);
+    }
+
+    /* Form Meta Row (Remember Me & Forgot Password) */
+    .form-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-top: 0.2rem;
+    }
+
+    /* Custom Checkbox */
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      color: var(--color-muted);
+      user-select: none;
+    }
+
+    .custom-checkbox {
+      position: relative;
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 1px solid rgba(152, 161, 199, 0.35);
+      background: rgba(5, 6, 13, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+    }
+
+    .checkbox-input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      width: 0;
+      height: 0;
+    }
+
+    .checkbox-input:checked + .custom-checkbox {
+      background: var(--color-violet-deep);
+      border-color: var(--color-violet);
+      box-shadow: 0 0 10px rgba(139, 107, 255, 0.4);
+    }
+
+    .checkbox-icon {
+      width: 12px;
+      height: 12px;
+      color: var(--color-starlight);
+      opacity: 0;
+      transform: scale(0.6);
+      transition: transform 0.2s var(--ease-out-back), opacity 0.2s ease;
+    }
+
+    .checkbox-input:checked + .custom-checkbox .checkbox-icon {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .forgot-link {
+      color: var(--color-teal);
+      text-decoration: none;
+      font-family: var(--font-heading);
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: opacity 0.2s ease, text-shadow 0.2s ease;
+    }
+
+    .forgot-link:hover {
+      opacity: 0.85;
+      text-shadow: 0 0 8px rgba(63, 231, 200, 0.4);
+    }
+
+    /* Password Strength Meter */
+    .strength-meter {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.2rem;
+    }
+
+    .strength-bars {
+      flex: 1;
+      display: flex;
+      gap: 4px;
+      height: 4px;
+    }
+
+    .strength-bar-step {
+      flex: 1;
+      height: 100%;
+      border-radius: 2px;
+      background: rgba(152, 161, 199, 0.2);
+      transition: background-color 0.3s ease;
+    }
+
+    .strength-text {
+      font-size: 0.75rem;
+      color: var(--color-muted);
+      min-width: 55px;
+      text-align: right;
+    }
+
+    /* Submit Button & Mock Loading State */
+    .submit-btn {
+      position: relative;
+      width: 100%;
+      padding: 0.95rem 1.5rem;
+      margin-top: 0.5rem;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--color-violet) 0%, var(--color-violet-deep) 100%);
+      color: var(--color-starlight);
+      font-family: var(--font-heading);
+      font-size: 0.98rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 
+        0 4px 20px rgba(91, 59, 255, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transition: transform 0.25s var(--ease-out-back), box-shadow 0.25s ease, background 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 25px rgba(91, 59, 255, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .submit-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.8;
+      cursor: not-allowed;
+    }
+
+    .btn-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: var(--color-starlight);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .submit-btn.loading .btn-text {
+      opacity: 0.8;
+    }
+
+    .submit-btn.loading .btn-spinner {
+      display: block;
+    }
+
+    .submit-btn.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Social Divider */
+    .divider-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 0.5rem 0;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(152, 161, 199, 0.15);
+    }
+
+    .divider-text {
+      font-family: var(--font-heading);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      color: rgba(152, 161, 199, 0.6);
+      text-transform: uppercase;
+    }
+
+    .sso-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem;
+    }
+
+    .sso-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      padding: 0.7rem 1rem;
+      background: rgba(5, 6, 13, 0.4);
+      border: 1px solid rgba(152, 161, 199, 0.18);
+      border-radius: 10px;
+      color: var(--color-metal);
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+
+    .sso-btn:hover {
+      background: rgba(19, 26, 61, 0.5);
+      border-color: rgba(217, 225, 255, 0.3);
+      color: var(--color-starlight);
+    }
+
+    /* ==========================================================================
+       8. ACCESSIBILITY & PREFERS-REDUCED-MOTION
+       ========================================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      .astronaut-bobbing,
+      .card-border-wrapper,
+      .brand-badge-dot,
+      .antenna-led,
+      .orbit-ring-svg {
+        animation: none !important;
+      }
+
+      .form-panel,
+      .tab-pill-indicator,
+      .card-border-wrapper,
+      .submit-btn {
+        transition-duration: 0.05s !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Full-bleed background layers -->
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <div class="nebula-wash" aria-hidden="true"></div>
+
+  <main class="viewport-container">
+    <div class="apogee-layout">
+
+      <!-- ===================================================================
+           LEFT COLUMN: HERO & INTERACTIVE ASTRONAUT HELMET
+           =================================================================== -->
+      <section class="hero-stage" aria-label="Apogee Mission Control Briefing">
+        
+        <div class="brand-badge">
+          <span class="brand-badge-dot" aria-hidden="true"></span>
+          <span class="brand-badge-text">Apogee Orbital v2.4</span>
+        </div>
+
+        <!-- Interactive 3D SVG Astronaut Helmet -->
+        <div class="astronaut-viewport" id="helmetViewport">
+          <div class="astronaut-container astronaut-bobbing" id="helmetContainer">
+            <svg class="helmet-svg" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Apogee Interactive Astronaut Helmet">
+              
+              <!-- Dashed Outer Orbit Ring & Satellite Dot -->
+              <g class="orbit-ring-svg">
+                <circle cx="150" cy="150" r="142" stroke="url(#orbitGrad)" stroke-width="1.5" stroke-dasharray="8 12" opacity="0.6"/>
+                <circle cx="292" cy="150" r="4.5" fill="#3fe7c8" filter="drop-shadow(0 0 6px #3fe7c8)"/>
+              </g>
+
+              <!-- Antenna Assembly -->
+              <path d="M150 52V22" stroke="#d9e1ff" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="150" cy="18" r="6" class="antenna-led"/>
+
+              <!-- Main Helmet Silver Shell -->
+              <path d="M150 48C90 48 56 88 56 150C56 215 92 245 150 245C208 245 244 215 244 150C244 88 210 48 150 48Z" fill="url(#shellGrad)" stroke="#d9e1ff" stroke-width="2"/>
+
+              <!-- Helmet Metallic Collars & Side Bolts -->
+              <path d="M72 232C90 252 118 262 150 262C182 262 210 252 228 232V250C228 264 192 274 150 274C108 274 72 264 72 250V232Z" fill="url(#collarGrad)" stroke="#98a1c7" stroke-width="1.5"/>
+              <circle cx="82" cy="244" r="3.5" fill="#131a3d" stroke="#d9e1ff" stroke-width="1"/>
+              <circle cx="218" cy="244" r="3.5" fill="#131a3d" stroke="#d9e1ff" stroke-width="1"/>
+
+              <!-- Deep Visor Outer Frame -->
+              <path d="M78 120C78 95 105 84 150 84C195 84 222 95 222 120C222 170 200 205 150 205C100 205 78 170 78 120Z" fill="#05060d" stroke="#8b6bff" stroke-width="2"/>
+
+              <!-- Visor Reflection Sheen Blob (Moves with Pointer) -->
+              <g id="visorGroup">
+                <path d="M82 120C82 98 107 88 150 88C193 88 218 98 218 120C218 166 197 200 150 200C103 200 82 166 82 120Z" fill="url(#visorShine)"/>
+                
+                <!-- Dynamic Pointer Reflection Highlight -->
+                <ellipse id="visorReflection" cx="120" cy="115" rx="35" ry="20" fill="url(#reflGrad)" opacity="0.7" transform="rotate(-20 120 115)"/>
+              </g>
+
+              <!-- Helmet Audio Communication Ports -->
+              <rect x="50" y="142" width="12" height="24" rx="4" fill="#131a3d" stroke="#98a1c7" stroke-width="1.5"/>
+              <rect x="238" y="142" width="12" height="24" rx="4" fill="#131a3d" stroke="#98a1c7" stroke-width="1.5"/>
+
+              <!-- SVG Gradients -->
+              <defs>
+                <linearGradient id="shellGrad" x1="56" y1="48" x2="244" y2="245" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="30%" stop-color="#d9e1ff"/>
+                  <stop offset="70%" stop-color="#98a1c7"/>
+                  <stop offset="100%" stop-color="#131a3d"/>
+                </linearGradient>
+
+                <linearGradient id="collarGrad" x1="72" y1="232" x2="228" y2="274" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#d9e1ff"/>
+                  <stop offset="50%" stop-color="#5b3bff"/>
+                  <stop offset="100%" stop-color="#0a0f26"/>
+                </linearGradient>
+
+                <radialGradient id="visorShine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(130 110) scale(110 90)">
+                  <stop offset="0%" stop-color="#131a3d"/>
+                  <stop offset="60%" stop-color="#0a0f26"/>
+                  <stop offset="100%" stop-color="#05060d"/>
+                </radialGradient>
+
+                <linearGradient id="reflGrad" x1="85" y1="95" x2="155" y2="135" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#3fe7c8" stop-opacity="0.8"/>
+                  <stop offset="50%" stop-color="#8b6bff" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="#8b6bff" stop-opacity="0"/>
+                </linearGradient>
+
+                <linearGradient id="orbitGrad" x1="8" y1="150" x2="292" y2="150" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#8b6bff"/>
+                  <stop offset="50%" stop-color="#3fe7c8"/>
+                  <stop offset="100%" stop-color="#8b6bff"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        <div class="hero-title-group">
+          <h1 class="hero-heading">Explore the Celestial Frontier</h1>
+          <p class="hero-subtitle">Chart your course through deep space telemetry, satellite imagery, and high-dimensional orbital data.</p>
+        </div>
+
+        <div class="hero-telemetry">
+          <div class="telemetry-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+            <span>STAC Sentinel-2</span>
+          </div>
+          <div class="telemetry-divider"></div>
+          <div class="telemetry-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span>99.99% Telemetry</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           RIGHT COLUMN: LIQUID METAL GLASS AUTH CARD
+           =================================================================== -->
+      <section class="card-border-wrapper" id="cardWrapper">
+        <div class="glass-card" id="glassCard">
+
+          <!-- Accessible Tab Navigation -->
+          <div class="auth-tab-nav" role="tablist" aria-label="Authentication Options">
+            <div class="tab-pill-indicator" id="tabPill"></div>
+            
+            <button 
+              type="button" 
+              class="auth-tab-btn active" 
+              id="tabSigninBtn" 
+              role="tab" 
+              aria-selected="true" 
+              aria-controls="panelSignin"
+              tabindex="0"
+            >
+              Sign In
+            </button>
+            
+            <button 
+              type="button" 
+              class="auth-tab-btn" 
+              id="tabSignupBtn" 
+              role="tab" 
+              aria-selected="false" 
+              aria-controls="panelSignup"
+              tabindex="-1"
+            >
+              Create Account
+            </button>
+          </div>
+
+          <!-- Forms Viewport with Height Transition -->
+          <div class="forms-viewport" id="formsViewport">
+
+            <!-- ---------------------------------------------------------------
+                 PANEL 1: SIGN IN FORM
+                 --------------------------------------------------------------- -->
+            <div class="form-panel active" id="panelSignin" role="tabpanel" aria-labelledby="tabSigninBtn">
+              <form class="auth-form" id="formSignin" novalidate>
+                
+                <div class="form-group">
+                  <label class="form-label" for="signinEmail">Orbital Email / Call sign</label>
+                  <div class="input-wrapper">
+                    <input 
+                      type="email" 
+                      id="signinEmail" 
+                      class="form-input" 
+                      placeholder="explorer@apogee.space" 
+                      required 
+                      autocomplete="email"
+                    />
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="signinPassword">Security Key</label>
+                  <div class="input-wrapper">
+                    <input 
+                      type="password" 
+                      id="signinPassword" 
+                      class="form-input" 
+                      placeholder="••••••••••••" 
+                      required 
+                      minlength="6"
+                      autocomplete="current-password"
+                    />
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <button type="button" class="password-toggle" data-target="signinPassword" aria-label="Toggle password visibility">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="form-meta-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" class="checkbox-input" id="rememberMe" checked />
+                    <span class="custom-checkbox">
+                      <svg class="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    <span>Keep session active</span>
+                  </label>
+                  <a href="#forgot" class="forgot-link" id="forgotLink">Reset Security Key?</a>
+                </div>
+
+                <button type="submit" class="submit-btn" id="signinSubmit">
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <span class="btn-text">Launch Session</span>
+                </button>
+
+                <div class="divider-row">
+                  <div class="divider-line"></div>
+                  <span class="divider-text">or authenticate via</span>
+                  <div class="divider-line"></div>
+                </div>
+
+                <div class="sso-options">
+                  <button type="button" class="sso-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                    <span>STAC SSO</span>
+                  </button>
+                  <button type="button" class="sso-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <span>GitHub</span>
+                  </button>
+                </div>
+
+              </form>
+            </div>
+
+            <!-- ---------------------------------------------------------------
+                 PANEL 2: SIGN UP FORM
+                 --------------------------------------------------------------- -->
+            <div class="form-panel" id="panelSignup" role="tabpanel" aria-labelledby="tabSignupBtn">
+              <form class="auth-form" id="formSignup" novalidate>
+                
+                <div class="form-group">
+                  <label class="form-label" for="signupName">Commander Name</label>
+                  <div class="input-wrapper">
+                    <input 
+                      type="text" 
+                      id="signupName" 
+                      class="form-input" 
+                      placeholder="Cmdr. Elena Rostova" 
+                      required 
+                      autocomplete="name"
+                    />
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="signupEmail">Orbital Email</label>
+                  <div class="input-wrapper">
+                    <input 
+                      type="email" 
+                      id="signupEmail" 
+                      class="form-input" 
+                      placeholder="commander@apogee.space" 
+                      required 
+                      autocomplete="email"
+                    />
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="signupPassword">Create Security Key</label>
+                  <div class="input-wrapper">
+                    <input 
+                      type="password" 
+                      id="signupPassword" 
+                      class="form-input" 
+                      placeholder="At least 8 characters" 
+                      required 
+                      minlength="8"
+                      autocomplete="new-password"
+                    />
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <button type="button" class="password-toggle" data-target="signupPassword" aria-label="Toggle password visibility">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
+                  <!-- Password Strength Bar -->
+                  <div class="strength-meter">
+                    <div class="strength-bars">
+                      <div class="strength-bar-step" id="bar1"></div>
+                      <div class="strength-bar-step" id="bar2"></div>
+                      <div class="strength-bar-step" id="bar3"></div>
+                      <div class="strength-bar-step" id="bar4"></div>
+                    </div>
+                    <span class="strength-text" id="strengthLabel">Weak</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" class="checkbox-input" id="termsAgree" required />
+                    <span class="custom-checkbox">
+                      <svg class="checkbox-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    <span style="font-size: 0.82rem;">I agree to the <a href="#terms" class="forgot-link">Orbital Charter</a> &amp; Privacy Protocol</span>
+                  </label>
+                </div>
+
+                <button type="submit" class="submit-btn" id="signupSubmit">
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <span class="btn-text">Create Explorer Account</span>
+                </button>
+
+              </form>
+            </div>
+
+          </div><!-- /forms-viewport -->
+
+        </div><!-- /glass-card -->
+      </section>
+
+    </div>
+  </main>
+
+  <!-- =======================================================================
+       9. VANILLA JAVASCRIPT: STARFIELD & INTERACTIVE PHYSICS
+       ======================================================================= -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      /* ------------------------------------------------------------------
+         A. STARFIELD CANVAS ANIMATION (CONSTELLATIONS + CURSOR THREADS)
+         ------------------------------------------------------------------ */
+      const canvas = document.getElementById('starfield');
+      const ctx = canvas.getContext('2d');
+      
+      let width = (canvas.width = window.innerWidth);
+      let height = (canvas.height = window.innerHeight);
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Mouse tracking state
+      const mouse = {
+        x: width / 2,
+        y: height / 2,
+        targetX: width / 2,
+        targetY: height / 2,
+        active: false
+      };
+
+      window.addEventListener('mousemove', (e) => {
+        mouse.targetX = e.clientX;
+        mouse.targetY = e.clientY;
+        mouse.active = true;
+      });
+
+      window.addEventListener('mouseleave', () => {
+        mouse.active = false;
+      });
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        initStars();
+      });
+
+      // Star particle generator
+      const STAR_COUNT = Math.min(Math.floor((width * height) / 8000), 160);
+      const stars = [];
+
+      function initStars() {
+        stars.length = 0;
+        for (let i = 0; i < STAR_COUNT; i++) {
+          stars.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.25,
+            vy: (Math.random() - 0.5) * 0.25,
+            radius: Math.random() * 1.6 + 0.5,
+            baseAlpha: Math.random() * 0.6 + 0.2,
+            phase: Math.random() * Math.PI * 2,
+            twinkleSpeed: Math.random() * 0.02 + 0.008
+          });
+        }
+      }
+
+      initStars();
+
+      function renderStarfield() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Smooth cursor interpolation
+        mouse.x += (mouse.targetX - mouse.x) * 0.08;
+        mouse.y += (mouse.targetY - mouse.y) * 0.08;
+
+        // 1. Update and draw stars
+        for (let i = 0; i < stars.length; i++) {
+          const s = stars[i];
+
+          if (!prefersReducedMotion) {
+            s.x += s.vx;
+            s.y += s.vy;
+            s.phase += s.twinkleSpeed;
+
+            if (s.x < 0) s.x = width;
+            if (s.x > width) s.x = 0;
+            if (s.y < 0) s.y = height;
+            if (s.y > height) s.y = 0;
+          }
+
+          const currentAlpha = s.baseAlpha + Math.sin(s.phase) * 0.25;
+          const alpha = Math.max(0.1, Math.min(1, currentAlpha));
+
+          ctx.fillStyle = `rgba(238, 241, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 2. Draw constellation connecting lines between nearby stars
+          for (let j = i + 1; j < stars.length; j++) {
+            const s2 = stars[j];
+            const dx = s2.x - s.x;
+            const dy = s2.y - s.y;
+            const distSq = dx * dx + dy * dy;
+            const maxDistSq = 110 * 110;
+
+            if (distSq < maxDistSq) {
+              const dist = Math.sqrt(distSq);
+              const lineAlpha = (1 - dist / 110) * 0.16;
+              ctx.strokeStyle = `rgba(139, 107, 255, ${lineAlpha})`;
+              ctx.lineWidth = 0.75;
+              ctx.beginPath();
+              ctx.moveTo(s.x, s.y);
+              ctx.lineTo(s2.x, s2.y);
+              ctx.stroke();
+            }
+          }
+
+          // 3. Draw glowing threads connecting stars to cursor
+          if (mouse.active) {
+            const mdx = mouse.x - s.x;
+            const mdy = mouse.y - s.y;
+            const mdistSq = mdx * mdx + mdy * mdy;
+            const maxMDistSq = 170 * 170;
+
+            if (mdistSq < maxMDistSq) {
+              const mdist = Math.sqrt(mdistSq);
+              const threadAlpha = (1 - mdist / 170) * 0.38;
+              ctx.strokeStyle = `rgba(63, 231, 200, ${threadAlpha})`;
+              ctx.lineWidth = 1.0;
+              ctx.beginPath();
+              ctx.moveTo(s.x, s.y);
+              ctx.lineTo(mouse.x, mouse.y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        if (!prefersReducedMotion) {
+          requestAnimationFrame(renderStarfield);
+        }
+      }
+
+      renderStarfield();
+
+      /* ------------------------------------------------------------------
+         B. INTERACTIVE ASTRONAUT HELMET PHYSICS & VISOR SHEEN
+         ------------------------------------------------------------------ */
+      const helmetContainer = document.getElementById('helmetContainer');
+      const visorReflection = document.getElementById('visorReflection');
+
+      let currentRotX = 0;
+      let currentRotY = 0;
+
+      function updateHelmetPhysics() {
+        if (prefersReducedMotion) return;
+
+        const rect = helmetContainer.getBoundingClientRect();
+        const helmetCenterX = rect.left + rect.width / 2;
+        const helmetCenterY = rect.top + rect.height / 2;
+
+        const deltaX = (mouse.targetX - helmetCenterX) / (window.innerWidth / 2);
+        const deltaY = (mouse.targetY - helmetCenterY) / (window.innerHeight / 2);
+
+        // Clamp rotation to max ~10 degrees
+        const targetRotY = Math.max(-10, Math.min(10, deltaX * 12));
+        const targetRotX = Math.max(-10, Math.min(10, -deltaY * 12));
+
+        currentRotX += (targetRotX - currentRotX) * 0.08;
+        currentRotY += (targetRotY - currentRotY) * 0.08;
+
+        helmetContainer.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg)`;
+
+        // Visor reflection slide effect
+        if (visorReflection) {
+          const reflX = 120 + currentRotY * 2.2;
+          const reflY = 115 + currentRotX * 1.8;
+          visorReflection.setAttribute('cx', reflX);
+          visorReflection.setAttribute('cy', reflY);
+        }
+
+        requestAnimationFrame(updateHelmetPhysics);
+      }
+
+      if (!prefersReducedMotion) {
+        updateHelmetPhysics();
+      }
+
+      /* ------------------------------------------------------------------
+         C. CARD RADIAL SHEEN & CURSOR TRACKING
+         ------------------------------------------------------------------ */
+      const glassCard = document.getElementById('glassCard');
+
+      glassCard.addEventListener('mousemove', (e) => {
+        const rect = glassCard.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        glassCard.style.setProperty('--mouse-x', `${x}px`);
+        glassCard.style.setProperty('--mouse-y', `${y}px`);
+      });
+
+      /* ------------------------------------------------------------------
+         D. TAB NAVIGATION & HEIGHT ANIMATED CROSSFADE
+         ------------------------------------------------------------------ */
+      const tabSigninBtn = document.getElementById('tabSigninBtn');
+      const tabSignupBtn = document.getElementById('tabSignupBtn');
+      const tabPill = document.getElementById('tabPill');
+
+      const panelSignin = document.getElementById('panelSignin');
+      const panelSignup = document.getElementById('panelSignup');
+      const formsViewport = document.getElementById('formsViewport');
+
+      function syncViewportHeight(activePanel) {
+        formsViewport.style.height = `${activePanel.offsetHeight}px`;
+      }
+
+      // Initial viewport height
+      syncViewportHeight(panelSignin);
+
+      function switchTab(activeBtn, targetPanel, inactiveBtn, otherPanel, isSignup) {
+        activeBtn.classList.add('active');
+        activeBtn.setAttribute('aria-selected', 'true');
+        activeBtn.setAttribute('tabindex', '0');
+
+        inactiveBtn.classList.remove('active');
+        inactiveBtn.setAttribute('aria-selected', 'false');
+        inactiveBtn.setAttribute('tabindex', '-1');
+
+        // Slide pill indicator
+        tabPill.style.transform = isSignup ? 'translateX(100%)' : 'translateX(0)';
+
+        // Panel crossfade transition
+        otherPanel.classList.remove('active');
+        targetPanel.classList.add('active');
+
+        syncViewportHeight(targetPanel);
+      }
+
+      tabSigninBtn.addEventListener('click', () => {
+        if (!tabSigninBtn.classList.contains('active')) {
+          switchTab(tabSigninBtn, panelSignin, tabSignupBtn, panelSignup, false);
+        }
+      });
+
+      tabSignupBtn.addEventListener('click', () => {
+        if (!tabSignupBtn.classList.contains('active')) {
+          switchTab(tabSignupBtn, panelSignup, tabSigninBtn, panelSignin, true);
+        }
+      });
+
+      /* ------------------------------------------------------------------
+         E. PASSWORD SHOW / HIDE TOGGLES
+         ------------------------------------------------------------------ */
+      document.querySelectorAll('.password-toggle').forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+          const targetId = toggle.getAttribute('data-target');
+          const input = document.getElementById(targetId);
+          if (!input) return;
+
+          const isPassword = input.type === 'password';
+          input.type = isPassword ? 'text' : 'password';
+
+          toggle.innerHTML = isPassword
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        });
+      });
+
+      /* ------------------------------------------------------------------
+         F. PASSWORD STRENGTH METER (SIGN UP)
+         ------------------------------------------------------------------ */
+      const signupPassword = document.getElementById('signupPassword');
+      const bar1 = document.getElementById('bar1');
+      const bar2 = document.getElementById('bar2');
+      const bar3 = document.getElementById('bar3');
+      const bar4 = document.getElementById('bar4');
+      const strengthLabel = document.getElementById('strengthLabel');
+
+      signupPassword?.addEventListener('input', () => {
+        const val = signupPassword.value;
+        let score = 0;
+
+        if (val.length >= 6) score++;
+        if (val.length >= 10) score++;
+        if (/[A-Z]/.test(val) && /[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+
+        const colors = ['rgba(152, 161, 199, 0.2)', '#ef4444', '#f59e0b', '#10b981', '#3fe7c8'];
+        const labels = ['Weak', 'Weak', 'Fair', 'Strong', 'Celestial'];
+
+        bar1.style.backgroundColor = score >= 1 ? colors[score] : colors[0];
+        bar2.style.backgroundColor = score >= 2 ? colors[score] : colors[0];
+        bar3.style.backgroundColor = score >= 3 ? colors[score] : colors[0];
+        bar4.style.backgroundColor = score >= 4 ? colors[score] : colors[0];
+
+        strengthLabel.textContent = val ? labels[score] : 'Weak';
+        strengthLabel.style.color = score > 0 ? colors[score] : 'var(--color-muted)';
+      });
+
+      /* ------------------------------------------------------------------
+         G. MOCK SUBMIT FLOW (LOADING -> SUCCESS STATE)
+         ------------------------------------------------------------------ */
+      function handleFormSubmit(form, submitBtn, defaultText) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+          }
+
+          // Trigger loading state
+          submitBtn.disabled = true;
+          submitBtn.classList.add('loading');
+          const btnText = submitBtn.querySelector('.btn-text');
+          btnText.textContent = 'Authenticating...';
+
+          setTimeout(() => {
+            // Trigger success state
+            submitBtn.classList.remove('loading');
+            submitBtn.classList.add('success');
+            btnText.textContent = '✓ Access Granted';
+
+            setTimeout(() => {
+              // Reset state
+              submitBtn.disabled = false;
+              submitBtn.classList.remove('success');
+              btnText.textContent = defaultText;
+              form.reset();
+              syncViewportHeight(panelSignin.classList.contains('active') ? panelSignin : panelSignup);
+            }, 2200);
+          }, 1800);
+        });
+      }
+
+      handleFormSubmit(
+        document.getElementById('formSignin'),
+        document.getElementById('signinSubmit'),
+        'Launch Session'
+      );
+
+      handleFormSubmit(
+        document.getElementById('formSignup'),
+        document.getElementById('signupSubmit'),
+        'Create Explorer Account'
+      );
+
+    });
+  </script>
+</body>
+</html>

@@ -131,7 +131,7 @@ function ChandrayaanSatellite() {
   );
 }
 
-export default function ScatterAndReassembleText({ showMultilingual = true }) {
+export default function ScatterAndReassembleText({ showMultilingual = true, singleLine = false }) {
   const letters = useMemo(() => TEXT.split(""), []);
   const scatterOffsets = useMemo(() => letters.map((_, i) => getScatterOffset(i)), [letters]);
   const floatParams    = useMemo(() => letters.map((_, i) => getFloatParams(i)),   [letters]);
@@ -326,7 +326,8 @@ export default function ScatterAndReassembleText({ showMultilingual = true }) {
           position: "relative",
           zIndex: 10,
           display: "flex",
-          flexWrap: "wrap",
+          flexWrap: singleLine ? "nowrap" : "wrap",
+          whiteSpace: singleLine ? "nowrap" : "normal",
           alignItems: "center",
           justifyContent: "center",
         }}
