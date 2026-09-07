@@ -16,9 +16,7 @@ import {
 } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
-import SpaceAnomalies from './components/SpaceAnomalies';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
-import IntroHero from './components/IntroHero';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
 import AuthPage from './pages/AuthPage';
@@ -30,8 +28,6 @@ function App() {
   const [currentUser, setCurrentUser] = useState(getUser());
   const [query, setQuery] = useState('');
   const [activeNav, setActiveNav] = useState('home');
-  const [activeQueryData, setActiveQueryData] = useState(null);
-  const [isAgentProcessing, setIsAgentProcessing] = useState(false);
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
@@ -44,10 +40,6 @@ function App() {
     setCurrentUser(null);
   };
 
-  // If not authenticated, show login/signup page
-  if (!authed) {
-    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
-  }
 
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
@@ -58,28 +50,10 @@ function App() {
     { id: 'profile', icon: User, label: 'Profile' },
   ];
 
-  const runAgentTask = (queryText) => {
-    setActiveQueryData({
-      query: queryText,
-      sensor: 'Sentinel-2B MSI (13 Spectral Bands)',
-      aoi: { name: 'Bengaluru Urban & Corridor' },
-      dateRange: '2023 - 2024 Baseline',
-    });
-    setIsAgentProcessing(true);
-    setTimeout(() => {
-      setIsAgentProcessing(false);
-    }, 2500);
-  };
-
-  const handleSelectFeature = (sampleQueryText) => {
-    setQuery(sampleQueryText);
-    runAgentTask(sampleQueryText);
-  };
-
   const handleSend = (e) => {
     e?.preventDefault();
     if (!query.trim()) return;
-    runAgentTask(query.trim());
+    console.log('Query submitted:', query);
   };
 
   const handleKeyDown = (e) => {
@@ -90,7 +64,6 @@ function App() {
 
   return (
     <>
-      <SpaceAnomalies />
       <TopologyBackground />
       <TwinklingStars />
       <div className="app-container">
@@ -121,11 +94,6 @@ function App() {
         <main className="main-content">
           <div className="center-stage">
             <ScatterAndReassembleText />
-            <IntroHero
-              onSelectFeature={handleSelectFeature}
-              activeQueryData={activeQueryData}
-              isAgentProcessing={isAgentProcessing}
-            />
           </div>
         </main>
 
