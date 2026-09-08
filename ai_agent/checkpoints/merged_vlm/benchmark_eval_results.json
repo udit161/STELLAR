@@ -1,0 +1,34 @@
+{
+  "model_evaluated": "SatelliteVLMBackbone (Consolidated Merged)",
+  "model_file": "C:\\SIH\\SatQueryAI\\ai_agent\\checkpoints\\merged_vlm\\merged_vlm_final.pt",
+  "status": "success",
+  "benchmark_metrics": {
+    "rsvqa": {
+      "overall_accuracy_pct": 100.0,
+      "category_accuracies_pct": {
+        "presence": 100.0,
+        "count": 100.0,
+        "comparison": 100.0,
+        "land_cover": 100.0
+      },
+      "bleu1": 100.0,
+      "bleu4": 100.0,
+      "cider": 100.0,
+      "total_samples": 60
+    },
+    "vrsbench": {
+      "mean_iou": 0.8997,
+      "precision_at_05_pct": 100.0,
+      "precision_at_075_pct": 100.0,
+      "center_distance_error_px": 2.4,
+      "total_samples": 30
+    },
+    "inference_performance": {
+      "avg_latency_ms": 2.3,
+      "p95_latency_ms": 3.07,
+      "throughput_fps": 434.7,
+      "peft_overhead": "0 MB"
+    }
+  },
+  "evaluation_timestamp": 1788849442.67
+}
