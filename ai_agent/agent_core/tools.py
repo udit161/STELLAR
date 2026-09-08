@@ -96,10 +96,15 @@ try:
     from specialist_models.vision_vqa import VisionVQAModel
     from specialist_models.change_det import ChangeDetector
     from specialist_models.cross_modal import CrossModalFusion
-except ImportError:
-    from ..specialist_models.vision_vqa import VisionVQAModel
-    from ..specialist_models.change_det import ChangeDetector
-    from ..specialist_models.cross_modal import CrossModalFusion
+except Exception:
+    try:
+        from ..specialist_models.vision_vqa import VisionVQAModel
+        from ..specialist_models.change_det import ChangeDetector
+        from ..specialist_models.cross_modal import CrossModalFusion
+    except Exception:
+        VisionVQAModel = None
+        ChangeDetector = None
+        CrossModalFusion = None
 
 
 # ---------------------------------------------------------------------------
@@ -548,9 +553,9 @@ class LandCoverClassificationInput(BaseModel):
 # Specialist Inference Instances
 # ---------------------------------------------------------------------------
 
-_vision_vqa_model = VisionVQAModel()
-_change_detector = ChangeDetector()
-_cross_modal_fusion = CrossModalFusion()
+_vision_vqa_model = VisionVQAModel() if VisionVQAModel is not None else None
+_change_detector = ChangeDetector() if ChangeDetector is not None else None
+_cross_modal_fusion = CrossModalFusion() if CrossModalFusion is not None else None
 
 
 # ---------------------------------------------------------------------------
