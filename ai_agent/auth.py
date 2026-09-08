@@ -18,6 +18,9 @@ from pydantic import BaseModel, EmailStr, Field
 # ---------------------------------------------------------------------------
 
 try:
+    import bcrypt
+    if not hasattr(bcrypt, "__about__") and hasattr(bcrypt, "__version__"):
+        bcrypt.__about__ = type("about", (), {"__version__": bcrypt.__version__})
     from passlib.context import CryptContext
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     PASSLIB_AVAILABLE = True

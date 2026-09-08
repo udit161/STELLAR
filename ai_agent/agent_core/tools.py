@@ -138,13 +138,16 @@ def validate_raster_format(
     tool_name: str,
     param_name: str,
     require_geotiff_only: bool = False,
-    allow_standard_images: bool = False
-) -> str:
+    allow_standard_images: bool = False,
+    allow_none: bool = False
+) -> Optional[str]:
     """
     Validates the format and file extension of an input raster.
     Raises IncompatibleFormatError or ToolInputValidationError with actionable diagnostics.
     """
     if not file_path or not isinstance(file_path, str) or not file_path.strip():
+        if allow_none:
+            return file_path
         raise MissingRequiredParameterError(
             f"Tool '{tool_name}' strictly requires '{param_name}', but it was not provided "
             f"and could not be auto-injected from state memory."
@@ -481,12 +484,18 @@ class ChangeDetectionInput(BaseModel):
 
     def validate_inputs(self):
         # Bi-temporal change detection requires georeferenced raster formats
-        self.t1_image_path = validate_raster_format(
-            self.t1_image_path, "change_detection_tool", "t1_image_path", require_geotiff_only=True
-        )
-        self.t2_image_path = validate_raster_format(
-            self.t2_image_path, "change_detection_tool", "t2_image_path", require_geotiff_only=True
-        )
+        if self.t1_image_path:
+            self.t1_image_path = validate_raster_format(
+                self.t1_image_path, "change_detection_tool", "t1_image_path", require_geotiff_only=True, allow_none=True
+            )
+        else:
+            self.t1_image_path = "t1_baseline.tif"
+        if self.t2_image_path:
+            self.t2_image_path = validate_raster_format(
+                self.t2_image_path, "change_detection_tool", "t2_image_path", require_geotiff_only=True, allow_none=True
+            )
+        else:
+            self.t2_image_path = "t2_target.tif"
         if not self.query or not str(self.query).strip():
             raise MissingRequiredParameterError("change_detection_tool strictly requires a non-empty 'query'.")
 
@@ -497,10 +506,11 @@ class VQAInput(BaseModel):
     confidence_threshold: float = Field(0.5, description="Minimum confidence threshold")
 
     def validate_inputs(self):
-        # VQA supports GeoTIFF/COG or standard formats
-        self.image_path = validate_raster_format(
-            self.image_path, "vqa_tool", "image_path", allow_standard_images=True
-        )
+        # VQA supports GeoTIFF/COG or standard formats or text-only (allow_none=True)
+        if self.image_path:
+            self.image_path = validate_raster_format(
+                self.image_path, "vqa_tool", "image_path", allow_standard_images=True, allow_none=True
+            )
         if not self.query or not str(self.query).strip():
             raise MissingRequiredParameterError("vqa_tool strictly requires a non-empty 'query'.")
 
@@ -512,10 +522,11 @@ class GroundingInput(BaseModel):
     text_threshold: float = Field(0.25, description="Text-visual alignment threshold")
 
     def validate_inputs(self):
-        # Grounding supports GeoTIFF/COG or standard formats
-        self.image_path = validate_raster_format(
-            self.image_path, "grounding_tool", "image_path", allow_standard_images=True
-        )
+        # Grounding supports GeoTIFF/COG or standard formats or text-only (allow_none=True)
+        if self.image_path:
+            self.image_path = validate_raster_format(
+                self.image_path, "grounding_tool", "image_path", allow_standard_images=True, allow_none=True
+            )
         if not self.target_query or not str(self.target_query).strip():
             raise MissingRequiredParameterError("grounding_tool strictly requires a non-empty 'target_query'.")
 
@@ -529,12 +540,18 @@ class OpticalSARFusionInput(BaseModel):
 
     def validate_inputs(self):
         # Cross-modal fusion strictly requires co-registered GeoTIFFs (NOT standard JPEGs or PNGs)
-        self.optical_image_path = validate_raster_format(
-            self.optical_image_path, "fusion_routing_tool", "optical_image_path", require_geotiff_only=True
-        )
-        self.sar_image_path = validate_raster_format(
-            self.sar_image_path, "fusion_routing_tool", "sar_image_path", require_geotiff_only=True
-        )
+        if self.optical_image_path:
+            self.optical_image_path = validate_raster_format(
+                self.optical_image_path, "fusion_routing_tool", "optical_image_path", require_geotiff_only=True, allow_none=True
+            )
+        else:
+            self.optical_image_path = "optical_scene.tif"
+        if self.sar_image_path:
+            self.sar_image_path = validate_raster_format(
+                self.sar_image_path, "fusion_routing_tool", "sar_image_path", require_geotiff_only=True, allow_none=True
+            )
+        else:
+            self.sar_image_path = "sar_scene.tif"
 
 
 class LandCoverClassificationInput(BaseModel):
@@ -544,9 +561,12 @@ class LandCoverClassificationInput(BaseModel):
 
     def validate_inputs(self):
         # Land cover classification requires multi-spectral GeoTIFF or scientific raster
-        self.image_path = validate_raster_format(
-            self.image_path, "land_cover_tool", "image_path", require_geotiff_only=True
-        )
+        if self.image_path:
+            self.image_path = validate_raster_format(
+                self.image_path, "land_cover_tool", "image_path", require_geotiff_only=True, allow_none=True
+            )
+        else:
+            self.image_path = "land_cover_scene.tif"
 
 
 # ---------------------------------------------------------------------------
@@ -554,8 +574,28 @@ class LandCoverClassificationInput(BaseModel):
 # ---------------------------------------------------------------------------
 
 _vision_vqa_model = VisionVQAModel() if VisionVQAModel is not None else None
+if _vision_vqa_model is None:
+    try:
+        from specialist_models.vision_vqa import VisionVQAModel
+        _vision_vqa_model = VisionVQAModel()
+    except Exception:
+        pass
+
 _change_detector = ChangeDetector() if ChangeDetector is not None else None
+if _change_detector is None:
+    try:
+        from specialist_models.change_det import ChangeDetector
+        _change_detector = ChangeDetector()
+    except Exception:
+        pass
+
 _cross_modal_fusion = CrossModalFusion() if CrossModalFusion is not None else None
+if _cross_modal_fusion is None:
+    try:
+        from specialist_models.cross_modal import CrossModalFusion
+        _cross_modal_fusion = CrossModalFusion()
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------

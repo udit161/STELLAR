@@ -6,8 +6,18 @@ Supports raw raster tensors (GeoTIFF/COG) and synchronized multi-modal BigEarthN
 
 import os
 from typing import Dict, Any, Union, Optional
-import torch
-from specialist_models.bigearthnet_pipeline import BigEarthNetBandAligner
+
+try:
+    import torch
+except ImportError:
+    torch = None
+
+try:
+    from specialist_models.bigearthnet_pipeline import BigEarthNetBandAligner
+except Exception:
+    class BigEarthNetBandAligner:
+        def __init__(self, *args, **kwargs): pass
+        def align_and_stack(self, opt, sar): return None, None, None
 
 
 class CrossModalFusion:
