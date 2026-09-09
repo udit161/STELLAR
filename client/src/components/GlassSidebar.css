@@ -124,10 +124,9 @@
     max-width var(--glass-sidebar-transition);
   z-index: 1;
 }
-
 /* ── Active Pill States ── */
 .glass-nav-pill.active {
-  width: 203px;
+  width: 140px;
   border-radius: 40px;
   justify-content: flex-start;
 }

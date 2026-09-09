@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Rocket, Send } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 import './LiquidMetalQueryBar.css';
 
 const PROMPTS = [
@@ -139,10 +139,10 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
           title="Launch query"
           disabled={!query.trim()}
         >
-          {query.trim()
-            ? <Send  className={`rocket-icon-svg ${isLaunching ? 'launching' : ''}`} size={16} />
-            : <Rocket className={`rocket-icon-svg ${isLaunching ? 'launching' : ''}`} size={16} />
-          }
+          <Rocket
+            className={`rocket-icon-svg ${isLaunching ? 'launching' : ''}`}
+            size={16}
+          />
         </button>
 
         {isLaunching && (
