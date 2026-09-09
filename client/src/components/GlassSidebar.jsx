@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 import {
-  MessageSquare,
   Search,
   Clock,
   FileText,
   Settings,
+  User,
 } from 'lucide-react';
 import './GlassSidebar.css';
 
 const NAV_ITEMS = [
-  { id: 'chat',      icon: MessageSquare, label: 'Chat' },
-  { id: 'search',    icon: Search,        label: 'Search' },
-  { id: 'history',   icon: Clock,         label: 'History' },
-  { id: 'documents', icon: FileText,      label: 'Documents' },
-  { id: 'settings',  icon: Settings,      label: 'Settings' },
+  { id: 'search',    icon: Search,   label: 'Search' },
+  { id: 'history',   icon: Clock,    label: 'History' },
+  { id: 'documents', icon: FileText,  label: 'Documents' },
+  { id: 'settings',  icon: Settings,  label: 'Settings' },
+  { id: 'profile',   icon: User,      label: 'Profile' },
 ];
 
 function GlassSidebar({ activeNav, onNavChange }) {
-  const [active, setActive] = useState(activeNav || 'chat');
+  const [active, setActive] = useState(activeNav || 'search');
 
   const handleSelect = (id) => {
     setActive(id);
@@ -46,7 +46,7 @@ function GlassSidebar({ activeNav, onNavChange }) {
                 aria-label={item.label}
               >
                 <span className="glass-nav-pill-icon">
-                  <Icon size={22} />
+                  <Icon size={18} />
                 </span>
                 <span className="glass-nav-pill-label">
                   {item.label}
