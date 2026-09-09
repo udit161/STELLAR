@@ -87,8 +87,13 @@ function App() {
         <LiquidMetalQueryBar onLaunchQuery={handleLaunchQuery} />
       )}
 
-      <ISROBadge />
-      <IndiaFlagBadge />
+      {/* Badges shown only on initial home stage */}
+      {!querySubmitted && (
+        <>
+          <ISROBadge />
+          <IndiaFlagBadge />
+        </>
+      )}
 
     </>
   );
