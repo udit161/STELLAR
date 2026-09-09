@@ -175,80 +175,81 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
           </div>
         </LiquidGlassCard>
 
-        {/* ── Right Summary Panel ── */}
-        <LiquidGlassCard className="summary-panel-card">
-          <div className="summary-title-row">
-            <span className="summary-title">Query Summary</span>
-            <div className="tab-switcher" style={{ scale: '0.9' }}>
-              <button 
-                className={`tab-btn ${summaryMode === 'summary' ? 'active' : ''}`}
-                onClick={() => setSummaryMode('summary')}
-              >
-                Visual
-              </button>
-              <button 
-                className={`tab-btn ${summaryMode === 'raw' ? 'active' : ''}`}
-                onClick={() => setSummaryMode('raw')}
-              >
-                Raw Data
-              </button>
+        {/* ── Right Summary Column ── */}
+        <div className="right-summary-column">
+          <LiquidGlassCard className="summary-panel-card">
+            <div className="summary-title-row">
+              <span className="summary-title">Query Summary</span>
+              <div className="tab-switcher" style={{ scale: '0.9' }}>
+                <button 
+                  className={`tab-btn ${summaryMode === 'summary' ? 'active' : ''}`}
+                  onClick={() => setSummaryMode('summary')}
+                >
+                  Visual
+                </button>
+                <button 
+                  className={`tab-btn ${summaryMode === 'raw' ? 'active' : ''}`}
+                  onClick={() => setSummaryMode('raw')}
+                >
+                  Raw Data
+                </button>
+              </div>
             </div>
-          </div>
 
-          {summaryMode === 'summary' ? (
-            <>
-              <div className="metrics-stack">
-                <div className="metric-row">
-                  <div className="metric-header">
-                    <span>Confidence Score</span>
-                    <span className="metric-val">98.6%</span>
+            {summaryMode === 'summary' ? (
+              <>
+                <div className="metrics-stack">
+                  <div className="metric-row">
+                    <div className="metric-header">
+                      <span>Confidence Score</span>
+                      <span className="metric-val">98.6%</span>
+                    </div>
+                    <div className="metric-bar-bg">
+                      <div className="metric-bar-fill" style={{ width: '98.6%' }}></div>
+                    </div>
                   </div>
-                  <div className="metric-bar-bg">
-                    <div className="metric-bar-fill" style={{ width: '98.6%' }}></div>
+
+                  <div className="metric-row">
+                    <div className="metric-header">
+                      <span>Active Telemetry Sources</span>
+                      <span className="metric-val">14 Nodes</span>
+                    </div>
+                    <div className="metric-bar-bg">
+                      <div className="metric-bar-fill" style={{ width: '82%' }}></div>
+                    </div>
+                  </div>
+
+                  <div className="metric-row">
+                    <div className="metric-header">
+                      <span>Query Latency</span>
+                      <span className="metric-val">118 ms</span>
+                    </div>
+                    <div className="metric-bar-bg">
+                      <div className="metric-bar-fill" style={{ width: '94%' }}></div>
+                    </div>
+                  </div>
+
+                  <div className="metric-row">
+                    <div className="metric-header">
+                      <span>Data Freshness</span>
+                      <span className="metric-val" style={{ color: '#4FACFE' }}>Live (Real-Time)</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="metric-row">
-                  <div className="metric-header">
-                    <span>Active Telemetry Sources</span>
-                    <span className="metric-val">14 Nodes</span>
-                  </div>
-                  <div className="metric-bar-bg">
-                    <div className="metric-bar-fill" style={{ width: '82%' }}></div>
-                  </div>
-                </div>
-
-                <div className="metric-row">
-                  <div className="metric-header">
-                    <span>Query Latency</span>
-                    <span className="metric-val">118 ms</span>
-                  </div>
-                  <div className="metric-bar-bg">
-                    <div className="metric-bar-fill" style={{ width: '94%' }}></div>
+                <div className="topics-section">
+                  <span className="section-label">Related Topics & Tags</span>
+                  <div className="tags-wrap">
+                    <span className="topic-chip">#LEO-Orbit</span>
+                    <span className="topic-chip">#ISRO-Nodes</span>
+                    <span className="topic-chip">#DopplerShift</span>
+                    <span className="topic-chip">#DebrisAvoidance</span>
+                    <span className="topic-chip">#Cartosat-3</span>
                   </div>
                 </div>
-
-                <div className="metric-row">
-                  <div className="metric-header">
-                    <span>Data Freshness</span>
-                    <span className="metric-val" style={{ color: '#4FACFE' }}>Live (Real-Time)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="topics-section">
-                <span className="section-label">Related Topics & Tags</span>
-                <div className="tags-wrap">
-                  <span className="topic-chip">#LEO-Orbit</span>
-                  <span className="topic-chip">#ISRO-Nodes</span>
-                  <span className="topic-chip">#DopplerShift</span>
-                  <span className="topic-chip">#DebrisAvoidance</span>
-                  <span className="topic-chip">#Cartosat-3</span>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="code-snippet-box" style={{ height: '240px' }}>
+              </>
+            ) : (
+              <div className="code-snippet-box" style={{ height: '240px' }}>
 {`{
   "status": 200,
   "nodes_synced": 14,
@@ -257,9 +258,37 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
   "catalog": "NORAD_2026_Q3",
   "sat_id": 25544
 }`}
-            </div>
-          )}
-        </LiquidGlassCard>
+              </div>
+            )}
+          </LiquidGlassCard>
+
+          {/* Follow-up Query Bar (Separate Card Below Query Summary) */}
+          <LiquidGlassCard pill className="summary-followup-card">
+            <form className="followup-input-box" onSubmit={handleSendFollowup}>
+              <button type="button" className="input-icon-btn" title="Attach Telemetry Data">
+                <Paperclip size={16} />
+              </button>
+              <button type="button" className="input-icon-btn" title="Voice Input">
+                <Mic size={16} />
+              </button>
+              <input 
+                type="text" 
+                className="followup-text-field"
+                placeholder="Ask a follow-up query..."
+                value={followupText}
+                onChange={(e) => setFollowupText(e.target.value)}
+              />
+              <button 
+                type="submit" 
+                className="submit-rocket-btn" 
+                disabled={!followupText.trim()}
+                title="Submit follow-up"
+              >
+                <Rocket size={16} />
+              </button>
+            </form>
+          </LiquidGlassCard>
+        </div>
       </div>
 
       {/* ── About Modal ── */}
