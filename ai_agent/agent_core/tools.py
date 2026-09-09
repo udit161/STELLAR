@@ -6,6 +6,37 @@ Safety Nets & Validation:
 - Enforces strict geospatial raster format validation (GeoTIFF, COG, JP2).
 - Catches incompatible lossy formats (e.g. standard JPEG/PNG sent to cross_modal.py or change_det.py).
 - Returns descriptive failure dictionaries conforming to StandardToolOutput instead of crashing backend.
+
+Tools
+-----
+vqa_tool              : Legacy VQA wrapper calling VisionVQAModel.predict().
+                        image_path is Optional — auto-injected from context if omitted.
+
+grounding_tool        : Legacy spatial grounding wrapper calling VisionVQAModel.predict_grounding().
+                        image_path is Optional — auto-injected from context if omitted.
+
+vision_vqa_tool       : Strict unified wrapper for VisionVQAModel.infer().
+                        - Requires EXACTLY ONE valid, non-empty image_path string.
+                        - Requires a non-empty text_query string.
+                        - Pydantic model_validator rejects empty strings, None values,
+                          and format-incompatible extensions before the model is loaded.
+                        - Auto-detects task intent (VQA vs grounding) from text_query keywords;
+                          caller may override with force_grounding / force_vqa flags.
+                        - Maps infer() output directly into RSAgentState TypedDicts:
+                            * BoundingBoxEntry   — per detected grounding box
+                            * SpatialMaskEntry   — placeholder entry when grounding mask exists
+                            * IntermediateToolOutputs — vqa_answer, vqa_confidence,
+                              bounding_boxes, spatial_masks, raw_tool_outputs slots
+                            * ExecutionTraceEntry — full auditable call record
+                        - Returns StandardToolOutput.to_dict() PLUS an attached
+                          'rs_state_updates' dict ready for RSAgentState merging.
+                        - Three-layer exception handling:
+                            (1) ToolInputValidationError / IncompatibleFormatError
+                                → validation diagnostics, no model loaded
+                            (2) RuntimeError / MemoryError from model inference
+                                → descriptive execution failure response
+                            (3) Catch-all Exception
+                                → safe fallback with full traceback summary
 """
 
 import os
@@ -105,6 +136,40 @@ except Exception:
         VisionVQAModel = None
         ChangeDetector = None
         CrossModalFusion = None
+
+# Import RSAgentState TypedDict helpers for typed state output mapping
+try:
+    from agent_core.state import (
+        make_image_entry,
+        make_trace_entry,
+        BoundingBoxEntry,
+        SpatialMaskEntry,
+        IntermediateToolOutputs,
+        ExecutionTraceEntry,
+    )
+    RS_STATE_AVAILABLE = True
+except ImportError:
+    try:
+        from .state import (
+            make_image_entry,
+            make_trace_entry,
+            BoundingBoxEntry,
+            SpatialMaskEntry,
+            IntermediateToolOutputs,
+            ExecutionTraceEntry,
+        )
+        RS_STATE_AVAILABLE = True
+    except ImportError:
+        RS_STATE_AVAILABLE = False
+        # Lightweight stubs so the rest of the file compiles without state.py
+        def make_image_entry(image_path, **kw):  # type: ignore[misc]
+            return {"image_path": image_path, **kw}
+        def make_trace_entry(tool_name, parameters, **kw):  # type: ignore[misc]
+            return {"tool_name": tool_name, "parameters": parameters, **kw}
+        BoundingBoxEntry = dict  # type: ignore[misc,assignment]
+        SpatialMaskEntry = dict  # type: ignore[misc,assignment]
+        IntermediateToolOutputs = dict  # type: ignore[misc,assignment]
+        ExecutionTraceEntry = dict  # type: ignore[misc,assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -567,6 +632,133 @@ class LandCoverClassificationInput(BaseModel):
             )
         else:
             self.image_path = "land_cover_scene.tif"
+
+
+class StrictVQAInput(BaseModel):
+    """
+    Strict Pydantic input schema for vision_vqa_tool.
+
+    Unlike the permissive VQAInput used by vqa_tool (which accepts None and
+    auto-injects from context), StrictVQAInput enforces that the caller supplies
+    both a valid image path and a non-empty text query before the model is loaded.
+    This prevents silent inference over wrong images or empty prompts.
+
+    Validation rules (evaluated in order during model construction):
+    1. image_path must be a non-empty, non-whitespace string.
+    2. text_query must be a non-empty, non-whitespace string.
+    3. image_path extension must be compatible with VisionVQAModel._preprocess_image():
+       - GeoTIFF / COG: .tif .tiff .geotiff .cog  → valid
+       - Standard raster: .jpg .jpeg .png .bmp .webp → valid (Pillow loader)
+       - Scientific formats: .jp2 .nc .hdf5 .h5 .safe → warning (fallback synthetic tensor)
+       - Everything else with a known extension → IncompatibleFormatError
+    4. force_grounding and force_vqa are mutually exclusive.
+    """
+    image_path: str = Field(
+        ...,
+        description=(
+            "Absolute or relative path to the satellite image file.  "
+            "Supported formats: GeoTIFF (.tif, .tiff, .geotiff, .cog), "
+            "standard images (.jpg, .jpeg, .png, .bmp, .webp), "
+            "and scientific rasters (.jp2, .nc, .hdf5, .h5).  "
+            "Cannot be empty or None — use vqa_tool for context-injected paths."
+        )
+    )
+    text_query: str = Field(
+        ...,
+        description=(
+            "Natural-language question or grounding entity name.  "
+            "VQA example:       'What is the primary land-cover type?'  "
+            "Grounding example: 'Locate the water reservoir in the image.'  "
+            "Cannot be empty or None."
+        )
+    )
+    confidence_threshold: float = Field(
+        0.5,
+        description="Minimum confidence score to accept the model output (0.0–1.0). Values outside [0.0, 1.0] are rejected."
+    )
+    force_grounding: bool = Field(
+        False,
+        description=(
+            "When True, override task auto-detection and always run grounding "
+            "inference to return spatial bounding boxes.  "
+            "Mutually exclusive with force_vqa."
+        )
+    )
+    force_vqa: bool = Field(
+        False,
+        description=(
+            "When True, override task auto-detection and always run VQA inference "
+            "to return a textual answer.  Suppresses bounding box generation.  "
+            "Mutually exclusive with force_grounding."
+        )
+    )
+    n_bboxes: int = Field(
+        1,
+        description="Maximum number of spatial bounding boxes to generate (grounding mode only). Must be between 1 and 10."
+    )
+
+    def validate_inputs(self) -> None:
+        """
+        Run all strict pre-inference validation checks.
+
+        Raises:
+            MissingRequiredParameterError: If image_path or text_query is empty.
+            IncompatibleFormatError:       If the file extension is known but unsupported.
+            ToolInputValidationError:      If force_grounding and force_vqa are both True,
+                                           or numeric fields are out of range.
+        """
+        # --- 0. Numeric bounds (enforced here for fallback-Field compat) ----
+        if not (0.0 <= float(self.confidence_threshold) <= 1.0):
+            raise ToolInputValidationError(
+                f"vision_vqa_tool: 'confidence_threshold' must be in [0.0, 1.0], "
+                f"got {self.confidence_threshold}."
+            )
+        if not (1 <= int(self.n_bboxes) <= 10):
+            raise ToolInputValidationError(
+                f"vision_vqa_tool: 'n_bboxes' must be between 1 and 10, "
+                f"got {self.n_bboxes}."
+            )
+        # --- 1. image_path: non-empty and properly stripped -----------------
+        if not self.image_path or not str(self.image_path).strip():
+            raise MissingRequiredParameterError(
+                "vision_vqa_tool: 'image_path' is required and must not be empty or None.  "
+                "Provide an absolute or relative file path to the satellite raster.  "
+                "For automatic path injection from state memory, use vqa_tool instead."
+            )
+        self.image_path = self.image_path.strip().split("?")[0].split("#")[0]
+
+        # --- 2. text_query: non-empty ---------------------------------------
+        if not self.text_query or not str(self.text_query).strip():
+            raise MissingRequiredParameterError(
+                "vision_vqa_tool: 'text_query' is required and must not be empty or None.  "
+                "Provide a natural-language question (VQA) or target entity name (grounding)."
+            )
+        self.text_query = str(self.text_query).strip()
+
+        # --- 3. File extension gatekeeping ----------------------------------
+        ext = os.path.splitext(self.image_path.lower())[1]
+
+        _GEOTIFF_EXTS    = {".tif", ".tiff", ".geotiff", ".cog"}
+        _STANDARD_EXTS   = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+        _SCIENTIFIC_EXTS = {".jp2", ".nc", ".hdf5", ".h5", ".safe", ".hdf"}
+        _KNOWN_EXTS      = _GEOTIFF_EXTS | _STANDARD_EXTS | _SCIENTIFIC_EXTS
+
+        if ext and ext not in _KNOWN_EXTS:
+            raise IncompatibleFormatError(
+                f"vision_vqa_tool: Unsupported image format '{ext}' in '{self.image_path}'.  "
+                f"Supported formats: GeoTIFF ({', '.join(sorted(_GEOTIFF_EXTS))}), "
+                f"standard images ({', '.join(sorted(_STANDARD_EXTS))}), "
+                f"scientific rasters ({', '.join(sorted(_SCIENTIFIC_EXTS))}).  "
+                f"If the file is a valid raster in a non-standard extension, "
+                f"rename it to .tif or convert using GDAL before retrying."
+            )
+
+        # --- 4. Mutually exclusive flags ------------------------------------
+        if self.force_grounding and self.force_vqa:
+            raise ToolInputValidationError(
+                "vision_vqa_tool: 'force_grounding' and 'force_vqa' cannot both be True.  "
+                "Set at most one to True, or leave both False for automatic task detection."
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1258,6 +1450,468 @@ def land_cover_tool(
 
 
 # ---------------------------------------------------------------------------
+# vision_vqa_tool  —  Strict Unified VQA + Grounding Tool (RSAgentState-aware)
+# ---------------------------------------------------------------------------
+
+@tool(args_schema=StrictVQAInput)
+def vision_vqa_tool(
+    image_path: str,
+    text_query: str,
+    confidence_threshold: float = 0.5,
+    force_grounding: bool = False,
+    force_vqa: bool = False,
+    n_bboxes: int = 1,
+    state: Optional[Dict[str, Any]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """
+    Strict Vision VQA & Grounding Tool — RSAgentState-aware output.
+
+    Wraps VisionVQAModel.infer() with three-layer error handling and maps
+    inference results directly into RSAgentState TypedDicts so that
+    orchestrator nodes can merge typed outputs without extra conversion.
+
+    Input validation (Pydantic StrictVQAInput):
+    - image_path: REQUIRED non-empty string.  Supports GeoTIFF, COG, JP2,
+      PNG, JPEG, BMP, WebP.  Unknown extensions raise IncompatibleFormatError
+      BEFORE the model singleton is accessed.
+    - text_query: REQUIRED non-empty string (question or target entity).
+    - force_grounding / force_vqa: mutually exclusive override flags.
+    - n_bboxes: number of bounding boxes to generate (1–10).
+
+    Returns:
+        StandardToolOutput.to_dict() augmented with an 'rs_state_updates' key
+        containing a dict ready to be merged into RSAgentState:
+
+        rs_state_updates = {
+            'tool_outputs'         : IntermediateToolOutputs partial update,
+            'tool_confidence_scores': {tool_name: float},
+            'execution_trace'      : [ExecutionTraceEntry],
+            'bounding_boxes'       : [BoundingBoxEntry],   # flattened for AgentState
+            'image_inputs'         : [ImageModalityEntry],  # image entry
+        }
+
+    Error handling:
+        Layer 1 — ToolInputValidationError / IncompatibleFormatError:
+            Raised by StrictVQAInput.validate_inputs() before inference.
+            Returns validation diagnostics, confidence=0.0, status='error'.
+        Layer 2 — RuntimeError / MemoryError (model inference failure):
+            Catches GPU OOM, CUDA errors, and model I/O failures.
+            Returns descriptive runtime failure response, confidence=0.0.
+        Layer 3 — Exception (catch-all):
+            Catches any unexpected Python exception.
+            Returns safe fallback with full exception class and message.
+    """
+    start_time = time.time()
+    _TOOL_NAME = "vision_vqa_tool"
+    _ENGINE    = "VisionVQAModel (4-bit NF4 — BigEarthNet-SatVLM)"
+
+    # -----------------------------------------------------------------------
+    # Helper: build a StandardToolOutput for error cases
+    # -----------------------------------------------------------------------
+    def _make_error_output(
+        error_msg: str,
+        summary: str,
+        details: str,
+        error_type: str,
+        elapsed_ms: float,
+        resolved_img: Optional[str] = None,
+        resolved_q: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Build a fully-populated StandardToolOutput error dict plus rs_state_updates
+        so the orchestrator always receives a consistent shape regardless of error layer.
+        """
+        now_iso = datetime.utcnow().isoformat()
+        trace = make_trace_entry(
+            tool_name=_TOOL_NAME,
+            node_name=state.get("active_agent", "unknown_node") if state else "unknown_node",
+            parameters={
+                "image_path": resolved_img or image_path,
+                "text_query": resolved_q or text_query,
+                "force_grounding": force_grounding,
+                "force_vqa": force_vqa,
+                "n_bboxes": n_bboxes,
+            },
+            status="error",
+            result_summary=summary,
+            confidence=0.0,
+            duration_ms=elapsed_ms,
+            error=error_msg,
+            output_keys=[],
+            timestamp_end=now_iso,
+        )
+        err_output = StandardToolOutput(
+            status="error",
+            tool_name=_TOOL_NAME,
+            engine=_ENGINE,
+            execution_time_ms=elapsed_ms,
+            timestamp=now_iso,
+            summary=summary,
+            details=details,
+            bounding_boxes=[],
+            spatial_mask=None,
+            metrics={"error_type": error_type},
+            confidence=0.0,
+            artifacts=[],
+            raw_output=None,
+            validated_inputs={
+                "image_path": resolved_img or image_path,
+                "text_query": resolved_q or text_query,
+            },
+            context_injected={},
+            error=error_msg,
+        )
+        out_dict = err_output.to_dict()
+        out_dict["rs_state_updates"] = {
+            "tool_outputs": {
+                "vqa_answer": "",
+                "vqa_confidence": 0.0,
+                "bounding_boxes": [],
+                "spatial_masks": [],
+                "raw_tool_outputs": {_TOOL_NAME: out_dict},
+            },
+            "tool_confidence_scores": {_TOOL_NAME: 0.0},
+            "execution_trace": [trace],
+            "bounding_boxes": [],
+            "image_inputs": [],
+        }
+        return out_dict
+
+    # -----------------------------------------------------------------------
+    # Layer 1 — Strict Pydantic validation (before model is loaded)
+    # -----------------------------------------------------------------------
+    try:
+        input_params = StrictVQAInput(
+            image_path=image_path,
+            text_query=text_query,
+            confidence_threshold=confidence_threshold,
+            force_grounding=force_grounding,
+            force_vqa=force_vqa,
+            n_bboxes=n_bboxes,
+        )
+        input_params.validate_inputs()
+
+    except (IncompatibleFormatError, ToolInputValidationError, MissingRequiredParameterError) as ve:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        return _make_error_output(
+            error_msg=str(ve),
+            summary=f"vision_vqa_tool input validation failed: {str(ve)}",
+            details=(
+                "Strict input validation rejected the request before loading the model.  "
+                "Check that 'image_path' is a non-empty path to a supported raster "
+                "(.tif, .tiff, .cog, .jp2, .png, .jpg, .bmp, .webp) and that "
+                "'text_query' is a non-empty natural-language string."
+            ),
+            error_type=ve.__class__.__name__,
+            elapsed_ms=elapsed_ms,
+        )
+
+    except Exception as ve:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        return _make_error_output(
+            error_msg=str(ve),
+            summary=f"vision_vqa_tool schema error: {str(ve)}",
+            details="Unexpected error during Pydantic input validation.",
+            error_type=ve.__class__.__name__,
+            elapsed_ms=elapsed_ms,
+        )
+
+    # -----------------------------------------------------------------------
+    # Layer 2 — Model inference (RuntimeError / MemoryError)
+    # -----------------------------------------------------------------------
+    infer_result: Optional[Dict[str, Any]] = None
+    try:
+        # Check the model singleton is available
+        if _vision_vqa_model is None:
+            raise RuntimeError(
+                "VisionVQAModel singleton is None — the specialist model failed to "
+                "initialize at import time. Verify that specialist_models/vision_vqa.py "
+                "is present and imports cleanly."
+            )
+
+        # Resolve return_bboxes override from force flags
+        return_bboxes_override: Optional[bool] = None
+        if input_params.force_grounding:
+            return_bboxes_override = True
+        elif input_params.force_vqa:
+            return_bboxes_override = False
+
+        # Execute unified inference
+        infer_result = _vision_vqa_model.infer(
+            image_path=input_params.image_path,
+            text_query=input_params.text_query,
+            return_bboxes=return_bboxes_override,
+            n_bboxes=input_params.n_bboxes,
+        )
+
+    except (RuntimeError, MemoryError, OSError) as rte:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        return _make_error_output(
+            error_msg=str(rte),
+            summary=f"vision_vqa_tool model execution failed: {str(rte)}",
+            details=(
+                "A runtime or resource error occurred during VisionVQAModel.infer() — "
+                "this may indicate GPU OOM, CUDA driver issues, or a corrupt model checkpoint.  "
+                "Check GPU memory, verify the merged_vlm_final.pt checkpoint exists, "
+                "and ensure torch is installed with CUDA support."
+            ),
+            error_type=rte.__class__.__name__,
+            elapsed_ms=elapsed_ms,
+            resolved_img=input_params.image_path,
+            resolved_q=input_params.text_query,
+        )
+
+    except Exception as e:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        return _make_error_output(
+            error_msg=str(e),
+            summary=f"vision_vqa_tool unexpected inference error: {str(e)}",
+            details="An unexpected exception occurred during VisionVQAModel.infer(). See 'error' field for details.",
+            error_type=e.__class__.__name__,
+            elapsed_ms=elapsed_ms,
+            resolved_img=input_params.image_path,
+            resolved_q=input_params.text_query,
+        )
+
+    # -----------------------------------------------------------------------
+    # Layer 3 — Output formatting & RSAgentState TypedDict mapping
+    # -----------------------------------------------------------------------
+    try:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        now_iso = datetime.utcnow().isoformat()
+
+        # ── Unpack infer() result fields ─────────────────────────────────────
+        answer      = infer_result.get("answer", "")
+        task_type   = infer_result.get("task_type", "vqa")
+        model_conf  = float(infer_result.get("confidence", 0.0))
+        img_format  = infer_result.get("image_format", "unknown")
+        embed_shape = infer_result.get("embedding_shape", [1, 512])
+        raw_bboxes  = infer_result.get("bounding_boxes") or []
+        quantization = infer_result.get("quantization", "4BIT NF4")
+        gpu_vram_mb  = infer_result.get("gpu_vram_mb", 42.5)
+        infer_status = infer_result.get("status", "success")
+
+        # ── Apply confidence threshold gate ──────────────────────────────────
+        low_conf = model_conf < input_params.confidence_threshold
+        if low_conf:
+            conf_warning = (
+                f"  Model confidence {model_conf:.3f} is below threshold "
+                f"{input_params.confidence_threshold:.2f}; results should be "
+                f"treated as indicative only."
+            )
+        else:
+            conf_warning = ""
+
+        # ── Build typed BoundingBoxEntry list ────────────────────────────────
+        # Raw bboxes from infer() already follow the BoundingBoxEntry schema;
+        # we enrich them with source_tool and image_id for state traceability.
+        typed_bboxes: List[BoundingBoxEntry] = []
+        for raw_box in raw_bboxes:
+            if not isinstance(raw_box, dict):
+                continue
+            typed_box = BoundingBoxEntry(
+                box_id=raw_box.get("box_id", str(uuid.uuid4())),
+                label=raw_box.get("label", input_params.text_query),
+                confidence=float(raw_box.get("confidence", model_conf)),
+                bbox_normalized=raw_box.get("bbox_normalized", []),
+                bbox_pixels=raw_box.get("bbox_pixels", []),
+                bbox_geo=raw_box.get("bbox_geo") or [],
+                polygon_coordinates=raw_box.get("polygon_coordinates") or [],
+                attributes=raw_box.get("attributes") or {},
+                source_tool=_TOOL_NAME,
+                image_id="",  # populated below once we build the ImageModalityEntry
+            )
+            typed_bboxes.append(typed_box)
+
+        # ── Build ImageModalityEntry for this image ───────────────────────────
+        img_entry = make_image_entry(
+            image_path=input_params.image_path,
+            detected_modality=(
+                "sar" if any(kw in input_params.image_path.lower() for kw in ["s1", "sar", "grd", "slc", "vv", "vh"])
+                else "multispectral" if any(kw in input_params.image_path.lower() for kw in ["s2", "l2a", "landsat"])
+                else "optical" if img_format == "standard"
+                else "optical" if img_format == "geotiff"
+                else "unknown"
+            ),
+            spatial_role="primary",
+            file_format=img_format,
+            metadata={
+                "detected_from": "vision_vqa_tool",
+                "image_format": img_format,
+                "quantization": quantization,
+            },
+        )
+        image_id = img_entry.get("image_id", "")
+
+        # Back-fill image_id on all boxes
+        for box in typed_bboxes:
+            box["image_id"] = image_id
+
+        # ── Build SpatialMaskEntry list (placeholder if no mask URI available) ─
+        # VisionVQAModel.infer() does not generate mask files; we create a typed
+        # placeholder entry so downstream nodes can extend it with real mask data.
+        typed_masks: List[SpatialMaskEntry] = []
+        if task_type == "grounding" and typed_bboxes:
+            # Synthesize a bounding-box-based mask reference entry
+            typed_mask = SpatialMaskEntry(
+                mask_id=str(uuid.uuid4()),
+                mask_type="grounding_extent",
+                mask_uri="",   # no raster mask generated; downstream nodes may populate
+                changed_area_sq_km=0.0,
+                changed_area_pixels=0,
+                change_percentage=0.0,
+                class_distribution={input_params.text_query: 1.0},
+                color_map={},
+                georeferencing={"source_image": input_params.image_path},
+                confidence=model_conf,
+                source_tool=_TOOL_NAME,
+            )
+            typed_masks.append(typed_mask)
+
+        # ── Build IntermediateToolOutputs partial update ──────────────────────
+        tool_outputs_update: IntermediateToolOutputs = IntermediateToolOutputs(
+            vqa_answer=answer if task_type == "vqa" else "",
+            vqa_confidence=model_conf if task_type == "vqa" else 0.0,
+            vqa_embedding_shape=embed_shape,
+            bounding_boxes=typed_bboxes,
+            spatial_masks=typed_masks,
+            land_cover_labels={},
+            land_cover_confidence=0.0,
+            fusion_result={},
+            fusion_confidence=0.0,
+            damage_assessment={},
+            general_answer=answer if task_type not in ("vqa", "grounding") else "",
+            raw_tool_outputs={_TOOL_NAME: infer_result},
+        )
+        if task_type == "grounding" and typed_masks:
+            tool_outputs_update["change_mask"] = typed_masks[0]
+
+        # ── Build ExecutionTraceEntry ─────────────────────────────────────────
+        trace_entry = make_trace_entry(
+            tool_name=_TOOL_NAME,
+            node_name=state.get("active_agent", "unknown_node") if state else "unknown_node",
+            parameters={
+                "image_path": input_params.image_path,
+                "text_query": input_params.text_query,
+                "confidence_threshold": input_params.confidence_threshold,
+                "force_grounding": input_params.force_grounding,
+                "force_vqa": input_params.force_vqa,
+                "n_bboxes": input_params.n_bboxes,
+            },
+            status=infer_status,
+            result_summary=(
+                f"task_type={task_type}, conf={model_conf:.3f}, "
+                f"bboxes={len(typed_bboxes)}, image_format={img_format}"
+            ),
+            confidence=model_conf,
+            duration_ms=elapsed_ms,
+            output_keys=list(infer_result.keys()),
+            timestamp_end=now_iso,
+        )
+
+        # ── Compose StandardToolOutput ────────────────────────────────────────
+        # Build the summary differently for VQA vs Grounding
+        if task_type == "grounding":
+            summary_text = (
+                f"Localized {len(typed_bboxes)} instance(s) of '{input_params.text_query}' "
+                f"in '{os.path.basename(input_params.image_path)}' "
+                f"(conf={model_conf:.3f}).{conf_warning}"
+            )
+            details_text = (
+                f"Grounding inference via {quantization} VisionVQAModel. "
+                f"Normalized bounding boxes in [xmin, ymin, xmax, ymax] \u2208 [0, 1]. "
+                f"Image loaded as '{img_format}' ({embed_shape}-dim embedding). "
+                f"GPU VRAM: {gpu_vram_mb} MB."
+            )
+        else:
+            summary_text = answer + conf_warning
+            details_text = (
+                f"VQA inference via {quantization} VisionVQAModel on "
+                f"'{os.path.basename(input_params.image_path)}'. "
+                f"Image loaded as '{img_format}' ({embed_shape}-dim embedding). "
+                f"GPU VRAM: {gpu_vram_mb} MB."
+            )
+
+        output = StandardToolOutput(
+            status=infer_status,
+            tool_name=_TOOL_NAME,
+            engine=_ENGINE,
+            execution_time_ms=elapsed_ms,
+            timestamp=now_iso,
+            summary=summary_text,
+            details=details_text,
+            bounding_boxes=[dict(b) for b in typed_bboxes],
+            spatial_mask=dict(typed_masks[0]) if typed_masks else None,
+            metrics={
+                "task_type": task_type,
+                "vqa_confidence": model_conf,
+                "detections_count": len(typed_bboxes),
+                "image_format": img_format,
+                "embedding_shape": embed_shape,
+                "gpu_vram_mb": gpu_vram_mb,
+                "quantization": quantization,
+                "below_confidence_threshold": low_conf,
+            },
+            confidence=model_conf,
+            artifacts=[],
+            raw_output=infer_result,
+            validated_inputs={
+                "image_path": input_params.image_path,
+                "text_query": input_params.text_query,
+                "confidence_threshold": input_params.confidence_threshold,
+                "force_grounding": input_params.force_grounding,
+                "force_vqa": input_params.force_vqa,
+                "n_bboxes": input_params.n_bboxes,
+            },
+            context_injected={
+                "auto_detected_task": not (input_params.force_grounding or input_params.force_vqa),
+                "task_type_resolved": task_type,
+                "image_modality_auto_detected": True,
+            },
+            error=None if infer_status == "success" else infer_result.get("error"),
+        )
+
+        out_dict = output.to_dict()
+
+        # ── Attach RSAgentState-compatible update dict ────────────────────────
+        # Orchestrator nodes merge this directly into RSAgentState without
+        # any additional key mapping or conversion.
+        out_dict["rs_state_updates"] = {
+            # IntermediateToolOutputs partial update
+            "tool_outputs": dict(tool_outputs_update),
+            # Per-tool confidence registry entry
+            "tool_confidence_scores": {_TOOL_NAME: model_conf},
+            # Append-only execution trace
+            "execution_trace": [trace_entry],
+            # Flattened bounding boxes for AgentState.bounding_boxes
+            "bounding_boxes": [dict(b) for b in typed_bboxes],
+            # Image entry for RSAgentState.image_inputs
+            "image_inputs": [img_entry],
+        }
+
+        return out_dict
+
+    except Exception as fmt_err:
+        # Catch-all for the output-formatting stage (should be unreachable in
+        # normal operation, but guards against unexpected TypedDict construction errors)
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        return _make_error_output(
+            error_msg=str(fmt_err),
+            summary=f"vision_vqa_tool output formatting failed: {str(fmt_err)}",
+            details=(
+                "Inference completed successfully but an error occurred while mapping "
+                "the model output to RSAgentState TypedDicts. "
+                "This is a tool implementation bug — please report with the traceback."
+            ),
+            error_type=fmt_err.__class__.__name__,
+            elapsed_ms=elapsed_ms,
+            resolved_img=input_params.image_path,
+            resolved_q=input_params.text_query,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Global Tool Registry
 # ---------------------------------------------------------------------------
 
@@ -1266,7 +1920,8 @@ TOOL_REGISTRY: List[Any] = [
     vqa_tool,
     grounding_tool,
     fusion_routing_tool,
-    land_cover_tool
+    land_cover_tool,
+    vision_vqa_tool,
 ]
 
 TOOL_MAP: Dict[str, Any] = {
@@ -1274,5 +1929,6 @@ TOOL_MAP: Dict[str, Any] = {
     "vqa_tool": vqa_tool,
     "grounding_tool": grounding_tool,
     "fusion_routing_tool": fusion_routing_tool,
-    "land_cover_tool": land_cover_tool
+    "land_cover_tool": land_cover_tool,
+    "vision_vqa_tool": vision_vqa_tool,
 }

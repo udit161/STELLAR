@@ -27,6 +27,15 @@ from agent_core.state import (
     ToolExecutionLog,
     ImageFormat,
     SensorModality,
+    # RSAgentState TypedDict helpers
+    RSAgentState,
+    make_empty_rs_state,
+    make_trace_entry,
+    merge_intermediate_outputs,
+    BoundingBoxEntry,
+    SpatialMaskEntry,
+    IntermediateToolOutputs,
+    ExecutionTraceEntry,
 )
 from agent_core.tools import (
     change_detection_tool,
@@ -34,6 +43,7 @@ from agent_core.tools import (
     grounding_tool,
     fusion_routing_tool,
     land_cover_tool,
+    vision_vqa_tool,
     StandardToolOutput,
     update_state_tracker_from_tool_output,
 )
@@ -359,6 +369,602 @@ class Orchestrator:
 
     # Backward compatibility alias
     supervisor_intent_router_node = controller_router_node
+
+    # -----------------------------------------------------------------------
+    # Node 2b: Intent Classifier & VQA Routing Node
+    # -----------------------------------------------------------------------
+    # Design rationale:
+    #   The existing controller_router_node handles ALL task types with coarse
+    #   keyword matching and immediately selects tools.  This node runs AFTER
+    #   the controller and specializes in confirming (or upgrading) the VQA
+    #   classification using a richer scoring model, then explicitly decides
+    #   whether to route to vision_vqa_tool (strict path) or stay on the
+    #   legacy vqa_tool path.
+    #
+    #   Routing decision recorded in state:
+    #     'intent_classification'  : detailed scored result dict
+    #     'use_strict_vqa_tool'    : bool  — True  → vision_vqa_specialist_node
+    #                                        False → existing vqa_specialist_node
+    # -----------------------------------------------------------------------
+    def intent_classifier_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Intent Classifier & VQA Routing Node.
+
+        Inspects the user query and uploaded image metadata to produce a
+        fine-grained intent classification result.  When the evidence strongly
+        points to a SINGLE-IMAGE descriptive or QA task, it sets
+        ``use_strict_vqa_tool = True`` so the graph branches to
+        ``vision_vqa_specialist_node`` (which calls ``vision_vqa_tool`` /
+        ``VisionVQAModel.infer()``) instead of the legacy ``vqa_tool``.
+
+        Scoring model
+        -------------
+        Each intent category accumulates a floating-point score from keyword
+        hits and metadata signals.  The winning category must exceed the
+        runner-up by at least VQA_MARGIN to be considered decisive.
+
+        Returns
+        -------
+        Dict containing:
+        - 'intent_classification' : full scored result for UI / audit
+        - 'use_strict_vqa_tool'   : bool routing decision
+        - 'classified_task'       : confirmed or overridden task label
+        - 'thought_trace'         : one appended reasoning step
+        - 'routing_history'       : ['intent_classifier']
+        """
+        import time as _time
+        t0 = _time.perf_counter()
+
+        raw_query = state.get("raw_query") or state.get("query") or ""
+        query_lower = raw_query.lower().strip()
+        img_count, image_paths, img_meta = self._inspect_image_metadata(state)
+        existing_task = state.get("classified_task") or ""
+
+        # -------------------------------------------------------------------
+        # Image-input signals from RSAgentState.image_inputs (if populated)
+        # -------------------------------------------------------------------
+        rs_image_inputs: List[Dict[str, Any]] = state.get("image_inputs") or []
+        rs_modalities = {e.get("detected_modality", "unknown") for e in rs_image_inputs}
+        rs_roles      = {e.get("spatial_role", "") for e in rs_image_inputs}
+
+        # -------------------------------------------------------------------
+        # Keyword scoring
+        # -------------------------------------------------------------------
+        VQA_KEYWORDS = [
+            "what is", "what are", "describe", "classify", "identify",
+            "what type", "which", "how many", "is this", "does this",
+            "what can you see", "analyze", "explain", "what does",
+            "what land", "land cover", "what kind", "is there",
+            "tell me about", "summarize", "overview", "what\'s in",
+            "what's in", "land-cover", "land cover type", "vegetation",
+            "spectral", "ndvi", "ndwi", "reflectance",
+        ]
+        GROUNDING_KEYWORDS = [
+            "locate", "find", "where is", "where are", "detect",
+            "bounding box", "highlight", "mark", "draw a box",
+            "show me where", "spatial location", "coordinates",
+            "airplane", "ship", "vessel", "tank", "building",
+            "reservoir", "runway", "bridge", "object",
+        ]
+        CHANGE_KEYWORDS = [
+            "what changed", "change", "before and after", "difference",
+            "deforestation", "urban growth", "damage", "temporal",
+            "t1", "t2", "before", "after", "evolution",
+        ]
+        FUSION_KEYWORDS = [
+            "sar", "radar", "fuse", "fusion", "all-weather",
+            "cloud penetration", "sentinel-1", "backscatter",
+        ]
+
+        vqa_score      = sum(1.0 for kw in VQA_KEYWORDS      if kw in query_lower)
+        grounding_score= sum(1.2 for kw in GROUNDING_KEYWORDS if kw in query_lower)  # slight penalty
+        change_score   = sum(1.5 for kw in CHANGE_KEYWORDS   if kw in query_lower)  # strong signal
+        fusion_score   = sum(1.5 for kw in FUSION_KEYWORDS   if kw in query_lower)
+
+        # Image-count modifiers
+        if img_count == 1:
+            vqa_score += 2.0       # single image strongly suggests VQA or grounding
+            grounding_score += 1.0
+        elif img_count == 2:
+            change_score += 3.0    # two images strongly suggests change detection
+            if img_meta.get("is_optical_sar"):
+                fusion_score += 4.0
+
+        # Modality modifiers from RSAgentState.image_inputs
+        if "sar" in rs_modalities:
+            fusion_score += 2.0
+        if "bi_temporal" in rs_modalities:
+            change_score += 3.0
+        if rs_roles == {"t1", "t2"}:
+            change_score += 3.0
+
+        scores = {
+            "vqa":       round(vqa_score, 3),
+            "grounding": round(grounding_score, 3),
+            "change":    round(change_score, 3),
+            "fusion":    round(fusion_score, 3),
+        }
+        max_cat   = max(scores, key=lambda k: scores[k])
+        max_score = scores[max_cat]
+        sorted_scores = sorted(scores.values(), reverse=True)
+        runner_up = sorted_scores[1] if len(sorted_scores) > 1 else 0.0
+
+        VQA_MARGIN = 0.5   # vqa must beat runner-up by at least this to be decisive
+        is_decisive_vqa = (max_cat == "vqa") and ((max_score - runner_up) >= VQA_MARGIN)
+
+        # -------------------------------------------------------------------
+        # Single-image + (QA or descriptive) = route to vision_vqa_tool
+        # -------------------------------------------------------------------
+        is_single_image = img_count == 1 or (img_count == 0 and not rs_image_inputs)
+        use_strict_vqa  = (
+            is_decisive_vqa and is_single_image
+        ) or (
+            existing_task == TaskType.VQA.value and is_single_image
+        )
+
+        # Override: if the controller already chose a non-VQA task and the
+        # classifier agrees, don't interfere
+        if existing_task and existing_task != TaskType.VQA.value and max_cat != "vqa":
+            use_strict_vqa = False
+
+        # Resolve confirmed task label
+        _task_map = {
+            "vqa":       TaskType.VQA.value,
+            "grounding": TaskType.GROUNDING.value,
+            "change":    TaskType.CHANGE_DETECTION.value,
+            "fusion":    TaskType.CROSS_MODAL_FUSION.value,
+        }
+        confirmed_task = existing_task or _task_map.get(max_cat, TaskType.VQA.value)
+
+        # Classifier confidence = max_score / (max_score + runner_up + epsilon)
+        classifier_conf = round(max_score / (max_score + runner_up + 1e-6), 3)
+        classifier_conf = min(0.99, max(0.50, classifier_conf))
+
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+
+        # -------------------------------------------------------------------
+        # Build IntentClassification telemetry dict for UI / audit
+        # -------------------------------------------------------------------
+        intent_classification = {
+            "classifier_version": "keyword_scored_v1",
+            "timestamp": datetime.utcnow().isoformat(),
+            "elapsed_ms": elapsed_ms,
+            # Input signals
+            "raw_query": raw_query,
+            "image_count": img_count,
+            "image_paths": image_paths,
+            "rs_modalities_detected": list(rs_modalities),
+            "rs_spatial_roles": list(rs_roles),
+            "is_bi_temporal_meta": img_meta.get("is_bi_temporal", False),
+            "is_optical_sar_meta": img_meta.get("is_optical_sar", False),
+            # Scoring
+            "keyword_scores": scores,
+            "winning_category": max_cat,
+            "winning_score": max_score,
+            "runner_up_score": runner_up,
+            "classifier_confidence": classifier_conf,
+            "vqa_margin_decisive": is_decisive_vqa,
+            "is_single_image": is_single_image,
+            # Routing decision
+            "controller_task": existing_task,
+            "confirmed_task": confirmed_task,
+            "use_strict_vqa_tool": use_strict_vqa,
+            "routing_decision": (
+                "vision_vqa_specialist" if use_strict_vqa
+                else "legacy_vqa_specialist" if max_cat == "vqa"
+                else f"{max_cat}_specialist"
+            ),
+            "decision_rationale": (
+                f"Single image + decisive VQA score ({max_score:.2f} vs runner-up {runner_up:.2f}) "
+                f"→ routing to vision_vqa_tool (strict path, VisionVQAModel.infer())." if use_strict_vqa
+                else f"Task '{confirmed_task}' confirmed; "
+                     f"scores: {scores}; routed to existing pipeline."
+            ),
+        }
+
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "IntentClassifier",
+            "thought": (
+                f"Intent classification complete. "
+                f"Scores: {scores}. "
+                f"Winner: '{max_cat}' ({max_score:.2f}). "
+                f"Single-image: {is_single_image}. "
+                f"Routing decision: {intent_classification['routing_decision']}."
+            ),
+            "classified_task": confirmed_task,
+            "action_taken": "intent_classify_and_route",
+            "confidence": classifier_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return {
+            "classified_task": confirmed_task,
+            "task_classification_confidence": classifier_conf,
+            "intent_classification": intent_classification,
+            "use_strict_vqa_tool": use_strict_vqa,
+            "thought_trace": [reasoning],
+            "routing_history": ["intent_classifier"],
+            "active_agent": "intent_classifier",
+        }
+
+    # -----------------------------------------------------------------------
+    # Node 4b: Vision VQA Specialist Node (strict path — uses vision_vqa_tool)
+    # -----------------------------------------------------------------------
+    def vision_vqa_specialist_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Strict Vision VQA Specialist Node.
+
+        Calls ``vision_vqa_tool`` (which wraps ``VisionVQAModel.infer()``) with
+        the validated image path and user query.  Merges the tool's
+        ``rs_state_updates`` dict directly into the state so that:
+
+        - ``execution_trace``       — gets the auditable ExecutionTraceEntry appended
+        - ``tool_confidence_scores`` — gets the per-tool confidence score registered
+        - ``tool_outputs``          — gets vqa_answer / bounding_boxes / spatial_masks
+                                       merged via merge_intermediate_outputs reducer
+        - ``image_inputs``          — gets the ImageModalityEntry appended
+        - ``bounding_boxes``        — gets any grounding boxes appended (flat list)
+
+        Also calls ``update_state_tracker_from_tool_output`` for backward compat
+        with legacy AgentState fields (intermediate_outputs, thought_trace, etc.).
+        """
+        import time as _time
+        t0 = _time.perf_counter()
+
+        query = state.get("raw_query") or state.get("query") or ""
+        img_count, image_paths, _meta = self._inspect_image_metadata(state)
+
+        # Prefer path from RSAgentState.image_inputs if available
+        rs_inputs = state.get("image_inputs") or []
+        if rs_inputs and isinstance(rs_inputs[0], dict):
+            primary_path = rs_inputs[0].get("image_path") or (image_paths[0] if image_paths else None)
+        else:
+            primary_path = image_paths[0] if image_paths else None
+
+        # Fallback placeholder so the strict schema always receives a string
+        if not primary_path or not str(primary_path).strip():
+            primary_path = "/data/input_scene.tif"
+
+        # Check for grounding override from intent classifier
+        intent = state.get("intent_classification") or {}
+        force_grounding = intent.get("winning_category") == "grounding"
+        force_vqa       = not force_grounding
+
+        # Execute vision_vqa_tool (strict Pydantic-validated path)
+        tool_result = vision_vqa_tool(
+            image_path=primary_path,
+            text_query=query,
+            confidence_threshold=0.4,
+            force_vqa=force_vqa,
+            force_grounding=force_grounding,
+            n_bboxes=3 if force_grounding else 1,
+            state=state,
+        )
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+
+        # -------------------------------------------------------------------
+        # Merge rs_state_updates into state (RSAgentState-aware fields)
+        # -------------------------------------------------------------------
+        rs_updates = tool_result.get("rs_state_updates") or {}
+
+        # Merge tool_outputs using the smart deep-merge reducer
+        existing_tool_outputs = state.get("tool_outputs") or {}
+        new_tool_outputs      = rs_updates.get("tool_outputs") or {}
+        merged_tool_outputs   = merge_intermediate_outputs(existing_tool_outputs, new_tool_outputs)
+
+        # Confidence scores registry (dict merge)
+        existing_conf  = state.get("tool_confidence_scores") or {}
+        new_conf       = rs_updates.get("tool_confidence_scores") or {}
+        merged_conf    = {**existing_conf, **new_conf}
+
+        # Execution trace (append-only)
+        new_trace = rs_updates.get("execution_trace") or []
+
+        # Bounding boxes (flat append)
+        new_bboxes = rs_updates.get("bounding_boxes") or []
+
+        # Image inputs (append)
+        new_img_inputs = rs_updates.get("image_inputs") or []
+
+        # -------------------------------------------------------------------
+        # Legacy AgentState tracker sync (keeps intermediate_outputs, etc.)
+        # -------------------------------------------------------------------
+        legacy_updates = update_state_tracker_from_tool_output(
+            state=state,
+            tool_output=tool_result,
+            specialist_key="vision_vqa",
+            specialist_model_type=SpecialistModelType.VISION_VQA_MODEL.value,
+        )
+
+        # -------------------------------------------------------------------
+        # Compute overall confidence for this node
+        # -------------------------------------------------------------------
+        node_conf = float(tool_result.get("confidence", 0.0))
+
+        # Build node reasoning step
+        task_type = tool_result.get("metrics", {}).get("task_type", "vqa")
+        img_fmt   = tool_result.get("metrics", {}).get("image_format", "unknown")
+        quant     = tool_result.get("metrics", {}).get("quantization", "4BIT NF4")
+        n_boxes   = len(new_bboxes)
+
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "VisionVQASpecialist",
+            "thought": (
+                f"vision_vqa_tool executed via VisionVQAModel.infer(). "
+                f"task_type={task_type}, image_format={img_fmt}, "
+                f"quantization={quant}, confidence={node_conf:.3f}, "
+                f"bboxes={n_boxes}, elapsed={elapsed_ms:.1f}ms."
+            ),
+            "classified_task": task_type,
+            "action_taken": "vision_vqa_tool",
+            "confidence": node_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        # Merge all updates and return
+        merged = {
+            # RSAgentState fields
+            "tool_outputs": merged_tool_outputs,
+            "tool_confidence_scores": merged_conf,
+            "execution_trace": new_trace,          # reduced via operator.add
+            "bounding_boxes": new_bboxes,           # reduced via operator.add
+            "image_inputs": new_img_inputs,         # not in base AgentState; stored in intermediate
+            # Legacy AgentState fields from update_state_tracker_from_tool_output
+            **legacy_updates,
+            # Node-level overrides
+            "thought_trace": [reasoning],
+            "routing_history": ["vision_vqa_specialist"],
+            "status": RequestStatus.SPECIALIST_INFERENCE.value,
+            "active_agent": "vision_vqa_specialist",
+        }
+        return merged
+
+    # -----------------------------------------------------------------------
+    # Node 10: Aggregation Node — Auditable Execution Summary for the UI
+    # -----------------------------------------------------------------------
+    def aggregation_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Aggregation Node — Auditable Execution Summary.
+
+        Runs AFTER the synthesizer node (or as its replacement for simpler
+        pipelines) and compiles a comprehensive, UI-ready execution summary
+        from all available state fields including:
+
+        - ``execution_trace``       — one entry per tool call (tool_name,
+          parameters, status, confidence, duration_ms, result_summary)
+        - ``tool_confidence_scores`` — per-specialist confidence registry
+        - ``tool_outputs``          — named intermediate output slots
+        - ``thought_trace``         — full reasoning trajectory
+        - ``routing_history``       — graph-edge sequence
+        - ``final_response``        — synthesized answer
+        - Standard spatial outputs (bounding_boxes, change_mask, artifacts)
+
+        The returned ``execution_summary`` dict is stored in
+        ``state['intermediate_outputs']['execution_summary']`` so that the
+        FastAPI endpoint can serve it directly to the frontend.
+
+        Schema of execution_summary
+        ---------------------------
+        {
+          request_id, timestamp, total_elapsed_ms,
+          classified_task, task_classification_confidence,
+          intent_classification,
+          tool_calls: [
+            { tool_name, node_name, parameters, status, confidence,
+              duration_ms, result_summary, output_keys, error }
+          ],
+          tool_confidence_scores,
+          overall_confidence,
+          intermediate_outputs_summary: { vqa_answer, bbox_count, mask_count, ... },
+          bounding_boxes, change_mask, artifacts,
+          routing_path, thought_steps,
+          final_response, executive_summary,
+          pipeline_ok, failed_tools, warnings
+        }
+        """
+        import time as _time
+        t0 = _time.perf_counter()
+
+        request_id  = state.get("request_id", str(uuid.uuid4()))
+        task        = state.get("classified_task") or "general"
+        task_conf   = state.get("task_classification_confidence") or 0.0
+        raw_query   = state.get("raw_query") or state.get("query") or ""
+
+        # -------------------------------------------------------------------
+        # 1. Collect execution trace entries
+        # -------------------------------------------------------------------
+        execution_trace: List[Dict[str, Any]] = state.get("execution_trace") or []
+        # Fall back to tool_logs if execution_trace is empty (legacy path)
+        if not execution_trace:
+            tool_logs = state.get("tool_logs") or []
+            for log in tool_logs:
+                if isinstance(log, dict):
+                    execution_trace.append({
+                        "tool_name":      log.get("tool_name", ""),
+                        "node_name":      "unknown_node",
+                        "parameters":     log.get("input_payload") or {},
+                        "status":         log.get("status", "unknown"),
+                        "confidence":     float(log.get("output_payload", {}).get("confidence", 0.0)
+                                                if isinstance(log.get("output_payload"), dict) else 0.0),
+                        "duration_ms":    float(log.get("execution_time_ms", 0.0)),
+                        "result_summary": log.get("output_payload", {}).get("summary", "")
+                                          if isinstance(log.get("output_payload"), dict) else "",
+                        "output_keys":    list(log.get("output_payload", {}).keys())
+                                          if isinstance(log.get("output_payload"), dict) else [],
+                        "error":          log.get("output_payload", {}).get("error")
+                                          if isinstance(log.get("output_payload"), dict) else None,
+                        "timestamp_start": log.get("timestamp", ""),
+                        "timestamp_end":   log.get("timestamp", ""),
+                        "trace_id":        str(uuid.uuid4()),
+                    })
+
+        # -------------------------------------------------------------------
+        # 2. Tool confidence scores
+        # -------------------------------------------------------------------
+        tool_conf_scores: Dict[str, float] = state.get("tool_confidence_scores") or {}
+
+        # Also harvest confidences from intermediate_outputs for legacy callers
+        intermediate = state.get("intermediate_outputs") or {}
+        for spec_key, spec_val in intermediate.items():
+            if isinstance(spec_val, dict) and "confidence" in spec_val:
+                legacy_key = f"{spec_key}_tool"
+                if legacy_key not in tool_conf_scores:
+                    tool_conf_scores[legacy_key] = float(spec_val["confidence"])
+
+        # -------------------------------------------------------------------
+        # 3. Overall confidence (weighted mean across all registered scores)
+        # -------------------------------------------------------------------
+        synth_conf = state.get("confidence_score")
+        if tool_conf_scores:
+            overall_conf = round(sum(tool_conf_scores.values()) / len(tool_conf_scores), 4)
+        elif synth_conf is not None:
+            overall_conf = float(synth_conf)
+        else:
+            overall_conf = 0.0
+
+        # -------------------------------------------------------------------
+        # 4. Intermediate outputs summary
+        # -------------------------------------------------------------------
+        tool_outputs: Dict[str, Any] = state.get("tool_outputs") or {}
+        bboxes:  List[Dict[str, Any]] = state.get("bounding_boxes") or []
+        c_mask:  Optional[Dict[str, Any]] = state.get("change_mask")
+        artifacts: List[Dict[str, Any]] = state.get("artifacts") or []
+
+        # Prefer typed tool_outputs over legacy intermediate_outputs
+        vqa_answer = (
+            tool_outputs.get("vqa_answer")
+            or intermediate.get("vqa", {}).get("summary")
+            or intermediate.get("vision_vqa", {}).get("summary")
+            or ""
+        )
+        bbox_count = len(bboxes) + len(tool_outputs.get("bounding_boxes") or [])
+        mask_count = len(tool_outputs.get("spatial_masks") or []) + (1 if c_mask else 0)
+
+        io_summary = {
+            "vqa_answer":            vqa_answer,
+            "vqa_confidence":        tool_outputs.get("vqa_confidence") or tool_conf_scores.get("vqa_tool", 0.0),
+            "bounding_box_count":    bbox_count,
+            "spatial_mask_count":    mask_count,
+            "land_cover_labels":     tool_outputs.get("land_cover_labels") or {},
+            "fusion_result_keys":    list((tool_outputs.get("fusion_result") or {}).keys()),
+            "raw_tool_output_keys":  list((tool_outputs.get("raw_tool_outputs") or {}).keys()),
+        }
+
+        # -------------------------------------------------------------------
+        # 5. Failed tools detection
+        # -------------------------------------------------------------------
+        failed_tools: List[str] = []
+        warnings_list: List[str] = list(state.get("validation_warnings") or [])
+        for entry in execution_trace:
+            if isinstance(entry, dict) and entry.get("status") == "error":
+                tool_nm = entry.get("tool_name", "unknown")
+                failed_tools.append(tool_nm)
+                warnings_list.append(f"Tool '{tool_nm}' reported error: {entry.get('error', 'unknown error')[:120]}")
+
+        # -------------------------------------------------------------------
+        # 6. Routing path and thought step count
+        # -------------------------------------------------------------------
+        routing_path  = state.get("routing_history") or []
+        thought_steps = state.get("thought_trace") or []
+
+        # -------------------------------------------------------------------
+        # 7. Build the canonical execution_summary dict
+        # -------------------------------------------------------------------
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+
+        tool_calls_for_ui = []
+        for entry in execution_trace:
+            if not isinstance(entry, dict):
+                continue
+            tool_calls_for_ui.append({
+                "tool_name":      entry.get("tool_name", ""),
+                "node_name":      entry.get("node_name", ""),
+                "parameters":     entry.get("parameters") or {},
+                "status":         entry.get("status", "unknown"),
+                "confidence":     round(float(entry.get("confidence", 0.0)), 4),
+                "duration_ms":    round(float(entry.get("duration_ms", 0.0)), 2),
+                "result_summary": entry.get("result_summary", ""),
+                "output_keys":    entry.get("output_keys") or [],
+                "error":          entry.get("error"),
+                "timestamp_start": entry.get("timestamp_start", ""),
+                "timestamp_end":   entry.get("timestamp_end", ""),
+                "trace_id":        entry.get("trace_id", ""),
+            })
+
+        execution_summary = {
+            # Identity
+            "request_id":                   request_id,
+            "timestamp":                    datetime.utcnow().isoformat(),
+            "total_elapsed_ms":             elapsed_ms,
+            # Task
+            "classified_task":              task,
+            "task_classification_confidence": round(float(task_conf), 4),
+            "intent_classification":        state.get("intent_classification") or {},
+            # Tool execution records
+            "tool_calls":                   tool_calls_for_ui,
+            "tool_count":                   len(tool_calls_for_ui),
+            "tool_confidence_scores":       {k: round(v, 4) for k, v in tool_conf_scores.items()},
+            "overall_confidence":           overall_conf,
+            # Intermediate outputs
+            "intermediate_outputs_summary": io_summary,
+            # Spatial deliverables
+            "bounding_boxes":               bboxes,
+            "change_mask":                  c_mask,
+            "artifact_count":               len(artifacts),
+            "artifacts":                    artifacts,
+            # Pipeline provenance
+            "routing_path":                 routing_path,
+            "thought_step_count":           len(thought_steps),
+            # Final answer
+            "final_response":               state.get("final_response") or vqa_answer,
+            "executive_summary":            state.get("executive_summary") or "",
+            # Health
+            "pipeline_ok":                  len(failed_tools) == 0,
+            "failed_tools":                 failed_tools,
+            "warnings":                     warnings_list,
+        }
+
+        # -------------------------------------------------------------------
+        # 8. Build reasoning step for the aggregation node itself
+        # -------------------------------------------------------------------
+        reasoning = {
+            "step_number": len(thought_steps) + 1,
+            "agent_name": "AggregationNode",
+            "thought": (
+                f"Aggregation complete. Compiled {len(tool_calls_for_ui)} tool call record(s). "
+                f"Overall confidence: {overall_conf:.3f}. "
+                f"Pipeline OK: {execution_summary['pipeline_ok']}. "
+                f"Failed tools: {failed_tools or 'none'}."
+            ),
+            "action_taken": "compile_execution_summary",
+            "confidence": overall_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return {
+            # Store the full UI-facing summary in intermediate_outputs
+            "intermediate_outputs": {"execution_summary": execution_summary},
+            # Update top-level confidence fields
+            "confidence_score": overall_conf,
+            "confidence_breakdown": {
+                "overall": overall_conf,
+                "breakdown": tool_conf_scores,
+            },
+            # Propagate the execution_summary as the executive_summary for backward compat
+            "executive_summary": (
+                f"Pipeline: {' → '.join(routing_path)}. "
+                f"Tools: {len(tool_calls_for_ui)}. "
+                f"Confidence: {overall_conf:.3f}. "
+                f"OK: {execution_summary['pipeline_ok']}."
+            ),
+            # Append reasoning step
+            "thought_trace": [reasoning],
+            "routing_history": ["aggregation"],
+            "active_agent": "aggregation",
+            "status": RequestStatus.COMPLETED.value,
+        }
 
     # -----------------------------------------------------------------------
     # Node 3: Human-in-the-Loop Clarification Node
@@ -701,16 +1307,49 @@ class Orchestrator:
     # -----------------------------------------------------------------------
     @staticmethod
     def _route_after_validation(state: AgentState) -> str:
-        """Route to clarification if invalid; otherwise route to controller router."""
+        """Route to clarification if invalid; otherwise route to intent classifier."""
         if not state.get("is_valid", True) or state.get("requires_clarification", False):
             return "human_clarification"
         return "controller_router"
 
     @staticmethod
+    def _route_after_controller(state: AgentState) -> str:
+        """
+        Post-controller routing decision.
+
+        After the controller_router_node sets classified_task and builds the
+        execution_queue, route through the intent_classifier_node which runs
+        deeper VQA vs non-VQA scoring.  The intent classifier itself sets
+        'use_strict_vqa_tool' which the subsequent _route_after_intent call
+        uses to branch to vision_vqa_specialist or the legacy specialist loop.
+
+        For non-VQA tasks the intent_classifier still runs (it is fast) but
+        use_strict_vqa_tool will be False and the specialist loop will pick
+        up the correct node.
+        """
+        return "intent_classifier"
+
+    @staticmethod
+    def _route_after_intent(state: AgentState) -> str:
+        """
+        Post-intent-classifier routing.
+
+        If use_strict_vqa_tool is True AND the task is VQA (single image),
+        branch directly to vision_vqa_specialist_node.
+        Otherwise fall through to the existing _route_next_specialist logic
+        which handles change detection, grounding, fusion, land cover.
+        """
+        if state.get("use_strict_vqa_tool", False):
+            task = state.get("classified_task") or ""
+            if task in (TaskType.VQA.value, "VQA", ""):
+                return "vision_vqa_specialist"
+        return Orchestrator._route_next_specialist(state)
+
+    @staticmethod
     def _route_next_specialist(state: AgentState) -> str:
         """
         Inspects execution queue to route to the next specialist in sequence,
-        or routes to synthesizer when all queue tasks are completed.
+        or routes to aggregation when all queue tasks are completed.
         """
         queue = state.get("execution_queue") or state.get("selected_specialist_models") or []
         completed = state.get("completed_specialists") or []
@@ -729,11 +1368,8 @@ class Orchestrator:
                 elif spec == SpecialistModelType.VISION_VQA_MODEL.value:
                     return "vqa_specialist"
 
-        # If all specialists executed, move to synthesizer
-        return "synthesizer"
-
-    # Backward compatibility alias
-    _route_to_specialist = _route_next_specialist
+        # If all specialists executed, move to aggregation
+        return "aggregation"
 
     # -----------------------------------------------------------------------
     # Graph Construction
@@ -743,44 +1379,67 @@ class Orchestrator:
         if LANGGRAPH_AVAILABLE:
             builder = StateGraph(AgentState)
 
-            # Add Nodes
-            builder.add_node("input_validator", self.input_validator_node)
-            builder.add_node("controller_router", self.controller_router_node)
-            builder.add_node("human_clarification", self.human_clarification_node)
-            builder.add_node("vqa_specialist", self.vqa_specialist_node)
+            # ── Nodes ─────────────────────────────────────────────────────
+            builder.add_node("input_validator",             self.input_validator_node)
+            builder.add_node("controller_router",           self.controller_router_node)
+            builder.add_node("intent_classifier",           self.intent_classifier_node)
+            builder.add_node("human_clarification",         self.human_clarification_node)
+            builder.add_node("vision_vqa_specialist",       self.vision_vqa_specialist_node)
+            builder.add_node("vqa_specialist",              self.vqa_specialist_node)
             builder.add_node("change_detection_specialist", self.change_detection_specialist_node)
-            builder.add_node("grounding_specialist", self.grounding_specialist_node)
-            builder.add_node("cross_modal_fusion_specialist", self.cross_modal_fusion_specialist_node)
-            builder.add_node("land_cover_specialist", self.land_cover_specialist_node)
-            builder.add_node("synthesizer", self.synthesizer_node)
+            builder.add_node("grounding_specialist",        self.grounding_specialist_node)
+            builder.add_node("cross_modal_fusion_specialist",self.cross_modal_fusion_specialist_node)
+            builder.add_node("land_cover_specialist",       self.land_cover_specialist_node)
+            builder.add_node("synthesizer",                 self.synthesizer_node)
+            builder.add_node("aggregation",                 self.aggregation_node)
 
-            # Add Edges from Start
+            # ── Start → Validation → [Clarification | Controller] ────────
             builder.add_edge(START, "input_validator")
             builder.add_conditional_edges(
                 "input_validator",
                 self._route_after_validation,
                 {
                     "human_clarification": "human_clarification",
-                    "controller_router": "controller_router",
+                    "controller_router":   "controller_router",
                 },
             )
             builder.add_edge("human_clarification", END)
 
-            # Dynamic Specialist Routing from Controller
+            # ── Controller → Intent Classifier ───────────────────────────
             builder.add_conditional_edges(
                 "controller_router",
-                self._route_next_specialist,
-                {
-                    "vqa_specialist": "vqa_specialist",
-                    "change_detection_specialist": "change_detection_specialist",
-                    "grounding_specialist": "grounding_specialist",
-                    "cross_modal_fusion_specialist": "cross_modal_fusion_specialist",
-                    "land_cover_specialist": "land_cover_specialist",
-                    "synthesizer": "synthesizer",
-                },
+                self._route_after_controller,
+                {"intent_classifier": "intent_classifier"},
             )
 
-            # Specialists route back to dynamic check to support multi-step chaining
+            # ── Intent Classifier → [VisionVQA | specialist loop] ────────
+            _all_specialist_targets = {
+                "vision_vqa_specialist":        "vision_vqa_specialist",
+                "vqa_specialist":               "vqa_specialist",
+                "change_detection_specialist":  "change_detection_specialist",
+                "grounding_specialist":         "grounding_specialist",
+                "cross_modal_fusion_specialist":"cross_modal_fusion_specialist",
+                "land_cover_specialist":        "land_cover_specialist",
+                "aggregation":                  "aggregation",
+            }
+            builder.add_conditional_edges(
+                "intent_classifier",
+                self._route_after_intent,
+                _all_specialist_targets,
+            )
+
+            # ── vision_vqa_specialist → aggregation ──────────────────────
+            builder.add_edge("vision_vqa_specialist", "synthesizer")
+
+            # ── Legacy specialists → dynamic queue routing ───────────────
+            _specialist_to_aggregation = {
+                "vqa_specialist":               "vqa_specialist",
+                "change_detection_specialist":  "change_detection_specialist",
+                "grounding_specialist":         "grounding_specialist",
+                "cross_modal_fusion_specialist":"cross_modal_fusion_specialist",
+                "land_cover_specialist":        "land_cover_specialist",
+                "aggregation":                  "aggregation",
+            }
             for spec_node in [
                 "vqa_specialist",
                 "change_detection_specialist",
@@ -791,17 +1450,12 @@ class Orchestrator:
                 builder.add_conditional_edges(
                     spec_node,
                     self._route_next_specialist,
-                    {
-                        "vqa_specialist": "vqa_specialist",
-                        "change_detection_specialist": "change_detection_specialist",
-                        "grounding_specialist": "grounding_specialist",
-                        "cross_modal_fusion_specialist": "cross_modal_fusion_specialist",
-                        "land_cover_specialist": "land_cover_specialist",
-                        "synthesizer": "synthesizer",
-                    },
+                    _specialist_to_aggregation,
                 )
 
-            builder.add_edge("synthesizer", END)
+            # ── synthesizer → aggregation → END ─────────────────────────
+            builder.add_edge("synthesizer", "aggregation")
+            builder.add_edge("aggregation", END)
             return builder
 
         else:
@@ -813,89 +1467,89 @@ class Orchestrator:
                 def compile(self):
                     return self
 
+                def _init_lists(self, curr: Dict[str, Any]) -> None:
+                    """Ensure all append-only fields are initialised to empty lists/dicts."""
+                    for field in ["routing_history", "thought_trace", "tool_logs",
+                                  "artifacts", "bounding_boxes", "completed_specialists",
+                                  "execution_trace", "image_inputs"]:
+                        if curr.get(field) is None:
+                            curr[field] = []
+                    for field in ["intermediate_outputs", "spatial_outputs",
+                                  "tool_outputs", "tool_confidence_scores"]:
+                        if curr.get(field) is None:
+                            curr[field] = {}
+
+                def _merge(self, curr: Dict[str, Any], updates: Dict[str, Any]) -> None:
+                    """Apply node updates using the same reducer semantics as LangGraph."""
+                    _append_keys = {
+                        "thought_trace", "routing_history", "tool_logs", "artifacts",
+                        "bounding_boxes", "completed_specialists", "execution_trace",
+                        "image_inputs",
+                    }
+                    _dict_merge_keys = {
+                        "intermediate_outputs", "spatial_outputs",
+                        "specialist_model_configs",
+                    }
+                    for k, v in updates.items():
+                        if k in _append_keys:
+                            curr[k] = (curr.get(k) or []) + (v if isinstance(v, list) else [v])
+                        elif k == "tool_outputs":
+                            curr[k] = merge_intermediate_outputs(curr.get(k) or {}, v or {})
+                        elif k == "tool_confidence_scores":
+                            curr[k] = {**(curr.get(k) or {}), **(v or {})}
+                        elif k in _dict_merge_keys:
+                            curr[k] = {**(curr.get(k) or {}), **(v or {})}
+                        else:
+                            curr[k] = v
+
                 def invoke(self, state: AgentState) -> AgentState:
                     curr = dict(state)
-                    if "routing_history" not in curr or curr["routing_history"] is None:
-                        curr["routing_history"] = []
-                    if "thought_trace" not in curr or curr["thought_trace"] is None:
-                        curr["thought_trace"] = []
-                    if "tool_logs" not in curr or curr["tool_logs"] is None:
-                        curr["tool_logs"] = []
-                    if "artifacts" not in curr or curr["artifacts"] is None:
-                        curr["artifacts"] = []
-                    if "bounding_boxes" not in curr or curr["bounding_boxes"] is None:
-                        curr["bounding_boxes"] = []
-                    if "completed_specialists" not in curr or curr["completed_specialists"] is None:
-                        curr["completed_specialists"] = []
-                    if "intermediate_outputs" not in curr or curr["intermediate_outputs"] is None:
-                        curr["intermediate_outputs"] = {}
-                    if "spatial_outputs" not in curr or curr["spatial_outputs"] is None:
-                        curr["spatial_outputs"] = {}
+                    self._init_lists(curr)
 
-                    # 1. Validation Node
-                    val_res = self.orch.input_validator_node(curr)
-                    for k, v in val_res.items():
-                        if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                            curr[k] = curr[k] + v
-                        else:
-                            curr[k] = v
-
+                    # 1. Validation
+                    self._merge(curr, self.orch.input_validator_node(curr))
                     route_val = Orchestrator._route_after_validation(curr)
                     if route_val == "human_clarification":
-                        clar_res = self.orch.human_clarification_node(curr)
-                        for k, v in clar_res.items():
-                            if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                                curr[k] = curr[k] + v
-                            else:
-                                curr[k] = v
+                        self._merge(curr, self.orch.human_clarification_node(curr))
                         return curr
 
-                    # 2. Controller Router Node
-                    route_res = self.orch.controller_router_node(curr)
-                    for k, v in route_res.items():
-                        if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                            curr[k] = curr[k] + v
-                        elif k == "specialist_model_configs":
-                            curr[k] = {**(curr.get(k) or {}), **v}
-                        else:
-                            curr[k] = v
+                    # 2. Controller Router
+                    self._merge(curr, self.orch.controller_router_node(curr))
 
-                    # 3. Dynamic Specialist Execution Loop (Supports Chained Compound Pipelines)
-                    max_steps = 10
-                    step_count = 0
-                    while step_count < max_steps:
-                        next_spec = Orchestrator._route_next_specialist(curr)
-                        if next_spec == "synthesizer":
-                            break
+                    # 3. Intent Classifier
+                    self._merge(curr, self.orch.intent_classifier_node(curr))
 
-                        if next_spec == "change_detection_specialist":
-                            spec_res = self.orch.change_detection_specialist_node(curr)
-                        elif next_spec == "grounding_specialist":
-                            spec_res = self.orch.grounding_specialist_node(curr)
-                        elif next_spec == "cross_modal_fusion_specialist":
-                            spec_res = self.orch.cross_modal_fusion_specialist_node(curr)
-                        elif next_spec == "land_cover_specialist":
-                            spec_res = self.orch.land_cover_specialist_node(curr)
-                        else:
-                            spec_res = self.orch.vqa_specialist_node(curr)
-
-                        for k, v in spec_res.items():
-                            if k in ["thought_trace", "routing_history", "tool_logs", "artifacts", "bounding_boxes", "completed_specialists"]:
-                                curr[k] = curr[k] + v
-                            elif k in ["intermediate_outputs", "spatial_outputs"]:
-                                curr[k] = {**(curr.get(k) or {}), **v}
+                    # 4. Route — VisionVQA strict path or legacy specialist loop
+                    next_route = Orchestrator._route_after_intent(curr)
+                    if next_route == "vision_vqa_specialist":
+                        self._merge(curr, self.orch.vision_vqa_specialist_node(curr))
+                        # vision_vqa → synthesizer → aggregation
+                        self._merge(curr, self.orch.synthesizer_node(curr))
+                    else:
+                        # Dynamic legacy specialist loop
+                        max_steps = 10
+                        step_count = 0
+                        while step_count < max_steps:
+                            next_spec = Orchestrator._route_next_specialist(curr)
+                            if next_spec == "aggregation":
+                                break
+                            if next_spec == "change_detection_specialist":
+                                spec_res = self.orch.change_detection_specialist_node(curr)
+                            elif next_spec == "grounding_specialist":
+                                spec_res = self.orch.grounding_specialist_node(curr)
+                            elif next_spec == "cross_modal_fusion_specialist":
+                                spec_res = self.orch.cross_modal_fusion_specialist_node(curr)
+                            elif next_spec == "land_cover_specialist":
+                                spec_res = self.orch.land_cover_specialist_node(curr)
                             else:
-                                curr[k] = v
-                        step_count += 1
+                                spec_res = self.orch.vqa_specialist_node(curr)
+                            self._merge(curr, spec_res)
+                            step_count += 1
+                        # synthesizer for legacy path
+                        self._merge(curr, self.orch.synthesizer_node(curr))
 
-                    # 4. Synthesis Node
-                    synth_res = self.orch.synthesizer_node(curr)
-                    for k, v in synth_res.items():
-                        if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                            curr[k] = curr[k] + v
-                        else:
-                            curr[k] = v
-
+                    # 5. Aggregation (always last)
+                    self._merge(curr, self.orch.aggregation_node(curr))
                     return curr
 
             return FallbackGraph(self)
@@ -922,6 +1576,7 @@ class Orchestrator:
     def stream(self, query: str, state: Optional[Dict[str, Any]] = None) -> Generator[Dict[str, Any], None, None]:
         """
         Generator yielding real-time step events for UI telemetry and Server-Sent Events (SSE).
+        Each yielded dict has keys: step, state, latest_thought.
         """
         if state is None:
             model = AgentStateModel(raw_query=query, query=query)
@@ -933,88 +1588,100 @@ class Orchestrator:
             if "raw_query" not in curr:
                 curr["raw_query"] = query
 
-        if "routing_history" not in curr or curr["routing_history"] is None:
-            curr["routing_history"] = []
-        if "thought_trace" not in curr or curr["thought_trace"] is None:
-            curr["thought_trace"] = []
-        if "tool_logs" not in curr or curr["tool_logs"] is None:
-            curr["tool_logs"] = []
-        if "artifacts" not in curr or curr["artifacts"] is None:
-            curr["artifacts"] = []
-        if "bounding_boxes" not in curr or curr["bounding_boxes"] is None:
-            curr["bounding_boxes"] = []
-        if "completed_specialists" not in curr or curr["completed_specialists"] is None:
-            curr["completed_specialists"] = []
-        if "intermediate_outputs" not in curr or curr["intermediate_outputs"] is None:
-            curr["intermediate_outputs"] = {}
-        if "spatial_outputs" not in curr or curr["spatial_outputs"] is None:
-            curr["spatial_outputs"] = {}
+        # Initialise all append-only fields
+        for field in ["routing_history", "thought_trace", "tool_logs",
+                      "artifacts", "bounding_boxes", "completed_specialists",
+                      "execution_trace", "image_inputs"]:
+            if curr.get(field) is None:
+                curr[field] = []
+        for field in ["intermediate_outputs", "spatial_outputs",
+                      "tool_outputs", "tool_confidence_scores"]:
+            if curr.get(field) is None:
+                curr[field] = {}
 
-        # Step 1: Input Validation
-        val_res = self.input_validator_node(curr)
-        for k, v in val_res.items():
-            if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                curr[k] = (curr.get(k) or []) + v
-            else:
-                curr[k] = v
-        yield {"step": "input_validator", "state": curr, "latest_thought": curr["thought_trace"][-1] if curr.get("thought_trace") else None}
+        def _merge(updates: Dict[str, Any]) -> None:
+            """Apply node updates with the same reducer semantics used in FallbackGraph."""
+            _append_keys = {
+                "thought_trace", "routing_history", "tool_logs", "artifacts",
+                "bounding_boxes", "completed_specialists", "execution_trace",
+                "image_inputs",
+            }
+            _dict_merge_keys = {
+                "intermediate_outputs", "spatial_outputs",
+                "specialist_model_configs",
+            }
+            for k, v in updates.items():
+                if k in _append_keys:
+                    curr[k] = (curr.get(k) or []) + (v if isinstance(v, list) else [v])
+                elif k == "tool_outputs":
+                    curr[k] = merge_intermediate_outputs(curr.get(k) or {}, v or {})
+                elif k == "tool_confidence_scores":
+                    curr[k] = {**(curr.get(k) or {}), **(v or {})}
+                elif k in _dict_merge_keys:
+                    curr[k] = {**(curr.get(k) or {}), **(v or {})}
+                else:
+                    curr[k] = v
+
+        # ── Step 1: Input Validation ──────────────────────────────────────
+        _merge(self.input_validator_node(curr))
+        yield {"step": "input_validator", "state": curr,
+               "latest_thought": curr["thought_trace"][-1] if curr.get("thought_trace") else None}
 
         if not curr.get("is_valid", True):
-            clar_res = self.human_clarification_node(curr)
-            for k, v in clar_res.items():
-                if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                    curr[k] = (curr.get(k) or []) + v
-                else:
-                    curr[k] = v
-            yield {"step": "human_clarification", "state": curr, "latest_thought": curr["thought_trace"][-1]}
+            _merge(self.human_clarification_node(curr))
+            yield {"step": "human_clarification", "state": curr,
+                   "latest_thought": curr["thought_trace"][-1]}
             return
 
-        # Step 2: Controller Router
-        route_res = self.controller_router_node(curr)
-        for k, v in route_res.items():
-            if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                curr[k] = (curr.get(k) or []) + v
-            elif k == "specialist_model_configs":
-                curr[k] = {**(curr.get(k) or {}), **v}
-            else:
-                curr[k] = v
-        yield {"step": "controller_router", "state": curr, "latest_thought": curr["thought_trace"][-1]}
+        # ── Step 2: Controller Router ─────────────────────────────────────
+        _merge(self.controller_router_node(curr))
+        yield {"step": "controller_router", "state": curr,
+               "latest_thought": curr["thought_trace"][-1]}
 
-        # Step 3: Specialist Loop
-        max_steps = 10
-        step_count = 0
-        while step_count < max_steps:
-            next_spec = Orchestrator._route_next_specialist(curr)
-            if next_spec == "synthesizer":
-                break
+        # ── Step 3: Intent Classifier ─────────────────────────────────────
+        _merge(self.intent_classifier_node(curr))
+        yield {"step": "intent_classifier", "state": curr,
+               "latest_thought": curr["thought_trace"][-1]}
 
-            if next_spec == "change_detection_specialist":
-                spec_res = self.change_detection_specialist_node(curr)
-            elif next_spec == "grounding_specialist":
-                spec_res = self.grounding_specialist_node(curr)
-            elif next_spec == "cross_modal_fusion_specialist":
-                spec_res = self.cross_modal_fusion_specialist_node(curr)
-            elif next_spec == "land_cover_specialist":
-                spec_res = self.land_cover_specialist_node(curr)
-            else:
-                spec_res = self.vqa_specialist_node(curr)
-
-            for k, v in spec_res.items():
-                if k in ["thought_trace", "routing_history", "tool_logs", "artifacts", "bounding_boxes", "completed_specialists"]:
-                    curr[k] = (curr.get(k) or []) + v
-                elif k in ["intermediate_outputs", "spatial_outputs"]:
-                    curr[k] = {**(curr.get(k) or {}), **v}
+        # ── Step 4: Specialist Execution ──────────────────────────────────
+        next_route = self._route_after_intent(curr)
+        if next_route == "vision_vqa_specialist":
+            # Strict VQA path — single image + decisive QA query
+            _merge(self.vision_vqa_specialist_node(curr))
+            yield {"step": "vision_vqa_specialist", "state": curr,
+                   "latest_thought": curr["thought_trace"][-1]}
+            # synthesizer for synthesis step
+            _merge(self.synthesizer_node(curr))
+            yield {"step": "synthesizer", "state": curr,
+                   "latest_thought": curr["thought_trace"][-1]}
+        else:
+            # Legacy specialist loop for change detection, fusion, grounding, land cover
+            max_steps = 10
+            step_count = 0
+            while step_count < max_steps:
+                next_spec = self._route_next_specialist(curr)
+                if next_spec == "aggregation":
+                    break
+                if next_spec == "change_detection_specialist":
+                    spec_res = self.change_detection_specialist_node(curr)
+                elif next_spec == "grounding_specialist":
+                    spec_res = self.grounding_specialist_node(curr)
+                elif next_spec == "cross_modal_fusion_specialist":
+                    spec_res = self.cross_modal_fusion_specialist_node(curr)
+                elif next_spec == "land_cover_specialist":
+                    spec_res = self.land_cover_specialist_node(curr)
                 else:
-                    curr[k] = v
+                    spec_res = self.vqa_specialist_node(curr)
+                _merge(spec_res)
+                yield {"step": next_spec, "state": curr,
+                       "latest_thought": curr["thought_trace"][-1]}
+                step_count += 1
+            # synthesizer for legacy path
+            _merge(self.synthesizer_node(curr))
+            yield {"step": "synthesizer", "state": curr,
+                   "latest_thought": curr["thought_trace"][-1]}
 
-            yield {"step": next_spec, "state": curr, "latest_thought": curr["thought_trace"][-1]}
-            step_count += 1
-
-        # Step 4: Synthesizer
-        synth_res = self.synthesizer_node(curr)
-        for k, v in synth_res.items():
-            if k in ["thought_trace", "routing_history", "tool_logs", "artifacts"]:
-                curr[k] = (curr.get(k) or []) + v
-            else:
-                curr[k] = v
-        yield {"step": "synthesizer", "state": curr, "latest_thought": curr["thought_trace"][-1]}
+        # ── Step 5: Aggregation (always last) ─────────────────────────────
+        _merge(self.aggregation_node(curr))
+        yield {"step": "aggregation", "state": curr,
+               "latest_thought": curr["thought_trace"][-1]}
