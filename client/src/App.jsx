@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import {
-  LogOut,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { LogOut } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import GlassSidebar from './components/GlassSidebar';
 import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
+import LiquidMetalChatUI from './components/LiquidMetalChatUI';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
 
@@ -19,6 +18,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState(getUser());
   const [activeNav, setActiveNav] = useState('chat');
   const [showIntro, setShowIntro] = useState(true);
+  const [querySubmitted, setQuerySubmitted] = useState(false);
+  const [activeQuery, setActiveQuery] = useState('');
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
@@ -36,8 +37,15 @@ function App() {
     return <Scene onEnter={() => setShowIntro(false)} />;
   }
 
-  const handleLaunchQuery = () => {
-    console.log('Satellite AI Query launched from Liquid Metal Bar');
+  const handleLaunchQuery = (queryText) => {
+    console.log('Satellite AI Query launched:', queryText);
+    setActiveQuery(queryText || 'Track ISRO satellite orbits');
+    setQuerySubmitted(true);
+  };
+
+  const handleResetQuery = () => {
+    setQuerySubmitted(false);
+    setActiveQuery('');
   };
 
   return (
@@ -51,9 +59,16 @@ function App() {
 
         {/* Main Content Area */}
         <main className="main-content">
-          <div className="center-stage">
-            <ScatterAndReassembleText />
-          </div>
+          {!querySubmitted ? (
+            <div className="center-stage">
+              <ScatterAndReassembleText />
+            </div>
+          ) : (
+            <LiquidMetalChatUI 
+              queryText={activeQuery} 
+              onResetQuery={handleResetQuery} 
+            />
+          )}
         </main>
 
         {/* Logout button */}
@@ -67,8 +82,11 @@ function App() {
 
       </div>
 
-      {/* Metal Liquid Glass Query Action Bar */}
-      <LiquidMetalQueryBar onLaunchQuery={handleLaunchQuery} />
+      {/* Metal Liquid Glass Query Action Bar (shown when not in active chat view) */}
+      {!querySubmitted && (
+        <LiquidMetalQueryBar onLaunchQuery={handleLaunchQuery} />
+      )}
+
       <ISROBadge />
       <IndiaFlagBadge />
 
@@ -77,4 +95,3 @@ function App() {
 }
 
 export default App;
-
