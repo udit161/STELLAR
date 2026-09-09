@@ -378,10 +378,10 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
               key={`${char}-${i}`}
               style={{
                 display: "inline-block",
-                fontSize: "clamp(3rem, 8vw, 9rem)",
+                fontSize: singleLine ? "clamp(2.5rem, 5.5vw, 5rem)" : "clamp(3rem, 8vw, 9rem)",
                 fontWeight: 900,
                 fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                letterSpacing: "-0.02em",
+                letterSpacing: singleLine ? "0.02em" : "-0.02em",
                 userSelect: "none",
                 color: isSpace ? "transparent" : (PALETTE[i] ?? "#D8D365"),
                 lineHeight: 1,

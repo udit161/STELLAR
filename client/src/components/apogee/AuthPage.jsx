@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import StarfieldCanvas from './StarfieldCanvas';
+import ScatterAndReassembleText from '../ScatterAndReassembleText';
 import AstronautHead from './AstronautHead';
 import AuthCard from './AuthCard';
 import './ApogeeAuth.css';
@@ -9,24 +9,35 @@ export function AuthPage({ onSuccess }) {
 
   return (
     <div className="apogee-viewport-wrapper">
-      <StarfieldCanvas />
-      <div className="nebula-wash" aria-hidden="true" />
+      {/* Header Mid: SatQuery AI Abstract Morphing Logo Card */}
+      <header className="header-mid-bar">
+        <div className="intro-abstract-card-container">
+          <div className="intro-abstract-halo" />
+          <div className="intro-abstract-ring" />
+          <div className="intro-abstract-mask" />
+          <div className="intro-abstract-card">
+            <div className="intro-logo-scaled-inner">
+              <ScatterAndReassembleText showMultilingual={false} singleLine={true} />
+            </div>
+          </div>
+        </div>
+      </header>
 
       <main className="apogee-viewport-container">
         <div className="apogee-layout">
-          {/* Left Column: Hero & Interactive Astronaut Head */}
-          <section className="hero-stage" aria-label="Apogee Mission Control Briefing">
+          {/* Left Column: Hero & Interactive Astronaut Head with Cursor-Tracking Eyes */}
+          <section className="hero-stage" aria-label="SatQuery AI Platform Briefing">
             <div className="brand-badge">
               <span className="brand-badge-dot" aria-hidden="true" />
-              <span className="brand-badge-text">Apogee Orbital v2.4</span>
+              <span className="brand-badge-text">SatQuery AI Engine • Active</span>
             </div>
 
             <AstronautHead />
 
             <div className="hero-title-group">
-              <h1 className="hero-heading">Explore the Celestial Frontier</h1>
+              <h1 className="hero-heading">Autonomous Satellite Visual QA</h1>
               <p className="hero-subtitle">
-                Chart your course through deep space telemetry, satellite imagery, and high-dimensional orbital data.
+                Instantly query any Earth observation scene, STAC Sentinel-2 &amp; Landsat-9 imagery, coordinates, or automated change detection through natural AI conversations.
               </p>
             </div>
 
@@ -35,7 +46,7 @@ export function AuthPage({ onSuccess }) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 2v20M2 12h20" />
                 </svg>
-                <span>STAC Sentinel-2</span>
+                <span>STAC Sentinel-2 &amp; Landsat-9</span>
               </div>
               <div className="telemetry-divider" />
               <div className="telemetry-item">
@@ -43,7 +54,7 @@ export function AuthPage({ onSuccess }) {
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 6v6l4 2" />
                 </svg>
-                <span>99.99% Telemetry</span>
+                <span>ISRO Earth Observation</span>
               </div>
             </div>
           </section>
