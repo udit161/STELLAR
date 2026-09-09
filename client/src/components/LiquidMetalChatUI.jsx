@@ -126,6 +126,13 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
             </div>
 
             <div className="header-action-group">
+              <button 
+                className="action-pill-btn" 
+                onClick={() => alert(`Saved query "${queryText}" to your Orbit Notes & Documents center!`)}
+                style={{ color: '#a78bfa', borderColor: 'rgba(167, 139, 250, 0.3)', background: 'rgba(167, 139, 250, 0.12)' }}
+              >
+                <FileText size={13} /> Save Note
+              </button>
               <button className="action-pill-btn" onClick={handleShare}>
                 <Share2 size={13} /> Share
               </button>
