@@ -7,8 +7,7 @@ import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import GlassSidebar from './components/GlassSidebar';
 import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
-import ISROBadge from './components/ISROBadge';
-import IndiaFlagBadge from './components/IndiaFlagBadge';
+
 import Scene from './pages/Scene';
 import { isAuthenticated, getUser, logout } from './services/authService';
 import './index.css';
@@ -68,8 +67,7 @@ function App() {
 
       {/* Metal Liquid Glass Query Action Bar */}
       <LiquidMetalQueryBar onLaunchQuery={handleLaunchQuery} />
-      <ISROBadge />
-      <IndiaFlagBadge />
+
     </>
   );
 }
