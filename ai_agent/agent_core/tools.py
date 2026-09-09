@@ -1911,6 +1911,311 @@ def vision_vqa_tool(
         )
 
 
+class StrictChangeDetInput(BaseModel):
+    image_path_t1: str = Field(..., description="Path to the before image (T1)")
+    image_path_t2: str = Field(..., description="Path to the after image (T2)")
+    text_query: str = Field(..., description="Query for change detection")
+    
+    def validate_inputs(self):
+        self.image_path_t1 = str(self.image_path_t1).strip()
+        self.image_path_t2 = str(self.image_path_t2).strip()
+        self.text_query = str(self.text_query).strip()
+        if not self.image_path_t1 or not self.image_path_t2:
+            raise ValueError("StrictChangeDetInput requires exactly two valid image paths.")
+        if not self.text_query:
+            raise ValueError("StrictChangeDetInput requires a non-empty text_query.")
+
+@tool("change_detection_tool", args_schema=StrictChangeDetInput)
+def change_detection_tool(
+    image_path_t1: str,
+    image_path_t2: str,
+    text_query: str,
+    state: Optional[Dict[str, Any]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """Strict wrapper for ChangeDetectionModel."""
+    _TOOL_NAME = "change_detection_tool"
+    _ENGINE = "ChangeDetectionModel"
+    start_time = time.time()
+    
+    def _make_error_output(error_msg: str, summary: str, details: str, error_type: str, elapsed_ms: float) -> Dict[str, Any]:
+        now_iso = datetime.utcnow().isoformat()
+        trace = make_trace_entry(
+            tool_name=_TOOL_NAME,
+            node_name=state.get("active_agent", "unknown_node") if state else "unknown_node",
+            parameters={"image_path_t1": image_path_t1, "image_path_t2": image_path_t2, "text_query": text_query},
+            status="error",
+            result_summary=summary,
+            confidence=0.0,
+            duration_ms=elapsed_ms,
+            error=error_msg,
+            output_keys=[],
+            timestamp_end=now_iso,
+        )
+        err_output = StandardToolOutput(
+            status="error", tool_name=_TOOL_NAME, engine=_ENGINE, execution_time_ms=elapsed_ms, timestamp=now_iso,
+            summary=summary, details=details, bounding_boxes=[], spatial_mask=None, metrics={}, confidence=0.0,
+            artifacts=[], raw_output={"error": error_msg}, validated_inputs={}, context_injected={}, error=error_msg
+        )
+        out_dict = err_output.to_dict()
+        out_dict["rs_state_updates"] = {
+            "tool_outputs": IntermediateToolOutputs(vqa_answer="", vqa_confidence=0.0, vqa_embedding_shape=[], bounding_boxes=[], spatial_masks=[], land_cover_labels={}, land_cover_confidence=0.0, fusion_result={}, fusion_confidence=0.0, damage_assessment={}, general_answer="", raw_tool_outputs={}),
+            "tool_confidence_scores": {_TOOL_NAME: 0.0},
+            "execution_trace": [trace],
+            "bounding_boxes": [],
+            "image_inputs": []
+        }
+        return out_dict
+
+    try:
+        input_params = StrictChangeDetInput(image_path_t1=image_path_t1, image_path_t2=image_path_t2, text_query=text_query)
+        input_params.validate_inputs()
+    except Exception as e:
+        return _make_error_output(str(e), "Input validation failed", "Invalid arguments.", type(e).__name__, 0.0)
+
+    try:
+        from specialist_models.change_det import ChangeDetectionModel
+        model = ChangeDetectionModel()
+        infer_result = model.infer(
+            image_path_t1=input_params.image_path_t1,
+            image_path_t2=input_params.image_path_t2,
+            text_query=input_params.text_query
+        )
+    except Exception as e:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        return _make_error_output(str(e), "Model execution failed", "Exception during inference.", type(e).__name__, elapsed_ms)
+        
+    try:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        infer_status = infer_result.get("status", "error")
+        model_conf = infer_result.get("confidence", 0.0)
+        task_type = infer_result.get("task_type", "change_detection")
+        
+        if infer_status == "error":
+            return _make_error_output(infer_result.get("error", "Unknown error"), "Inference returned error", "Model returned error status.", "InferenceError", elapsed_ms)
+
+        answer = infer_result.get("answer", "")
+        
+        # ── Build IntermediateToolOutputs ─────────────────────────────────────
+        tool_outputs_update = IntermediateToolOutputs(
+            vqa_answer="",
+            vqa_confidence=0.0,
+            vqa_embedding_shape=[],
+            bounding_boxes=[],
+            spatial_masks=infer_result.get("spatial_masks", []),
+            land_cover_labels={},
+            land_cover_confidence=0.0,
+            fusion_result={},
+            fusion_confidence=0.0,
+            damage_assessment={},
+            general_answer=answer,
+            raw_tool_outputs={_TOOL_NAME: infer_result},
+        )
+        if "change_mask" in infer_result:
+            tool_outputs_update["change_mask"] = infer_result["change_mask"]
+            
+        img_entry_1 = make_image_entry(
+            image_path=input_params.image_path_t1, detected_modality="optical", spatial_role="t1", file_format="unknown", metadata={"detected_from": _TOOL_NAME}
+        )
+        img_entry_2 = make_image_entry(
+            image_path=input_params.image_path_t2, detected_modality="optical", spatial_role="t2", file_format="unknown", metadata={"detected_from": _TOOL_NAME}
+        )
+
+        trace_entry = make_trace_entry(
+            tool_name=_TOOL_NAME,
+            node_name=state.get("active_agent", "change_det_specialist") if state else "change_det_specialist",
+            parameters={"image_path_t1": input_params.image_path_t1, "image_path_t2": input_params.image_path_t2, "text_query": input_params.text_query},
+            status=infer_status,
+            result_summary=f"task_type={task_type}, conf={model_conf:.3f}",
+            confidence=model_conf,
+            duration_ms=elapsed_ms,
+            output_keys=list(infer_result.keys()),
+            timestamp_end=datetime.utcnow().isoformat(),
+        )
+
+        output = StandardToolOutput(
+            status=infer_status,
+            tool_name=_TOOL_NAME,
+            engine=_ENGINE,
+            execution_time_ms=elapsed_ms,
+            timestamp=datetime.utcnow().isoformat(),
+            summary=answer,
+            details=f"Change detection inference via {infer_result.get('model_name', 'unknown')} on {os.path.basename(input_params.image_path_t1)} and {os.path.basename(input_params.image_path_t2)}.",
+            bounding_boxes=[],
+            spatial_mask=infer_result.get("spatial_masks", [{}])[0] if infer_result.get("spatial_masks") else None,
+            metrics={"task_type": task_type, "confidence": model_conf},
+            confidence=model_conf,
+            artifacts=[],
+            raw_output=infer_result,
+            validated_inputs={"image_path_t1": input_params.image_path_t1, "image_path_t2": input_params.image_path_t2, "text_query": input_params.text_query},
+            context_injected={},
+            error=None
+        )
+
+        out_dict = output.to_dict()
+        out_dict["rs_state_updates"] = {
+            "tool_outputs": dict(tool_outputs_update),
+            "tool_confidence_scores": {_TOOL_NAME: model_conf},
+            "execution_trace": [trace_entry],
+            "bounding_boxes": [],
+            "image_inputs": [img_entry_1, img_entry_2],
+        }
+        return out_dict
+    except Exception as fmt_err:
+        return _make_error_output(str(fmt_err), "Format failed", "Output formatting failed.", type(fmt_err).__name__, 0.0)
+
+
+class StrictCrossModalInput(BaseModel):
+    image_path_optical: str = Field(..., description="Path to optical image")
+    image_path_sar: str = Field(..., description="Path to SAR image")
+    text_query: str = Field(..., description="Query for cross-modal fusion")
+    
+    def validate_inputs(self):
+        self.image_path_optical = str(self.image_path_optical).strip()
+        self.image_path_sar = str(self.image_path_sar).strip()
+        self.text_query = str(self.text_query).strip()
+        if not self.image_path_optical or not self.image_path_sar:
+            raise ValueError("StrictCrossModalInput requires exactly two valid image paths.")
+        if not self.text_query:
+            raise ValueError("StrictCrossModalInput requires a non-empty text_query.")
+
+@tool("cross_modal_fusion_tool", args_schema=StrictCrossModalInput)
+def cross_modal_fusion_tool(
+    image_path_optical: str = "",
+    image_path_sar: str = "",
+    text_query: str = "",
+    state: Optional[Dict[str, Any]] = None,
+    **kwargs
+) -> Dict[str, Any]:
+    """Strict wrapper for CrossModalFusion."""
+    _TOOL_NAME = "cross_modal_fusion_tool"
+    _ENGINE = "CrossModalFusion"
+    start_time = time.time()
+    
+    def _make_error_output(error_msg: str, summary: str, details: str, error_type: str, elapsed_ms: float) -> Dict[str, Any]:
+        now_iso = datetime.utcnow().isoformat()
+        trace = make_trace_entry(
+            tool_name=_TOOL_NAME,
+            node_name=state.get("active_agent", "unknown_node") if state else "unknown_node",
+            parameters={"image_path_optical": image_path_optical, "image_path_sar": image_path_sar, "text_query": text_query},
+            status="error",
+            result_summary=summary,
+            confidence=0.0,
+            duration_ms=elapsed_ms,
+            error=error_msg,
+            output_keys=[],
+            timestamp_end=now_iso,
+        )
+        err_output = StandardToolOutput(
+            status="error", tool_name=_TOOL_NAME, engine=_ENGINE, execution_time_ms=elapsed_ms, timestamp=now_iso,
+            summary=summary, details=details, bounding_boxes=[], spatial_mask=None, metrics={}, confidence=0.0,
+            artifacts=[], raw_output={"error": error_msg}, validated_inputs={}, context_injected={}, error=error_msg
+        )
+        out_dict = err_output.to_dict()
+        out_dict["rs_state_updates"] = {
+            "tool_outputs": IntermediateToolOutputs(vqa_answer="", vqa_confidence=0.0, vqa_embedding_shape=[], bounding_boxes=[], spatial_masks=[], land_cover_labels={}, land_cover_confidence=0.0, fusion_result={}, fusion_confidence=0.0, damage_assessment={}, general_answer="", raw_tool_outputs={}),
+            "tool_confidence_scores": {_TOOL_NAME: 0.0},
+            "execution_trace": [trace],
+            "bounding_boxes": [],
+            "image_inputs": []
+        }
+        return out_dict
+
+    try:
+        input_params = StrictCrossModalInput(image_path_optical=image_path_optical, image_path_sar=image_path_sar, text_query=text_query)
+        input_params.validate_inputs()
+    except Exception as e:
+        return _make_error_output(str(e), "Input validation failed", "Invalid arguments.", type(e).__name__, 0.0)
+
+    try:
+        from specialist_models.cross_modal import CrossModalFusion
+        model = CrossModalFusion()
+        infer_result = model.infer(
+            image_path_optical=input_params.image_path_optical,
+            image_path_sar=input_params.image_path_sar,
+            text_query=input_params.text_query
+        )
+    except Exception as e:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        return _make_error_output(str(e), "Model execution failed", "Exception during inference.", type(e).__name__, elapsed_ms)
+        
+    try:
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        infer_status = infer_result.get("status", "error")
+        model_conf = infer_result.get("confidence", 0.0)
+        task_type = infer_result.get("task_type", "cross_modal_fusion")
+        
+        if infer_status == "error":
+            return _make_error_output(infer_result.get("error", "Unknown error"), "Inference returned error", "Model returned error status.", "InferenceError", elapsed_ms)
+
+        answer = infer_result.get("answer", "")
+        
+        # ── Build IntermediateToolOutputs ─────────────────────────────────────
+        tool_outputs_update = IntermediateToolOutputs(
+            vqa_answer="",
+            vqa_confidence=0.0,
+            vqa_embedding_shape=[],
+            bounding_boxes=[],
+            spatial_masks=[],
+            land_cover_labels={},
+            land_cover_confidence=0.0,
+            fusion_result=infer_result.get("fusion_result", {}),
+            fusion_confidence=model_conf,
+            damage_assessment={},
+            general_answer=answer,
+            raw_tool_outputs={_TOOL_NAME: infer_result},
+        )
+            
+        img_entry_opt = make_image_entry(
+            image_path=input_params.image_path_optical, detected_modality="optical", spatial_role="optical", file_format="unknown", metadata={"detected_from": _TOOL_NAME}
+        )
+        img_entry_sar = make_image_entry(
+            image_path=input_params.image_path_sar, detected_modality="sar", spatial_role="sar", file_format="unknown", metadata={"detected_from": _TOOL_NAME}
+        )
+
+        trace_entry = make_trace_entry(
+            tool_name=_TOOL_NAME,
+            node_name=state.get("active_agent", "cross_modal_specialist") if state else "cross_modal_specialist",
+            parameters={"image_path_optical": input_params.image_path_optical, "image_path_sar": input_params.image_path_sar, "text_query": input_params.text_query},
+            status=infer_status,
+            result_summary=f"task_type={task_type}, conf={model_conf:.3f}",
+            confidence=model_conf,
+            duration_ms=elapsed_ms,
+            output_keys=list(infer_result.keys()),
+            timestamp_end=datetime.utcnow().isoformat(),
+        )
+
+        output = StandardToolOutput(
+            status=infer_status,
+            tool_name=_TOOL_NAME,
+            engine=_ENGINE,
+            execution_time_ms=elapsed_ms,
+            timestamp=datetime.utcnow().isoformat(),
+            summary=answer,
+            details=f"Cross-modal fusion via {infer_result.get('model_name', 'unknown')} on {os.path.basename(input_params.image_path_optical)} and {os.path.basename(input_params.image_path_sar)}.",
+            bounding_boxes=[],
+            spatial_mask=None,
+            metrics={"task_type": task_type, "confidence": model_conf},
+            confidence=model_conf,
+            artifacts=[],
+            raw_output=infer_result,
+            validated_inputs={"image_path_optical": input_params.image_path_optical, "image_path_sar": input_params.image_path_sar, "text_query": input_params.text_query},
+            context_injected={},
+            error=None
+        )
+
+        out_dict = output.to_dict()
+        out_dict["rs_state_updates"] = {
+            "tool_outputs": dict(tool_outputs_update),
+            "tool_confidence_scores": {_TOOL_NAME: model_conf},
+            "execution_trace": [trace_entry],
+            "bounding_boxes": [],
+            "image_inputs": [img_entry_opt, img_entry_sar],
+        }
+        return out_dict
+    except Exception as fmt_err:
+        return _make_error_output(str(fmt_err), "Format failed", "Output formatting failed.", type(fmt_err).__name__, 0.0)
+
 # ---------------------------------------------------------------------------
 # Global Tool Registry
 # ---------------------------------------------------------------------------
@@ -1922,6 +2227,7 @@ TOOL_REGISTRY: List[Any] = [
     fusion_routing_tool,
     land_cover_tool,
     vision_vqa_tool,
+    cross_modal_fusion_tool,
 ]
 
 TOOL_MAP: Dict[str, Any] = {
@@ -1931,4 +2237,6 @@ TOOL_MAP: Dict[str, Any] = {
     "fusion_routing_tool": fusion_routing_tool,
     "land_cover_tool": land_cover_tool,
     "vision_vqa_tool": vision_vqa_tool,
+    "cross_modal_fusion_tool": cross_modal_fusion_tool,
 }
+

@@ -8,6 +8,7 @@ Standardized outputs from specialist models seamlessly synchronize with state.py
 import os
 import uuid
 import re
+import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Callable, Tuple, Generator, Union
 
@@ -48,7 +49,6 @@ from agent_core.tools import (
     update_state_tracker_from_tool_output,
 )
 
-# Optional LangGraph native engine import with resilient internal graph fallback
 try:
     from langgraph.graph import StateGraph, START, END
     LANGGRAPH_AVAILABLE = True
@@ -56,6 +56,34 @@ except ImportError:
     LANGGRAPH_AVAILABLE = False
     START = "__start__"
     END = "__end__"
+
+# ---------------------------------------------------------------------------
+# Mock LLM Adapter
+# ---------------------------------------------------------------------------
+def mock_lightweight_llm_call(prompt: str) -> str:
+    """
+    Mock lightweight LLM call to simulate a zero-shot classification endpoint.
+    In production, this would call an OpenAI or local vLLM endpoint.
+    Returns a JSON string with 'task' and 'reasoning'.
+    """
+    # Extract just the query part of the prompt to avoid matching on our own instructions
+    query_part = prompt.split("Query:")[-1].lower() if "Query:" in prompt else prompt.lower()
+    
+    if "change" in query_part or "difference" in query_part or "t1" in query_part:
+        task = "change_detection"
+        reasoning = "Query asks for temporal difference or change."
+    elif "fuse" in query_part or "sar" in query_part or "radar" in query_part:
+        task = "cross_modal"
+        reasoning = "Query mentions SAR/radar or fusion."
+    elif "where" in query_part or "locate" in query_part or "detect" in query_part or "find" in query_part:
+        task = "grounding"
+        reasoning = "Query asks to localize or find specific entities."
+    else:
+        task = "vqa"
+        reasoning = "Query asks a general descriptive question."
+        
+    return json.dumps({"task": task, "reasoning": reasoning})
+
 
 
 class Orchestrator:
@@ -130,6 +158,13 @@ class Orchestrator:
         if single and isinstance(single, dict) and single.get("file_path") and single["file_path"] not in paths:
             paths.append(single["file_path"])
 
+        # 6. RSAgentState typed image_inputs
+        rs_inputs = state.get("image_inputs") or []
+        for e in rs_inputs:
+            p = e.get("image_path") or e.get("file_path")
+            if p and p not in paths:
+                paths.append(p)
+                
         meta["total_images"] = len(paths)
         meta["image_paths"] = paths
         return len(paths), paths, meta
@@ -371,222 +406,96 @@ class Orchestrator:
     supervisor_intent_router_node = controller_router_node
 
     # -----------------------------------------------------------------------
-    # Node 2b: Intent Classifier & VQA Routing Node
+    # Node 2b: Interpret & Validate Node (LLM-based)
     # -----------------------------------------------------------------------
-    # Design rationale:
-    #   The existing controller_router_node handles ALL task types with coarse
-    #   keyword matching and immediately selects tools.  This node runs AFTER
-    #   the controller and specializes in confirming (or upgrading) the VQA
-    #   classification using a richer scoring model, then explicitly decides
-    #   whether to route to vision_vqa_tool (strict path) or stay on the
-    #   legacy vqa_tool path.
-    #
-    #   Routing decision recorded in state:
-    #     'intent_classification'  : detailed scored result dict
-    #     'use_strict_vqa_tool'    : bool  — True  → vision_vqa_specialist_node
-    #                                        False → existing vqa_specialist_node
-    # -----------------------------------------------------------------------
-    def intent_classifier_node(self, state: AgentState) -> Dict[str, Any]:
+    def interpret_and_validate_node(self, state: AgentState) -> Dict[str, Any]:
         """
-        Intent Classifier & VQA Routing Node.
-
-        Inspects the user query and uploaded image metadata to produce a
-        fine-grained intent classification result.  When the evidence strongly
-        points to a SINGLE-IMAGE descriptive or QA task, it sets
-        ``use_strict_vqa_tool = True`` so the graph branches to
-        ``vision_vqa_specialist_node`` (which calls ``vision_vqa_tool`` /
-        ``VisionVQAModel.infer()``) instead of the legacy ``vqa_tool``.
-
-        Scoring model
-        -------------
-        Each intent category accumulates a floating-point score from keyword
-        hits and metadata signals.  The winning category must exceed the
-        runner-up by at least VQA_MARGIN to be considered decisive.
-
-        Returns
-        -------
-        Dict containing:
-        - 'intent_classification' : full scored result for UI / audit
-        - 'use_strict_vqa_tool'   : bool routing decision
-        - 'classified_task'       : confirmed or overridden task label
-        - 'thought_trace'         : one appended reasoning step
-        - 'routing_history'       : ['intent_classifier']
+        Interpret & Validate Node.
+        
+        Uses a lightweight LLM call to classify the natural language query.
+        Checks the state schema to verify that uploaded image modalities/formats
+        are compatible with the classified task.
+        Sets routing flags (use_strict_vqa_tool, etc.) or halts execution if invalid.
         """
         import time as _time
         t0 = _time.perf_counter()
 
         raw_query = state.get("raw_query") or state.get("query") or ""
-        query_lower = raw_query.lower().strip()
         img_count, image_paths, img_meta = self._inspect_image_metadata(state)
-        existing_task = state.get("classified_task") or ""
 
-        # -------------------------------------------------------------------
-        # Image-input signals from RSAgentState.image_inputs (if populated)
-        # -------------------------------------------------------------------
-        rs_image_inputs: List[Dict[str, Any]] = state.get("image_inputs") or []
-        rs_modalities = {e.get("detected_modality", "unknown") for e in rs_image_inputs}
-        rs_roles      = {e.get("spatial_role", "") for e in rs_image_inputs}
-
-        # -------------------------------------------------------------------
-        # Keyword scoring
-        # -------------------------------------------------------------------
-        VQA_KEYWORDS = [
-            "what is", "what are", "describe", "classify", "identify",
-            "what type", "which", "how many", "is this", "does this",
-            "what can you see", "analyze", "explain", "what does",
-            "what land", "land cover", "what kind", "is there",
-            "tell me about", "summarize", "overview", "what\'s in",
-            "what's in", "land-cover", "land cover type", "vegetation",
-            "spectral", "ndvi", "ndwi", "reflectance",
-        ]
-        GROUNDING_KEYWORDS = [
-            "locate", "find", "where is", "where are", "detect",
-            "bounding box", "highlight", "mark", "draw a box",
-            "show me where", "spatial location", "coordinates",
-            "airplane", "ship", "vessel", "tank", "building",
-            "reservoir", "runway", "bridge", "object",
-        ]
-        CHANGE_KEYWORDS = [
-            "what changed", "change", "before and after", "difference",
-            "deforestation", "urban growth", "damage", "temporal",
-            "t1", "t2", "before", "after", "evolution",
-        ]
-        FUSION_KEYWORDS = [
-            "sar", "radar", "fuse", "fusion", "all-weather",
-            "cloud penetration", "sentinel-1", "backscatter",
-        ]
-
-        vqa_score      = sum(1.0 for kw in VQA_KEYWORDS      if kw in query_lower)
-        grounding_score= sum(1.2 for kw in GROUNDING_KEYWORDS if kw in query_lower)  # slight penalty
-        change_score   = sum(1.5 for kw in CHANGE_KEYWORDS   if kw in query_lower)  # strong signal
-        fusion_score   = sum(1.5 for kw in FUSION_KEYWORDS   if kw in query_lower)
-
-        # Image-count modifiers
-        if img_count == 1:
-            vqa_score += 2.0       # single image strongly suggests VQA or grounding
-            grounding_score += 1.0
-        elif img_count == 2:
-            change_score += 3.0    # two images strongly suggests change detection
-            if img_meta.get("is_optical_sar"):
-                fusion_score += 4.0
-
-        # Modality modifiers from RSAgentState.image_inputs
-        if "sar" in rs_modalities:
-            fusion_score += 2.0
-        if "bi_temporal" in rs_modalities:
-            change_score += 3.0
-        if rs_roles == {"t1", "t2"}:
-            change_score += 3.0
-
-        scores = {
-            "vqa":       round(vqa_score, 3),
-            "grounding": round(grounding_score, 3),
-            "change":    round(change_score, 3),
-            "fusion":    round(fusion_score, 3),
-        }
-        max_cat   = max(scores, key=lambda k: scores[k])
-        max_score = scores[max_cat]
-        sorted_scores = sorted(scores.values(), reverse=True)
-        runner_up = sorted_scores[1] if len(sorted_scores) > 1 else 0.0
-
-        VQA_MARGIN = 0.5   # vqa must beat runner-up by at least this to be decisive
-        is_decisive_vqa = (max_cat == "vqa") and ((max_score - runner_up) >= VQA_MARGIN)
-
-        # -------------------------------------------------------------------
-        # Single-image + (QA or descriptive) = route to vision_vqa_tool
-        # -------------------------------------------------------------------
-        is_single_image = img_count == 1 or (img_count == 0 and not rs_image_inputs)
-        use_strict_vqa  = (
-            is_decisive_vqa and is_single_image
-        ) or (
-            existing_task == TaskType.VQA.value and is_single_image
+        # 1. LLM Interpretation
+        prompt = (
+            f"Classify the following satellite imagery query into one of: 'vqa', 'grounding', 'change_detection', 'cross_modal'.\n"
+            f"Query: {raw_query}\n"
+            f"Images provided: {img_count}\n"
         )
+        llm_response_str = mock_lightweight_llm_call(prompt)
+        try:
+            llm_result = json.loads(llm_response_str)
+            classified_task = llm_result.get("task", "vqa")
+            llm_reasoning = llm_result.get("reasoning", "")
+        except Exception:
+            classified_task = "vqa"
+            llm_reasoning = "Fallback due to LLM parsing error."
 
-        # Override: if the controller already chose a non-VQA task and the
-        # classifier agrees, don't interfere
-        if existing_task and existing_task != TaskType.VQA.value and max_cat != "vqa":
-            use_strict_vqa = False
+        # 2. Modality & Format Validation
+        errors = []
+        rs_inputs = state.get("image_inputs") or []
+        rs_modalities = {e.get("detected_modality", "unknown") for e in rs_inputs}
 
-        # Resolve confirmed task label
-        _task_map = {
-            "vqa":       TaskType.VQA.value,
-            "grounding": TaskType.GROUNDING.value,
-            "change":    TaskType.CHANGE_DETECTION.value,
-            "fusion":    TaskType.CROSS_MODAL_FUSION.value,
-        }
-        confirmed_task = existing_task or _task_map.get(max_cat, TaskType.VQA.value)
+        is_bi_temporal = img_count == 2 or img_meta.get("is_bi_temporal", False)
+        is_optical_sar = (img_count == 2 and "sar" in rs_modalities) or img_meta.get("is_optical_sar", False)
 
-        # Classifier confidence = max_score / (max_score + runner_up + epsilon)
-        classifier_conf = round(max_score / (max_score + runner_up + 1e-6), 3)
-        classifier_conf = min(0.99, max(0.50, classifier_conf))
+        if classified_task == "change_detection" and not is_bi_temporal:
+            errors.append("Change detection requires exactly two images (bi-temporal pair).")
+        
+        if classified_task == "cross_modal" and not is_optical_sar:
+            errors.append("Cross-modal fusion requires both optical and SAR images.")
+
+        is_valid = len(errors) == 0
+
+        # 3. Routing Flags
+        use_strict_vqa = classified_task == "vqa" and is_valid
+        use_change_det_tool = classified_task == "change_detection" and is_valid
+        use_cross_modal_tool = classified_task == "cross_modal" and is_valid
+        use_grounding_tool = classified_task == "grounding" and is_valid
 
         elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
 
-        # -------------------------------------------------------------------
-        # Build IntentClassification telemetry dict for UI / audit
-        # -------------------------------------------------------------------
-        intent_classification = {
-            "classifier_version": "keyword_scored_v1",
-            "timestamp": datetime.utcnow().isoformat(),
-            "elapsed_ms": elapsed_ms,
-            # Input signals
-            "raw_query": raw_query,
-            "image_count": img_count,
-            "image_paths": image_paths,
-            "rs_modalities_detected": list(rs_modalities),
-            "rs_spatial_roles": list(rs_roles),
-            "is_bi_temporal_meta": img_meta.get("is_bi_temporal", False),
-            "is_optical_sar_meta": img_meta.get("is_optical_sar", False),
-            # Scoring
-            "keyword_scores": scores,
-            "winning_category": max_cat,
-            "winning_score": max_score,
-            "runner_up_score": runner_up,
-            "classifier_confidence": classifier_conf,
-            "vqa_margin_decisive": is_decisive_vqa,
-            "is_single_image": is_single_image,
-            # Routing decision
-            "controller_task": existing_task,
-            "confirmed_task": confirmed_task,
-            "use_strict_vqa_tool": use_strict_vqa,
-            "routing_decision": (
-                "vision_vqa_specialist" if use_strict_vqa
-                else "legacy_vqa_specialist" if max_cat == "vqa"
-                else f"{max_cat}_specialist"
-            ),
-            "decision_rationale": (
-                f"Single image + decisive VQA score ({max_score:.2f} vs runner-up {runner_up:.2f}) "
-                f"→ routing to vision_vqa_tool (strict path, VisionVQAModel.infer())." if use_strict_vqa
-                else f"Task '{confirmed_task}' confirmed; "
-                     f"scores: {scores}; routed to existing pipeline."
-            ),
-        }
-
         reasoning = {
             "step_number": len(state.get("thought_trace") or []) + 1,
-            "agent_name": "IntentClassifier",
+            "agent_name": "InterpretAndValidate",
             "thought": (
-                f"Intent classification complete. "
-                f"Scores: {scores}. "
-                f"Winner: '{max_cat}' ({max_score:.2f}). "
-                f"Single-image: {is_single_image}. "
-                f"Routing decision: {intent_classification['routing_decision']}."
+                f"LLM interpreted task as '{classified_task}'. Reasoning: {llm_reasoning} "
+                f"Validation errors: {errors if errors else 'None'}. "
+                f"Valid: {is_valid}."
             ),
-            "classified_task": confirmed_task,
-            "action_taken": "intent_classify_and_route",
-            "confidence": classifier_conf,
+            "classified_task": classified_task,
+            "action_taken": "interpret_and_validate",
+            "confidence": 0.95 if is_valid else 0.0,
             "timestamp": datetime.utcnow().isoformat(),
         }
 
-        return {
-            "classified_task": confirmed_task,
-            "task_classification_confidence": classifier_conf,
-            "intent_classification": intent_classification,
-            "use_strict_vqa_tool": use_strict_vqa,
+        # If invalid, we halt and require clarification
+        return_payload = {
+            "classified_task": classified_task,
+            "task_classification_confidence": 0.95,
             "thought_trace": [reasoning],
-            "routing_history": ["intent_classifier"],
-            "active_agent": "intent_classifier",
+            "routing_history": ["interpret_and_validate"],
+            "active_agent": "interpret_and_validate",
+            "use_strict_vqa_tool": use_strict_vqa,
+            "use_change_det_tool": use_change_det_tool,
+            "use_cross_modal_tool": use_cross_modal_tool,
+            "use_grounding_tool": use_grounding_tool,
         }
+
+        if not is_valid:
+            return_payload["is_valid"] = False
+            return_payload["requires_clarification"] = True
+            return_payload["validation_errors"] = (state.get("validation_errors") or []) + errors
+            return_payload["status"] = RequestStatus.FAILED.value
+
+        return return_payload
 
     # -----------------------------------------------------------------------
     # Node 4b: Vision VQA Specialist Node (strict path — uses vision_vqa_tool)
@@ -1020,32 +929,53 @@ class Orchestrator:
     # Specialist Node: Bi-temporal Change Detection
     # -----------------------------------------------------------------------
     def change_detection_specialist_node(self, state: AgentState) -> Dict[str, Any]:
-        """
-        Executes bi-temporal change detection on T1 and T2 images using change_detection_tool.
-        """
+        """Executes bi-temporal change detection using change_detection_tool."""
+        import time as _time
+        t0 = _time.perf_counter()
         img_count, paths, _ = self._inspect_image_metadata(state)
         t1_path = paths[0] if len(paths) > 0 else "/data/t1_baseline.tif"
         t2_path = paths[1] if len(paths) > 1 else "/data/t2_target.tif"
-        query = state.get("raw_query") or state.get("query")
+        query = state.get("raw_query") or state.get("query") or ""
 
-        # Execute registered standardized change_detection_tool
         tool_result = change_detection_tool(
-            t1_image_path=t1_path,
-            t2_image_path=t2_path,
-            threshold=0.5,
-            query=query,
+            image_path_t1=t1_path,
+            image_path_t2=t2_path,
+            text_query=query,
             state=state
         )
-
-        # Synchronize into state tracker
-        updates = update_state_tracker_from_tool_output(
-            state=state,
-            tool_output=tool_result,
-            specialist_key="change_detection",
-            specialist_model_type=SpecialistModelType.CHANGE_DETECTOR_MODEL.value
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+        
+        rs_updates = tool_result.get("rs_state_updates") or {}
+        merged_tool_outputs = merge_intermediate_outputs(state.get("tool_outputs") or {}, rs_updates.get("tool_outputs") or {})
+        merged_conf = {**(state.get("tool_confidence_scores") or {}), **(rs_updates.get("tool_confidence_scores") or {})}
+        
+        legacy_updates = update_state_tracker_from_tool_output(
+            state=state, tool_output=tool_result, specialist_key="change_detection", specialist_model_type=SpecialistModelType.CHANGE_DETECTOR_MODEL.value
         )
-        updates["status"] = RequestStatus.SPECIALIST_INFERENCE.value
-        return updates
+        
+        node_conf = float(tool_result.get("confidence", 0.0))
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "ChangeDetectionSpecialist",
+            "thought": f"change_detection_tool executed. conf={node_conf:.3f}, elapsed={elapsed_ms:.1f}ms.",
+            "classified_task": TaskType.CHANGE_DETECTION.value,
+            "action_taken": "change_detection_tool",
+            "confidence": node_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return {
+            "tool_outputs": merged_tool_outputs,
+            "tool_confidence_scores": merged_conf,
+            "execution_trace": rs_updates.get("execution_trace") or [],
+            "bounding_boxes": rs_updates.get("bounding_boxes") or [],
+            "image_inputs": rs_updates.get("image_inputs") or [],
+            **legacy_updates,
+            "thought_trace": [reasoning],
+            "routing_history": ["change_detection_specialist"],
+            "status": RequestStatus.SPECIALIST_INFERENCE.value,
+            "active_agent": "change_detection_specialist",
+        }
 
     # -----------------------------------------------------------------------
     # Specialist Node: Object Grounding & Spatial Localization
@@ -1073,29 +1003,54 @@ class Orchestrator:
     # Specialist Node: Optical-SAR Cross-Modal Fusion
     # -----------------------------------------------------------------------
     def cross_modal_fusion_specialist_node(self, state: AgentState) -> Dict[str, Any]:
-        """Executes optical and radar feature fusion using fusion_routing_tool."""
+        """Executes optical and radar feature fusion using cross_modal_fusion_tool."""
+        from agent_core.tools import cross_modal_fusion_tool
+        import time as _time
+        t0 = _time.perf_counter()
         img_count, paths, _ = self._inspect_image_metadata(state)
         opt_path = paths[0] if len(paths) > 0 else "/data/optical.tif"
         sar_path = paths[1] if len(paths) > 1 else "/data/sar.tif"
-        query = state.get("raw_query") or state.get("query")
+        query = state.get("raw_query") or state.get("query") or ""
 
-        # Execute registered standardized fusion_routing_tool
-        tool_result = fusion_routing_tool(
-            optical_image_path=opt_path,
-            sar_image_path=sar_path,
-            query=query,
+        tool_result = cross_modal_fusion_tool(
+            image_path_optical=opt_path,
+            image_path_sar=sar_path,
+            text_query=query,
             state=state
         )
-
-        # Synchronize into state tracker
-        updates = update_state_tracker_from_tool_output(
-            state=state,
-            tool_output=tool_result,
-            specialist_key="fusion",
-            specialist_model_type=SpecialistModelType.CROSS_MODAL_FUSION_NET.value
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+        
+        rs_updates = tool_result.get("rs_state_updates") or {}
+        merged_tool_outputs = merge_intermediate_outputs(state.get("tool_outputs") or {}, rs_updates.get("tool_outputs") or {})
+        merged_conf = {**(state.get("tool_confidence_scores") or {}), **(rs_updates.get("tool_confidence_scores") or {})}
+        
+        legacy_updates = update_state_tracker_from_tool_output(
+            state=state, tool_output=tool_result, specialist_key="fusion", specialist_model_type=SpecialistModelType.CROSS_MODAL_FUSION_NET.value
         )
-        updates["status"] = RequestStatus.FUSION.value
-        return updates
+        
+        node_conf = float(tool_result.get("confidence", 0.0))
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "CrossModalFusionSpecialist",
+            "thought": f"cross_modal_fusion_tool executed. conf={node_conf:.3f}, elapsed={elapsed_ms:.1f}ms.",
+            "classified_task": TaskType.CROSS_MODAL_FUSION.value,
+            "action_taken": "cross_modal_fusion_tool",
+            "confidence": node_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return {
+            "tool_outputs": merged_tool_outputs,
+            "tool_confidence_scores": merged_conf,
+            "execution_trace": rs_updates.get("execution_trace") or [],
+            "bounding_boxes": rs_updates.get("bounding_boxes") or [],
+            "image_inputs": rs_updates.get("image_inputs") or [],
+            **legacy_updates,
+            "thought_trace": [reasoning],
+            "routing_history": ["cross_modal_fusion_specialist"],
+            "status": RequestStatus.FUSION.value,
+            "active_agent": "cross_modal_fusion_specialist",
+        }
 
     # -----------------------------------------------------------------------
     # Specialist Node: Land Cover Classification
@@ -1314,35 +1269,24 @@ class Orchestrator:
 
     @staticmethod
     def _route_after_controller(state: AgentState) -> str:
-        """
-        Post-controller routing decision.
-
-        After the controller_router_node sets classified_task and builds the
-        execution_queue, route through the intent_classifier_node which runs
-        deeper VQA vs non-VQA scoring.  The intent classifier itself sets
-        'use_strict_vqa_tool' which the subsequent _route_after_intent call
-        uses to branch to vision_vqa_specialist or the legacy specialist loop.
-
-        For non-VQA tasks the intent_classifier still runs (it is fast) but
-        use_strict_vqa_tool will be False and the specialist loop will pick
-        up the correct node.
-        """
-        return "intent_classifier"
+        return "interpret_and_validate"
 
     @staticmethod
-    def _route_after_intent(state: AgentState) -> str:
-        """
-        Post-intent-classifier routing.
+    def _route_after_interpret(state: AgentState) -> str:
+        if not state.get("is_valid", True) or state.get("requires_clarification", False):
+            return "human_clarification"
 
-        If use_strict_vqa_tool is True AND the task is VQA (single image),
-        branch directly to vision_vqa_specialist_node.
-        Otherwise fall through to the existing _route_next_specialist logic
-        which handles change detection, grounding, fusion, land cover.
-        """
         if state.get("use_strict_vqa_tool", False):
             task = state.get("classified_task") or ""
-            if task in (TaskType.VQA.value, "VQA", ""):
+            if task in (TaskType.VQA.value, "VQA", "vqa", ""):
                 return "vision_vqa_specialist"
+        elif state.get("use_change_det_tool", False):
+            return "change_detection_specialist"
+        elif state.get("use_cross_modal_tool", False):
+            return "cross_modal_fusion_specialist"
+        elif state.get("use_grounding_tool", False):
+            return "grounding_specialist"
+            
         return Orchestrator._route_next_specialist(state)
 
     @staticmethod
@@ -1382,7 +1326,7 @@ class Orchestrator:
             # ── Nodes ─────────────────────────────────────────────────────
             builder.add_node("input_validator",             self.input_validator_node)
             builder.add_node("controller_router",           self.controller_router_node)
-            builder.add_node("intent_classifier",           self.intent_classifier_node)
+            builder.add_node("interpret_and_validate",      self.interpret_and_validate_node)
             builder.add_node("human_clarification",         self.human_clarification_node)
             builder.add_node("vision_vqa_specialist",       self.vision_vqa_specialist_node)
             builder.add_node("vqa_specialist",              self.vqa_specialist_node)
@@ -1405,14 +1349,14 @@ class Orchestrator:
             )
             builder.add_edge("human_clarification", END)
 
-            # ── Controller → Intent Classifier ───────────────────────────
+            # ── Controller → Interpret & Validate ───────────────────────────
             builder.add_conditional_edges(
                 "controller_router",
                 self._route_after_controller,
-                {"intent_classifier": "intent_classifier"},
+                {"interpret_and_validate": "interpret_and_validate"},
             )
 
-            # ── Intent Classifier → [VisionVQA | specialist loop] ────────
+            # ── Interpret & Validate → [VisionVQA | specialist loop | Clarification] ────────
             _all_specialist_targets = {
                 "vision_vqa_specialist":        "vision_vqa_specialist",
                 "vqa_specialist":               "vqa_specialist",
@@ -1421,30 +1365,29 @@ class Orchestrator:
                 "cross_modal_fusion_specialist":"cross_modal_fusion_specialist",
                 "land_cover_specialist":        "land_cover_specialist",
                 "aggregation":                  "aggregation",
+                "human_clarification":          "human_clarification",
             }
             builder.add_conditional_edges(
-                "intent_classifier",
-                self._route_after_intent,
+                "interpret_and_validate",
+                self._route_after_interpret,
                 _all_specialist_targets,
             )
 
-            # ── vision_vqa_specialist → aggregation ──────────────────────
+            # ── strict tools → aggregation ──────────────────────
             builder.add_edge("vision_vqa_specialist", "synthesizer")
+            builder.add_edge("change_detection_specialist", "synthesizer")
+            builder.add_edge("cross_modal_fusion_specialist", "synthesizer")
 
             # ── Legacy specialists → dynamic queue routing ───────────────
             _specialist_to_aggregation = {
                 "vqa_specialist":               "vqa_specialist",
-                "change_detection_specialist":  "change_detection_specialist",
                 "grounding_specialist":         "grounding_specialist",
-                "cross_modal_fusion_specialist":"cross_modal_fusion_specialist",
                 "land_cover_specialist":        "land_cover_specialist",
                 "aggregation":                  "aggregation",
             }
             for spec_node in [
                 "vqa_specialist",
-                "change_detection_specialist",
                 "grounding_specialist",
-                "cross_modal_fusion_specialist",
                 "land_cover_specialist",
             ]:
                 builder.add_conditional_edges(
@@ -1516,14 +1459,22 @@ class Orchestrator:
                     # 2. Controller Router
                     self._merge(curr, self.orch.controller_router_node(curr))
 
-                    # 3. Intent Classifier
-                    self._merge(curr, self.orch.intent_classifier_node(curr))
+                    # 3. Interpret & Validate
+                    self._merge(curr, self.orch.interpret_and_validate_node(curr))
 
                     # 4. Route — VisionVQA strict path or legacy specialist loop
-                    next_route = Orchestrator._route_after_intent(curr)
-                    if next_route == "vision_vqa_specialist":
+                    next_route = Orchestrator._route_after_interpret(curr)
+                    if next_route == "human_clarification":
+                        self._merge(curr, self.orch.human_clarification_node(curr))
+                        return curr
+                    elif next_route == "vision_vqa_specialist":
                         self._merge(curr, self.orch.vision_vqa_specialist_node(curr))
-                        # vision_vqa → synthesizer → aggregation
+                        self._merge(curr, self.orch.synthesizer_node(curr))
+                    elif next_route == "change_detection_specialist":
+                        self._merge(curr, self.orch.change_detection_specialist_node(curr))
+                        self._merge(curr, self.orch.synthesizer_node(curr))
+                    elif next_route == "cross_modal_fusion_specialist":
+                        self._merge(curr, self.orch.cross_modal_fusion_specialist_node(curr))
                         self._merge(curr, self.orch.synthesizer_node(curr))
                     else:
                         # Dynamic legacy specialist loop
@@ -1638,17 +1589,29 @@ class Orchestrator:
         yield {"step": "controller_router", "state": curr,
                "latest_thought": curr["thought_trace"][-1]}
 
-        # ── Step 3: Intent Classifier ─────────────────────────────────────
-        _merge(self.intent_classifier_node(curr))
-        yield {"step": "intent_classifier", "state": curr,
+        # ── Step 3: Interpret & Validate ─────────────────────────────────────
+        _merge(self.interpret_and_validate_node(curr))
+        yield {"step": "interpret_and_validate", "state": curr,
                "latest_thought": curr["thought_trace"][-1]}
 
         # ── Step 4: Specialist Execution ──────────────────────────────────
-        next_route = self._route_after_intent(curr)
-        if next_route == "vision_vqa_specialist":
-            # Strict VQA path — single image + decisive QA query
-            _merge(self.vision_vqa_specialist_node(curr))
-            yield {"step": "vision_vqa_specialist", "state": curr,
+        next_route = self._route_after_interpret(curr)
+        if next_route == "human_clarification":
+            _merge(self.human_clarification_node(curr))
+            yield {"step": "human_clarification", "state": curr,
+                   "latest_thought": curr["thought_trace"][-1]}
+            return
+        
+        if next_route in ["vision_vqa_specialist", "change_detection_specialist", "cross_modal_fusion_specialist", "grounding_specialist"]:
+            if next_route == "vision_vqa_specialist":
+                _merge(self.vision_vqa_specialist_node(curr))
+            elif next_route == "change_detection_specialist":
+                _merge(self.change_detection_specialist_node(curr))
+            elif next_route == "cross_modal_fusion_specialist":
+                _merge(self.cross_modal_fusion_specialist_node(curr))
+            elif next_route == "grounding_specialist":
+                _merge(self.grounding_specialist_node(curr))
+            yield {"step": next_route, "state": curr,
                    "latest_thought": curr["thought_trace"][-1]}
             # synthesizer for synthesis step
             _merge(self.synthesizer_node(curr))
