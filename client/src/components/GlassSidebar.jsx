@@ -24,13 +24,10 @@ function GlassSidebar({ activeNav, onNavChange }) {
     if (onNavChange) onNavChange(id);
   };
 
-  const activeItem = NAV_ITEMS.find((item) => item.id === active);
-
   return (
     <div className="glass-sidebar-wrapper">
       <div className="glass-sidebar">
-
-        {/* Navigation Pills */}
+        {/* Floating Nav Pills */}
         <nav className="glass-sidebar-nav">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -56,10 +53,7 @@ function GlassSidebar({ activeNav, onNavChange }) {
           })}
         </nav>
 
-        {/* Divider */}
-        <div className="glass-sidebar-divider" />
-
-        {/* Indicator Dots */}
+        {/* Floating Indicator Dots */}
         <div className="glass-sidebar-dots">
           {NAV_ITEMS.map((item) => (
             <span
@@ -71,11 +65,6 @@ function GlassSidebar({ activeNav, onNavChange }) {
             />
           ))}
         </div>
-      </div>
-
-      {/* Active Selection Label */}
-      <div className="glass-sidebar-label" data-active={active}>
-        {activeItem?.label}
       </div>
     </div>
   );
