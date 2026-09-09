@@ -1,0 +1,71 @@
+{
+  "report": {
+    "total_samples": 3,
+    "error_count": 0,
+    "overall_task_accuracy": 0.3333,
+    "vqa": {
+      "sample_count": 1,
+      "exact_match": 0.0,
+      "fuzzy_match": 0.0,
+      "token_f1": 0.0
+    },
+    "grounding": {
+      "sample_count": 1,
+      "mean_iou": 0.1111,
+      "accuracy_at_0.5_iou": 0.0
+    },
+    "change_detection": {
+      "sample_count": 1,
+      "accuracy": 1.0
+    },
+    "trace_compliance_rate": 1.0,
+    "avg_latency_ms": 17.6
+  },
+  "samples": [
+    {
+      "sample_id": "rsvqa_mock_001",
+      "task": "vqa",
+      "query": "What is the predominant land cover type visible in this satellite image?",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "mean_iou": 0.0,
+      "change_correct": false,
+      "trace_compliant": true,
+      "tools_invoked": [
+        "vision_vqa_tool"
+      ],
+      "latency_ms": 47.8,
+      "error": null
+    },
+    {
+      "sample_id": "vrsbench_mock_042",
+      "task": "grounding",
+      "query": "Locate all storage tanks visible in this aerial image.",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "mean_iou": 0.1111,
+      "change_correct": false,
+      "trace_compliant": true,
+      "tools_invoked": [
+        "grounding_tool"
+      ],
+      "latency_ms": 4.7,
+      "error": null
+    },
+    {
+      "sample_id": "cdvqa_mock_007",
+      "task": "change_detection",
+      "query": "What changed between these two satellite images taken six months apart?",
+      "exact_match": false,
+      "token_f1": 0.093,
+      "mean_iou": 0.0,
+      "change_correct": true,
+      "trace_compliant": true,
+      "tools_invoked": [
+        "change_detection_tool"
+      ],
+      "latency_ms": 0.4,
+      "error": null
+    }
+  ]
+}

@@ -617,6 +617,103 @@ class IntermediateToolOutputs(TypedDict, total=False):
 
 
 # ---------------------------------------------------------------------------
+# Conversational Memory Schemas
+# ---------------------------------------------------------------------------
+
+class ConversationTurn(TypedDict, total=False):
+    """
+    Immutable, append-only record of one completed agent interaction turn.
+
+    Written by ``aggregation_node`` at the end of every graph run and pushed
+    onto ``AgentState.conversation_history`` (operator.add reducer).  Future
+    turns read this list to resolve relative back-references such as
+    "that bounding box", "the same spot", or "the SAR image".
+
+    Fields
+    ------
+    turn_id : str
+        UUID assigned when the turn record is created.
+    turn_index : int
+        Zero-based sequential index across the session lifetime.
+    raw_query : str
+        Original user query text for this turn.
+    classified_task : str
+        Task routed to (e.g. 'grounding', 'change_detection', 'vqa').
+    final_response : str
+        Synthesized natural-language answer returned to the user.
+    bounding_boxes : List[Dict]
+        All bounding boxes produced during this turn (label, confidence,
+        bbox_normalized, bbox_geo fields mirroring BoundingBoxEntry).
+    spatial_masks : List[Dict]
+        All change/segmentation masks produced (mirroring SpatialMaskEntry).
+    image_ids : List[str]
+        image_id values of all images used as input in this turn.
+    image_paths : List[str]
+        Filesystem / URI paths to all input images used in this turn.
+    active_roi : Optional[Dict]
+        Convenience alias for the single highest-confidence bounding box,
+        pre-computed for fast reference resolution in subsequent turns.
+    tool_names_used : List[str]
+        Canonical names of every tool called during this turn, in order.
+    confidence : float
+        Overall confidence score for this turn [0.0 – 1.0].
+    timestamp : str
+        ISO-8601 UTC timestamp when the turn's aggregation_node completed.
+    """
+    turn_id: str
+    turn_index: int
+    raw_query: str
+    classified_task: str
+    final_response: str
+    bounding_boxes: List[Dict[str, Any]]
+    spatial_masks: List[Dict[str, Any]]
+    image_ids: List[str]
+    image_paths: List[str]
+    active_roi: Optional[Dict[str, Any]]
+    tool_names_used: List[str]
+    confidence: float
+    timestamp: str
+
+
+class SpatialContextCache(TypedDict, total=False):
+    """
+    Session-level rolling index of all spatial features seen across turns.
+
+    Updated in-place (merge_dicts reducer) by ``aggregation_node`` at the end
+    of each turn, so the *latest_* slots always reflect the most recent turn's
+    outputs.  The reference resolver in ``interpret_and_validate_node`` reads
+    this cache for O(1) lookups without scanning the full history list.
+
+    Fields
+    ------
+    latest_bounding_boxes : List[Dict]
+        Bounding boxes produced in the most recent grounding or VQA turn.
+    latest_masks : List[Dict]
+        Change / segmentation masks from the most recent change-detection turn.
+    latest_image_paths : Dict[str, str]
+        Image paths keyed by spatial role:
+        {'primary': path, 'optical': path, 'sar': path, 't1': path, 't2': path}.
+    latest_image_ids : List[str]
+        Image IDs used in the most recent turn.
+    active_roi : Optional[Dict]
+        Single "hot" bounding box the user is most likely referring to in a
+        follow-up.  Set to the highest-confidence box from the latest grounding
+        or VQA turn.  None if no boxes have been produced yet.
+    last_task : str
+        Task type of the most recently completed turn (e.g. 'grounding').
+    turn_count : int
+        Total number of successfully completed turns in this session.
+    """
+    latest_bounding_boxes: List[Dict[str, Any]]
+    latest_masks: List[Dict[str, Any]]
+    latest_image_paths: Dict[str, str]
+    latest_image_ids: List[str]
+    active_roi: Optional[Dict[str, Any]]
+    last_task: str
+    turn_count: int
+
+
+# ---------------------------------------------------------------------------
 # Reducer Helper Functions for LangGraph
 # ---------------------------------------------------------------------------
 
@@ -710,6 +807,9 @@ class AgentState(TypedDict):
     completed_specialists: Annotated[List[str], operator.add] # Completed specialists
     is_compound_task: bool                                 # True if multiple specialists execute in sequence
     specialist_model_configs: Annotated[Dict[str, Any], merge_dicts] # Hyperparameters, thresholds, and runtime flags
+    # Guardrail outputs: sanitized params written by validate_tool_params node
+    sanitized_tool_params: Annotated[Dict[str, Any], merge_dicts]    # Final cleaned param map per tool, keyed by tool config key
+    param_guardrail_log: Annotated[List[Dict[str, Any]], operator.add] # Append-only log of every param mutation event
 
     # 5. Validation Flags & Gatekeeping
     validation_flags: Annotated[Dict[str, Any], merge_dicts] # Granular checks (has_images, is_geospatial_valid, etc.)
@@ -747,6 +847,19 @@ class AgentState(TypedDict):
     # 9. Lifecycle Status & Errors
     status: str
     error: Optional[str]
+
+    # 10. Multi-Turn Conversational Memory
+    # conversation_history: append-only list of ConversationTurn records (one per completed turn).
+    # spatial_context_cache: rolling dict updated each turn with latest spatial outputs.
+    # resolved_roi/resolved_image_path: injected by interpret_and_validate when resolving back-refs.
+    # is_followup_query: True when relative references were detected and successfully resolved.
+    # reference_resolution_log: append-only audit of every reference resolution event.
+    conversation_history: Annotated[List[Dict[str, Any]], operator.add]  # ConversationTurn records
+    spatial_context_cache: Annotated[Dict[str, Any], merge_dicts]        # SpatialContextCache (rolling)
+    resolved_roi: Optional[Dict[str, Any]]                               # Resolved bounding box / ROI from prior turn
+    resolved_image_path: Optional[str]                                    # Resolved image path from prior turn  
+    is_followup_query: bool                                               # True when relative refs were resolved
+    reference_resolution_log: Annotated[List[Dict[str, Any]], operator.add]  # Audit of reference resolutions
 
 
 # ---------------------------------------------------------------------------

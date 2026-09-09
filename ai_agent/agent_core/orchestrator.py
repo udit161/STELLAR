@@ -37,6 +37,9 @@ from agent_core.state import (
     SpatialMaskEntry,
     IntermediateToolOutputs,
     ExecutionTraceEntry,
+    # Conversational memory schemas
+    ConversationTurn,
+    SpatialContextCache,
 )
 from agent_core.tools import (
     change_detection_tool,
@@ -69,7 +72,10 @@ def mock_lightweight_llm_call(prompt: str) -> str:
     # Extract just the query part of the prompt to avoid matching on our own instructions
     query_part = prompt.split("Query:")[-1].lower() if "Query:" in prompt else prompt.lower()
     
-    if "change" in query_part or "difference" in query_part or "t1" in query_part:
+    if "change" in query_part and ("describe" in query_part or "what was built" in query_part):
+        task = "compound_pipeline"
+        reasoning = "Query asks for a sequence: change detection followed by VQA description."
+    elif "change" in query_part or "difference" in query_part or "t1" in query_part:
         task = "change_detection"
         reasoning = "Query asks for temporal difference or change."
     elif "fuse" in query_part or "sar" in query_part or "radar" in query_part:
@@ -86,7 +92,266 @@ def mock_lightweight_llm_call(prompt: str) -> str:
 
 
 
+
+# ---------------------------------------------------------------------------
+# Relative Reference Patterns for Conversational Memory Resolution
+# ---------------------------------------------------------------------------
+import re as _re
+
+RELATIVE_REFERENCE_PATTERNS: Dict[str, List[Any]] = {
+    # User refers to a bounding box / detected region from a prior turn
+    "spatial_object": [
+        _re.compile(r"\b(that|the|this)\s+(box|bounding[\s-]box|region|area|polygon|highlighted[\s-]?(region|box|area)|detected[\s-]?(region|area)|roi)\b", _re.I),
+        _re.compile(r"\binside\s+(it|that|the|this)\b", _re.I),
+        _re.compile(r"\b(what('?s)?|what\s+is)\s+(in|inside|within)\s+(it|that|there|the\s+box|the\s+region)\b", _re.I),
+        _re.compile(r"\b(that|the)\s+detection\b", _re.I),
+    ],
+    # User refers to the same geographic location / coordinates
+    "location": [
+        _re.compile(r"\b(same|identical)\s+(spot|location|place|area|coordinates?|region|position|point)\b", _re.I),
+        _re.compile(r"\bat\s+(that|the\s+same)\s+(location|point|place|spot|coordinates?)\b", _re.I),
+        _re.compile(r"\b(same\s+geographic|same\s+spatial|that\s+geographic)\s+(area|region|zone|extent)\b", _re.I),
+    ],
+    # User wants to switch to a different sensor / image modality
+    "image_modality": [
+        _re.compile(r"\b(now|also|next)?\s*(check|use|switch\s+to|look\s+at|examine)\s+(the\s+)?(sar|radar|synthetic[\s-]aperture|optical|rgb|multispectral|other)\s+(image|imagery|band|channel|scene)?\b", _re.I),
+        _re.compile(r"\b(the\s+)?(sar|optical|t1|t2|pre[\s-]event|post[\s-]event)\s+(image|imagery|scene|raster)\b", _re.I),
+        _re.compile(r"\bswitch\s+to\s+(sar|optical|t1|t2)\b", _re.I),
+    ],
+    # Generic pronoun / demonstrative / spatial-adjacency references
+    "pronoun": [
+        _re.compile(r"\b(that\s+place|the\s+same\s+one|that\s+one|this\s+one)\b", _re.I),
+        _re.compile(r"\b(above|previous|prior|last)\s+(result|area|image|detection|turn|query)\b", _re.I),
+        # Spatial-adjacency: "adjacent to it", "next to it", "near it", etc.
+        _re.compile(r"\b(adjacent|next|close|near|beside|surrounding|around|neighbouring|neighboring)\s+(to\s+)?(it|that|the\s+area|the\s+region|the\s+object|the\s+spot)\b", _re.I),
+        # "what is near/around/beside it/that"
+        _re.compile(r"\b(what('?s)?|what\s+is|what\s+lies?)\s+(near|around|beside|adjacent\s+to|next\s+to|surrounding|within\s+proximity\s+of)\s+(it|that|there|the\s+region|the\s+area)\b", _re.I),
+        # Bare anaphoric "it" after a spatial/descriptive verb
+        _re.compile(r"\b(describe|classify|analyse|analyze|identify|characterize|examine)\s+(it|that|this)\b", _re.I),
+        # "what is directly X to it"
+        _re.compile(r"\bdirectly\s+\w+\s+to\s+(it|that|the\s+\w+)\b", _re.I),
+    ],
+}
+
+_MODALITY_KEYWORD_TO_ROLE: Dict[str, str] = {
+    "sar": "sar", "radar": "sar", "optical": "optical",
+    "rgb": "optical", "multispectral": "optical",
+    "t1": "t1", "pre-event": "t1", "pre event": "t1",
+    "t2": "t2", "post-event": "t2", "post event": "t2",
+}
+
+
+def _detect_relative_references(query: str) -> Dict[str, Any]:
+    """
+    Scans a user query for conversational back-reference patterns and returns
+    a detection result dict with boolean flags per category and the inferred
+    target image modality when an image-switch reference is found.
+    """
+    result: Dict[str, Any] = {
+        "has_spatial_ref":  False,
+        "has_location_ref": False,
+        "has_image_ref":    False,
+        "has_pronoun_ref":  False,
+        "has_any_ref":      False,
+        "target_modality":  None,
+        "reference_types":  [],
+    }
+    for category, patterns in RELATIVE_REFERENCE_PATTERNS.items():
+        for pat in patterns:
+            if pat.search(query):
+                if category == "spatial_object":
+                    result["has_spatial_ref"] = True
+                    if "spatial_object" not in result["reference_types"]:
+                        result["reference_types"].append("spatial_object")
+                elif category == "location":
+                    result["has_location_ref"] = True
+                    if "location" not in result["reference_types"]:
+                        result["reference_types"].append("location")
+                elif category == "image_modality":
+                    result["has_image_ref"] = True
+                    if "image_modality" not in result["reference_types"]:
+                        result["reference_types"].append("image_modality")
+                    if result["target_modality"] is None:
+                        q_lower = query.lower()
+                        for kw, role in _MODALITY_KEYWORD_TO_ROLE.items():
+                            if kw in q_lower:
+                                result["target_modality"] = role
+                                break
+                elif category == "pronoun":
+                    result["has_pronoun_ref"] = True
+                    if "pronoun" not in result["reference_types"]:
+                        result["reference_types"].append("pronoun")
+                break
+    result["has_any_ref"] = any([
+        result["has_spatial_ref"], result["has_location_ref"],
+        result["has_image_ref"],   result["has_pronoun_ref"],
+    ])
+    return result
+
+
+def _resolve_spatial_reference(
+    state: Dict[str, Any],
+    detection: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Resolves a detected relative reference to concrete spatial objects from
+    spatial_context_cache (O(1) fast path) or conversation_history (fallback).
+
+    Returns:
+      resolved_roi         : Optional[Dict]   — matched bounding box / ROI
+      resolved_image_path  : Optional[str]    — matched image filesystem path
+      resolution_source    : str              — where the data came from
+      resolution_notes     : str              — human-readable explanation
+    """
+    cache: Dict[str, Any] = state.get("spatial_context_cache") or {}
+    history: List[Dict[str, Any]] = state.get("conversation_history") or []
+
+    resolved_roi: Optional[Dict[str, Any]] = None
+    resolved_image_path: Optional[str] = None
+    source = "none"
+    notes: List[str] = []
+
+    # Resolve bounding-box / spatial-object / location / pronoun references
+    # Pronoun refs ("it", "adjacent to it", "describe it") all point to the most
+    # recent detected spatial object, so they follow the same resolution path.
+    if (detection.get("has_spatial_ref") or detection.get("has_location_ref")
+            or detection.get("has_pronoun_ref")):
+        if cache.get("active_roi"):
+            resolved_roi = cache["active_roi"]
+            source = "spatial_context_cache"
+            notes.append(
+                f"Resolved spatial ref to active_roi "
+                f"(label={resolved_roi.get('label','?')}, "
+                f"conf={resolved_roi.get('confidence','?')}) from cache."
+            )
+        elif history:
+            for turn in reversed(history):
+                boxes = turn.get("bounding_boxes") or []
+                if boxes:
+                    resolved_roi = max(boxes, key=lambda b: b.get("confidence", 0.0))
+                    source = "conversation_history"
+                    notes.append(
+                        f"Resolved from turn {turn.get('turn_index','?')} history "
+                        f"(label={resolved_roi.get('label','?')})."
+                    )
+                    break
+        if resolved_roi is None:
+            notes.append("Spatial ref detected but no prior bounding boxes found.")
+
+    # Resolve image-modality references
+    if detection.get("has_image_ref"):
+        target_role = detection.get("target_modality")
+        image_paths: Dict[str, str] = cache.get("latest_image_paths") or {}
+        if target_role and target_role in image_paths:
+            resolved_image_path = image_paths[target_role]
+            if source == "none":
+                source = "spatial_context_cache"
+            notes.append(f"Resolved modality '{target_role}' → '{resolved_image_path}'.")
+        elif image_paths:
+            first_role, first_path = next(iter(image_paths.items()))
+            resolved_image_path = first_path
+            if source == "none":
+                source = "spatial_context_cache"
+            notes.append(f"Modality '{target_role}' not found; fallback role='{first_role}'.")
+        elif history:
+            for turn in reversed(history):
+                paths = turn.get("image_paths") or []
+                if paths:
+                    resolved_image_path = paths[0]
+                    if source == "none":
+                        source = "conversation_history"
+                    notes.append(f"Image path from turn {turn.get('turn_index','?')} history.")
+                    break
+
+    return {
+        "resolved_roi":        resolved_roi,
+        "resolved_image_path": resolved_image_path,
+        "resolution_source":   source,
+        "resolution_notes":    " ".join(notes) or "No references resolved.",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Parameter Guardrail Whitelist Registry
+# ---------------------------------------------------------------------------
+# Maps each specialist tool config key (matching specialist_model_configs keys set
+# by controller_router_node) to its full permitted parameter schema.
+#
+# Schema per param:
+#   "type"    : expected Python type for coercion (float, int, bool, str, list)
+#   "default" : safe fallback value assigned when the key is missing or invalid
+#   "min"     : optional lower bound for numeric params (inclusive)
+#   "max"     : optional upper bound for numeric params (inclusive)
+#   "allowed" : optional set of permitted string values (enum guard)
+#
+# Any key present in a planner-generated config that is NOT listed under its
+# tool entry here will be STRIPPED before the specialist node executes.
+# ---------------------------------------------------------------------------
+
+TOOL_PARAM_WHITELIST: Dict[str, Dict[str, Dict[str, Any]]] = {
+    # ── Bi-Temporal Change Detection ────────────────────────────────────────
+    "change_detector": {
+        "target_tool":  {"type": str,   "default": "change_detection_tool",
+                         "allowed": {"change_detection_tool"}},
+        "threshold":    {"type": float, "default": 0.5,   "min": 0.0, "max": 1.0},
+        "patch_size":   {"type": int,   "default": 256,   "min": 64,  "max": 1024},
+        "use_tta":      {"type": bool,  "default": False},
+        "t1_path":      {"type": str,   "default": None},
+        "t2_path":      {"type": str,   "default": None},
+    },
+
+    # ── Open-Vocabulary Spatial Grounding ───────────────────────────────────
+    "grounding_rs": {
+        "target_tool":       {"type": str,   "default": "grounding_tool",
+                              "allowed": {"grounding_tool"}},
+        "box_threshold":     {"type": float, "default": 0.35, "min": 0.0, "max": 1.0},
+        "text_threshold":    {"type": float, "default": 0.25, "min": 0.0, "max": 1.0},
+        "n_bboxes":          {"type": int,   "default": 5,    "min": 1,   "max": 20},
+        "nms_iou_threshold": {"type": float, "default": 0.5,  "min": 0.0, "max": 1.0},
+    },
+
+    # ── Vision VQA (strict Pydantic path) ───────────────────────────────────
+    "vision_vqa": {
+        "target_tool":          {"type": str,   "default": "vqa_tool",
+                                 "allowed": {"vqa_tool", "vision_vqa_tool"}},
+        "confidence_threshold": {"type": float, "default": 0.4, "min": 0.0, "max": 1.0},
+        "force_vqa":            {"type": bool,  "default": True},
+        "force_grounding":      {"type": bool,  "default": False},
+        "n_bboxes":             {"type": int,   "default": 1,   "min": 1,   "max": 10},
+    },
+
+    # ── Vision VQA (legacy / default VQA path) ──────────────────────────────
+    "vision_vqa_model": {
+        "target_tool":          {"type": str,   "default": "vqa_tool",
+                                 "allowed": {"vqa_tool", "vision_vqa_tool"}},
+        "confidence_threshold": {"type": float, "default": 0.4, "min": 0.0, "max": 1.0},
+        "force_vqa":            {"type": bool,  "default": True},
+        "force_grounding":      {"type": bool,  "default": False},
+        "n_bboxes":             {"type": int,   "default": 1,   "min": 1,   "max": 10},
+    },
+
+    # ── Optical-SAR Cross-Modal Fusion ──────────────────────────────────────
+    "cross_modal_fusion": {
+        "target_tool":          {"type": str,   "default": "fusion_routing_tool",
+                                 "allowed": {"fusion_routing_tool"}},
+        "fusion_strategy":      {"type": str,   "default": "cross_attention",
+                                 "allowed": {"pixel_level", "feature_fusion", "cross_attention"}},
+        "alignment_threshold":  {"type": float, "default": 0.6, "min": 0.0, "max": 1.0},
+        "use_sar_only":         {"type": bool,  "default": False},
+    },
+
+    # ── Land Cover Classification ────────────────────────────────────────────
+    "land_cover_classifier": {
+        "target_tool":          {"type": str,   "default": "land_cover_tool",
+                                 "allowed": {"land_cover_tool"}},
+        "compute_area_metrics": {"type": bool,  "default": True},
+        "target_classes":       {"type": list,  "default": None},
+    },
+}
+
+
 class Orchestrator:
+
     """
     Main LangGraph-powered Agentic Orchestrator for SatQuery AI.
     Manages end-to-end lifecycle: Validation -> Controller Routing -> Multi-Step Specialist Pipeline -> Output Synthesis.
@@ -260,7 +525,7 @@ class Orchestrator:
         # Semantic detection flags
         change_keywords = [
             "what changed", "what has changed", "what's changed", "detect change",
-            "detect changes", "find changes", "show difference", "difference between",
+            "detect changes", "find changes", "changes occurred", "show difference", "difference between",
             "before and after", "deforestation", "urban development", "temporal change",
             "structural change", "damage assessment", "growth over time"
         ]
@@ -299,7 +564,22 @@ class Orchestrator:
             configs["cross_modal_fusion"] = {"target_tool": "fusion_routing_tool"}
             configs["change_detector"] = {"target_tool": "change_detection_tool", "threshold": 0.5}
 
-        # Compound Case 2: Change Detection + Object Grounding
+        # Compound Case 2: Change Detection + Vision VQA (Prioritized over Grounding if describing)
+        elif is_change_query and ("describe" in query_lower or "what was built" in query_lower or "identify" in query_lower):
+            task_label = TaskType.COMPOUND_PIPELINE.value
+            pipeline_models = [SpecialistModelType.CHANGE_DETECTOR_MODEL.value, SpecialistModelType.VISION_VQA_MODEL.value]
+            confidence = 0.95
+            rationale = "Compound task: Bi-temporal change detection followed by Vision VQA to describe the changes."
+            plan = [
+                "Execute change-detection tool to isolate altered terrain masks",
+                "Crop the differential region",
+                "Execute vision VQA tool to describe the cropped region",
+                "Synthesize composite spatial report"
+            ]
+            configs["change_detector"] = {"target_tool": "change_detection_tool", "threshold": 0.5}
+            configs["vision_vqa"] = {"target_tool": "vqa_tool"}
+
+        # Compound Case 3: Change Detection + Object Grounding
         elif is_change_query and is_grounding_query:
             task_label = TaskType.COMPOUND_PIPELINE.value
             pipeline_models = [SpecialistModelType.CHANGE_DETECTOR_MODEL.value, SpecialistModelType.GROUNDING_RS_MODEL.value]
@@ -411,11 +691,27 @@ class Orchestrator:
     def interpret_and_validate_node(self, state: AgentState) -> Dict[str, Any]:
         """
         Interpret & Validate Node.
-        
-        Uses a lightweight LLM call to classify the natural language query.
-        Checks the state schema to verify that uploaded image modalities/formats
-        are compatible with the classified task.
-        Sets routing flags (use_strict_vqa_tool, etc.) or halts execution if invalid.
+
+        Runs in two phases:
+
+        **Step 0 — Relative Reference Resolution (new)**
+        Checks for conversational back-references in the query (e.g. "that box",
+        "same spot", "check the SAR image").  If detected and conversation history
+        is present, resolves the reference against ``spatial_context_cache`` or
+        ``conversation_history`` and injects ``resolved_roi`` /
+        ``resolved_image_path`` into state.  If history is absent, sets
+        ``requires_clarification=True`` with a descriptive warning instead of
+        crashing.
+
+        **Step 1 — LLM-based Task Classification**
+        Calls a lightweight LLM to classify the (possibly enriched) query into
+        one of: vqa, grounding, change_detection, cross_modal, compound_pipeline.
+        The LLM prompt includes a brief memory context snippet when a prior turn
+        exists so the model can make better routing decisions for follow-ups.
+
+        **Step 2 — Modality & Format Validation**
+        Verifies that the uploaded image modalities are compatible with the
+        classified task.  Sets routing flags or halts with clarification request.
         """
         import time as _time
         t0 = _time.perf_counter()
@@ -423,11 +719,90 @@ class Orchestrator:
         raw_query = state.get("raw_query") or state.get("query") or ""
         img_count, image_paths, img_meta = self._inspect_image_metadata(state)
 
-        # 1. LLM Interpretation
+        history: List[Dict[str, Any]] = state.get("conversation_history") or []
+        cache:   Dict[str, Any]       = state.get("spatial_context_cache") or {}
+
+        # ── Step 0: Relative Reference Resolution ────────────────────────────
+        ref_resolution_log: List[Dict[str, Any]] = []
+        resolved_roi:        Optional[Dict[str, Any]] = None
+        resolved_image_path: Optional[str]            = None
+        is_followup_query:   bool                     = False
+
+        detection = _detect_relative_references(raw_query)
+
+        if detection["has_any_ref"]:
+            if history or cache:
+                # We have context — attempt resolution
+                resolution = _resolve_spatial_reference(state, detection)
+                resolved_roi        = resolution["resolved_roi"]
+                resolved_image_path = resolution["resolved_image_path"]
+                is_followup_query   = True
+
+                log_entry = {
+                    "event":              "REFERENCE_RESOLVED",
+                    "raw_query":          raw_query,
+                    "reference_types":    detection["reference_types"],
+                    "target_modality":    detection.get("target_modality"),
+                    "resolved_roi":       resolved_roi,
+                    "resolved_image_path": resolved_image_path,
+                    "resolution_source":  resolution["resolution_source"],
+                    "resolution_notes":   resolution["resolution_notes"],
+                    "timestamp":          datetime.utcnow().isoformat(),
+                }
+                ref_resolution_log.append(log_entry)
+            else:
+                # No prior context — cannot resolve, request clarification
+                warning_msg = (
+                    f"Query contains relative reference(s) {detection['reference_types']} "
+                    f"(e.g. 'that box', 'same spot') but no prior conversation history exists. "
+                    f"Please provide explicit spatial coordinates or re-state the full question."
+                )
+                log_entry = {
+                    "event":           "REFERENCE_UNRESOLVABLE",
+                    "raw_query":       raw_query,
+                    "reference_types": detection["reference_types"],
+                    "reason":          "No conversation_history or spatial_context_cache available.",
+                    "timestamp":       datetime.utcnow().isoformat(),
+                }
+                ref_resolution_log.append(log_entry)
+
+                reasoning_step0 = {
+                    "step_number":  len(state.get("thought_trace") or []) + 1,
+                    "agent_name":   "InterpretAndValidate",
+                    "thought":      f"Relative reference detected but no history available. Requesting clarification.",
+                    "action_taken": "reference_resolution_failed",
+                    "confidence":   0.0,
+                    "timestamp":    datetime.utcnow().isoformat(),
+                }
+                return {
+                    "is_valid":                False,
+                    "requires_clarification":  True,
+                    "validation_warnings":     [warning_msg],
+                    "reference_resolution_log": ref_resolution_log,
+                    "is_followup_query":       False,
+                    "thought_trace":           [reasoning_step0],
+                    "routing_history":         ["interpret_and_validate"],
+                    "active_agent":            "interpret_and_validate",
+                    "status":                  RequestStatus.FAILED.value,
+                }
+
+        # ── Step 1: LLM-based Task Classification ────────────────────────────
+        # Include a memory context snippet if we are in a follow-up turn
+        memory_context = ""
+        if history:
+            last_turn = history[-1]
+            memory_context = (
+                f"\nConversation context: Last turn classified as '{last_turn.get('classified_task', '?')}'. "
+                f"{'Active ROI: ' + str(cache.get('active_roi')) + '. ' if cache.get('active_roi') else ''}"
+                f"{'Resolved ROI available for follow-up. ' if resolved_roi else ''}"
+            )
+
         prompt = (
-            f"Classify the following satellite imagery query into one of: 'vqa', 'grounding', 'change_detection', 'cross_modal'.\n"
+            f"Classify the following satellite imagery query into one of: "
+            f"'vqa', 'grounding', 'change_detection', 'cross_modal'.\n"
             f"Query: {raw_query}\n"
             f"Images provided: {img_count}\n"
+            f"{memory_context}"
         )
         llm_response_str = mock_lightweight_llm_call(prompt)
         try:
@@ -438,7 +813,7 @@ class Orchestrator:
             classified_task = "vqa"
             llm_reasoning = "Fallback due to LLM parsing error."
 
-        # 2. Modality & Format Validation
+        # ── Step 2: Modality & Format Validation ─────────────────────────────
         errors = []
         rs_inputs = state.get("image_inputs") or []
         rs_modalities = {e.get("detected_modality", "unknown") for e in rs_inputs}
@@ -448,45 +823,58 @@ class Orchestrator:
 
         if classified_task == "change_detection" and not is_bi_temporal:
             errors.append("Change detection requires exactly two images (bi-temporal pair).")
-        
+
         if classified_task == "cross_modal" and not is_optical_sar:
             errors.append("Cross-modal fusion requires both optical and SAR images.")
 
         is_valid = len(errors) == 0
 
-        # 3. Routing Flags
+        # ── Step 3: Routing Flags ─────────────────────────────────────────────
         use_strict_vqa = classified_task == "vqa" and is_valid
         use_change_det_tool = classified_task == "change_detection" and is_valid
         use_cross_modal_tool = classified_task == "cross_modal" and is_valid
         use_grounding_tool = classified_task == "grounding" and is_valid
 
+        if classified_task == "compound_pipeline":
+            classified_task = state.get("classified_task", "compound_pipeline")
+
         elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
 
+        memory_note = (
+            f"Follow-up query resolved: roi={'set' if resolved_roi else 'none'}, "
+            f"image_path={'set' if resolved_image_path else 'none'}. "
+            if is_followup_query else ""
+        )
         reasoning = {
-            "step_number": len(state.get("thought_trace") or []) + 1,
-            "agent_name": "InterpretAndValidate",
+            "step_number":  len(state.get("thought_trace") or []) + 1,
+            "agent_name":   "InterpretAndValidate",
             "thought": (
+                f"{memory_note}"
                 f"LLM interpreted task as '{classified_task}'. Reasoning: {llm_reasoning} "
                 f"Validation errors: {errors if errors else 'None'}. "
-                f"Valid: {is_valid}."
+                f"Valid: {is_valid}. Elapsed: {elapsed_ms:.1f}ms."
             ),
-            "classified_task": classified_task,
-            "action_taken": "interpret_and_validate",
-            "confidence": 0.95 if is_valid else 0.0,
-            "timestamp": datetime.utcnow().isoformat(),
+            "classified_task":  classified_task,
+            "action_taken":     "interpret_and_validate",
+            "confidence":       0.95 if is_valid else 0.0,
+            "timestamp":        datetime.utcnow().isoformat(),
         }
 
-        # If invalid, we halt and require clarification
-        return_payload = {
-            "classified_task": classified_task,
+        return_payload: Dict[str, Any] = {
+            "classified_task":              classified_task,
             "task_classification_confidence": 0.95,
-            "thought_trace": [reasoning],
-            "routing_history": ["interpret_and_validate"],
-            "active_agent": "interpret_and_validate",
-            "use_strict_vqa_tool": use_strict_vqa,
-            "use_change_det_tool": use_change_det_tool,
-            "use_cross_modal_tool": use_cross_modal_tool,
-            "use_grounding_tool": use_grounding_tool,
+            "thought_trace":                [reasoning],
+            "routing_history":              ["interpret_and_validate"],
+            "active_agent":                 "interpret_and_validate",
+            "use_strict_vqa_tool":          use_strict_vqa,
+            "use_change_det_tool":          use_change_det_tool,
+            "use_cross_modal_tool":         use_cross_modal_tool,
+            "use_grounding_tool":           use_grounding_tool,
+            # Conversational memory outputs
+            "is_followup_query":            is_followup_query,
+            "resolved_roi":                 resolved_roi,
+            "resolved_image_path":          resolved_image_path,
+            "reference_resolution_log":     ref_resolution_log,
         }
 
         if not is_valid:
@@ -496,6 +884,241 @@ class Orchestrator:
             return_payload["status"] = RequestStatus.FAILED.value
 
         return return_payload
+
+    # -----------------------------------------------------------------------
+    # Node 2c: Parameter Guardrail & Sanitization Node
+    # -----------------------------------------------------------------------
+    def validate_tool_params_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Parameter Guardrail & Sanitization Node.
+
+        Runs immediately before every specialist tool node in the LangGraph
+        pipeline (both single-task and compound multi-step queues).  It:
+
+        1. Identifies the next pending specialist from ``execution_queue`` /
+           ``completed_specialists``.
+        2. Fetches that tool's proposed params from ``specialist_model_configs``.
+        3. Compares each key against ``TOOL_PARAM_WHITELIST`` for that tool:
+           - **STRIP**   — removes unknown / hallucinated keys entirely.
+           - **COERCE**  — type-casts valid keys to their declared Python type.
+           - **CLAMP**   — constrains numeric values to [min, max].
+           - **ENUM**    — replaces disallowed string values with the safe default.
+           - **DEFAULT** — backfills missing required params with their safe value.
+        4. Writes the sanitized config back to ``specialist_model_configs``.
+        5. Appends a per-mutation audit record to both ``thought_trace`` and
+           the new ``param_guardrail_log`` append-only state field.
+
+        The node is transparent when no mutations are required — it appends a
+        single "all params clean" audit entry and passes through unchanged.
+        """
+        import time as _time
+        t0 = _time.perf_counter()
+
+        configs: Dict[str, Any] = dict(state.get("specialist_model_configs") or {})
+        queue: List[str] = list(state.get("execution_queue") or
+                                state.get("selected_specialist_models") or [])
+        completed: List[str] = list(state.get("completed_specialists") or [])
+
+        # ── 1. Identify the next pending specialist tool config key ──────────
+        # Map execution-queue SpecialistModelType values → config dict keys
+        _spec_to_cfg_key: Dict[str, str] = {
+            SpecialistModelType.CHANGE_DETECTOR_MODEL.value:  "change_detector",
+            SpecialistModelType.GROUNDING_RS_MODEL.value:     "grounding_rs",
+            SpecialistModelType.VISION_VQA_MODEL.value:       "vision_vqa_model",
+            SpecialistModelType.CROSS_MODAL_FUSION_NET.value: "cross_modal_fusion",
+            SpecialistModelType.LAND_COVER_CLASSIFIER.value:  "land_cover_classifier",
+        }
+
+        next_spec: Optional[str] = None
+        cfg_key: Optional[str] = None
+        for spec in queue:
+            if spec not in completed:
+                next_spec = spec
+                cfg_key = _spec_to_cfg_key.get(spec)
+                break
+
+        # Also handle direct single-task routing flags when queue is empty
+        if cfg_key is None:
+            if state.get("use_strict_vqa_tool") or state.get("use_grounding_tool"):
+                cfg_key = "vision_vqa"
+            elif state.get("use_change_det_tool"):
+                cfg_key = "change_detector"
+            elif state.get("use_cross_modal_tool"):
+                cfg_key = "cross_modal_fusion"
+
+        guardrail_events: List[Dict[str, Any]] = []
+        sanitized_for_key: str = cfg_key or "unknown"
+
+        if cfg_key is None or cfg_key not in TOOL_PARAM_WHITELIST:
+            # No whitelist entry found — log and pass through
+            guardrail_events.append({
+                "event":    "NO_WHITELIST_ENTRY",
+                "cfg_key":  sanitized_for_key,
+                "message":  f"No whitelist entry for '{sanitized_for_key}'. Params passed through unmodified.",
+                "timestamp": datetime.utcnow().isoformat(),
+            })
+            elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+            reasoning = {
+                "step_number": len(state.get("thought_trace") or []) + 1,
+                "agent_name":  "ParamGuardrail",
+                "thought":     f"No whitelist entry for tool config key '{sanitized_for_key}'. Params unchanged.",
+                "action_taken": "validate_tool_params",
+                "confidence":  1.0,
+                "timestamp":   datetime.utcnow().isoformat(),
+            }
+            return {
+                "thought_trace":      [reasoning],
+                "routing_history":    ["validate_tool_params"],
+                "param_guardrail_log": guardrail_events,
+                "active_agent":       "validate_tool_params",
+            }
+
+        whitelist: Dict[str, Dict[str, Any]] = TOOL_PARAM_WHITELIST[cfg_key]
+        proposed: Dict[str, Any] = dict(configs.get(cfg_key) or {})
+        sanitized: Dict[str, Any] = {}
+
+        # ── 2. Strip unknown keys ────────────────────────────────────────────
+        for key in list(proposed.keys()):
+            if key not in whitelist:
+                guardrail_events.append({
+                    "event":    "STRIPPED",
+                    "cfg_key":  cfg_key,
+                    "param":    key,
+                    "value":    proposed[key],
+                    "reason":   "Key not in whitelist — possible hallucinated or injected parameter.",
+                    "timestamp": datetime.utcnow().isoformat(),
+                })
+            # Allowed keys are processed below
+
+        # ── 3. Validate, coerce, clamp, and apply defaults ──────────────────
+        for param_name, schema in whitelist.items():
+            expected_type = schema["type"]
+            default_val   = schema.get("default")
+            val_min       = schema.get("min")
+            val_max       = schema.get("max")
+            allowed_vals  = schema.get("allowed")
+
+            raw_val = proposed.get(param_name)
+
+            if raw_val is None:
+                # Missing → assign safe default
+                if default_val is not None:
+                    sanitized[param_name] = default_val
+                    guardrail_events.append({
+                        "event":     "DEFAULTED",
+                        "cfg_key":   cfg_key,
+                        "param":     param_name,
+                        "value":     default_val,
+                        "reason":    "Parameter missing from planner config — safe default applied.",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+                # If default is also None (e.g. optional t1_path), skip the key
+                continue
+
+            # Type coercion
+            coerced_val = raw_val
+            try:
+                if expected_type is bool:
+                    # bool must be checked before int since bool is subclass of int
+                    if isinstance(raw_val, str):
+                        coerced_val = raw_val.strip().lower() in ("1", "true", "yes")
+                    else:
+                        coerced_val = bool(raw_val)
+                elif expected_type is list:
+                    coerced_val = list(raw_val) if raw_val is not None else None
+                elif not isinstance(raw_val, expected_type):
+                    coerced_val = expected_type(raw_val)
+            except (ValueError, TypeError):
+                guardrail_events.append({
+                    "event":     "COERCE_FAILED_DEFAULTED",
+                    "cfg_key":   cfg_key,
+                    "param":     param_name,
+                    "raw_value": raw_val,
+                    "value":     default_val,
+                    "reason":    f"Could not coerce '{raw_val!r}' to {expected_type.__name__}. Default applied.",
+                    "timestamp": datetime.utcnow().isoformat(),
+                })
+                sanitized[param_name] = default_val
+                continue
+
+            # Numeric range clamping
+            if val_min is not None and isinstance(coerced_val, (int, float)) and coerced_val < val_min:
+                guardrail_events.append({
+                    "event":      "CLAMPED_MIN",
+                    "cfg_key":    cfg_key,
+                    "param":      param_name,
+                    "raw_value":  coerced_val,
+                    "value":      val_min,
+                    "reason":     f"Value {coerced_val} below minimum {val_min}. Clamped.",
+                    "timestamp":  datetime.utcnow().isoformat(),
+                })
+                coerced_val = expected_type(val_min)
+
+            if val_max is not None and isinstance(coerced_val, (int, float)) and coerced_val > val_max:
+                guardrail_events.append({
+                    "event":      "CLAMPED_MAX",
+                    "cfg_key":    cfg_key,
+                    "param":      param_name,
+                    "raw_value":  coerced_val,
+                    "value":      val_max,
+                    "reason":     f"Value {coerced_val} above maximum {val_max}. Clamped.",
+                    "timestamp":  datetime.utcnow().isoformat(),
+                })
+                coerced_val = expected_type(val_max)
+
+            # Enum / allowed-set guard
+            if allowed_vals is not None and isinstance(coerced_val, str) and coerced_val not in allowed_vals:
+                guardrail_events.append({
+                    "event":      "ENUM_REPLACED",
+                    "cfg_key":    cfg_key,
+                    "param":      param_name,
+                    "raw_value":  coerced_val,
+                    "value":      default_val,
+                    "reason":     f"Value '{coerced_val}' not in allowed set {allowed_vals}. Safe default applied.",
+                    "timestamp":  datetime.utcnow().isoformat(),
+                })
+                coerced_val = default_val
+
+            sanitized[param_name] = coerced_val
+
+        # ── 4. Write sanitized config back ───────────────────────────────────
+        updated_configs = dict(configs)
+        updated_configs[cfg_key] = sanitized
+
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+
+        mutations = [e for e in guardrail_events if e["event"] != "CLEAN"]
+        summary_msg = (
+            f"ParamGuardrail sanitized '{cfg_key}': "
+            f"{len(mutations)} mutation(s) in {elapsed_ms:.1f}ms. "
+            f"Events: {[e['event'] for e in guardrail_events] or ['ALL_CLEAN']}."
+        )
+
+        if not guardrail_events:
+            guardrail_events.append({
+                "event":    "ALL_CLEAN",
+                "cfg_key":  cfg_key,
+                "message":  "All proposed parameters passed whitelist validation with no mutations required.",
+                "timestamp": datetime.utcnow().isoformat(),
+            })
+
+        reasoning = {
+            "step_number":  len(state.get("thought_trace") or []) + 1,
+            "agent_name":   "ParamGuardrail",
+            "thought":      summary_msg,
+            "action_taken": "validate_tool_params",
+            "confidence":   1.0,
+            "timestamp":    datetime.utcnow().isoformat(),
+        }
+
+        return {
+            "specialist_model_configs": updated_configs,
+            "sanitized_tool_params":   {cfg_key: sanitized},
+            "param_guardrail_log":     guardrail_events,
+            "thought_trace":           [reasoning],
+            "routing_history":         ["validate_tool_params"],
+            "active_agent":            "validate_tool_params",
+        }
 
     # -----------------------------------------------------------------------
     # Node 4b: Vision VQA Specialist Node (strict path — uses vision_vqa_tool)
@@ -685,29 +1308,31 @@ class Orchestrator:
         # 1. Collect execution trace entries
         # -------------------------------------------------------------------
         execution_trace: List[Dict[str, Any]] = state.get("execution_trace") or []
-        # Fall back to tool_logs if execution_trace is empty (legacy path)
-        if not execution_trace:
-            tool_logs = state.get("tool_logs") or []
-            for log in tool_logs:
-                if isinstance(log, dict):
-                    execution_trace.append({
-                        "tool_name":      log.get("tool_name", ""),
-                        "node_name":      "unknown_node",
-                        "parameters":     log.get("input_payload") or {},
-                        "status":         log.get("status", "unknown"),
-                        "confidence":     float(log.get("output_payload", {}).get("confidence", 0.0)
-                                                if isinstance(log.get("output_payload"), dict) else 0.0),
-                        "duration_ms":    float(log.get("execution_time_ms", 0.0)),
-                        "result_summary": log.get("output_payload", {}).get("summary", "")
-                                          if isinstance(log.get("output_payload"), dict) else "",
-                        "output_keys":    list(log.get("output_payload", {}).keys())
-                                          if isinstance(log.get("output_payload"), dict) else [],
-                        "error":          log.get("output_payload", {}).get("error")
-                                          if isinstance(log.get("output_payload"), dict) else None,
-                        "timestamp_start": log.get("timestamp", ""),
-                        "timestamp_end":   log.get("timestamp", ""),
-                        "trace_id":        str(uuid.uuid4()),
-                    })
+        
+        # Merge tool_logs (legacy path) into execution_trace
+        tool_logs = state.get("tool_logs") or []
+        for log in tool_logs:
+            if isinstance(log, dict):
+                # Ensure we don't duplicate if tool_logs and execution_trace share something (though unlikely)
+                tool_nm = log.get("tool_name", "")
+                execution_trace.append({
+                    "tool_name":      tool_nm,
+                    "node_name":      "unknown_node",
+                    "parameters":     log.get("input_payload") or {},
+                    "status":         log.get("status", "unknown"),
+                    "confidence":     float(log.get("output_payload", {}).get("confidence", 0.0)
+                                            if isinstance(log.get("output_payload"), dict) else 0.0),
+                    "duration_ms":    float(log.get("execution_time_ms", 0.0)),
+                    "result_summary": log.get("output_payload", {}).get("summary", "")
+                                      if isinstance(log.get("output_payload"), dict) else "",
+                    "output_keys":    list(log.get("output_payload", {}).keys())
+                                      if isinstance(log.get("output_payload"), dict) else [],
+                    "error":          log.get("output_payload", {}).get("error")
+                                      if isinstance(log.get("output_payload"), dict) else None,
+                    "timestamp_start": log.get("timestamp", ""),
+                    "timestamp_end":   log.get("timestamp", ""),
+                    "trace_id":        str(uuid.uuid4()),
+                })
 
         # -------------------------------------------------------------------
         # 2. Tool confidence scores
@@ -852,6 +1477,112 @@ class Orchestrator:
             "timestamp": datetime.utcnow().isoformat(),
         }
 
+        # -------------------------------------------------------------------
+        # 8. Build ConversationTurn record and update SpatialContextCache
+        # -------------------------------------------------------------------
+        # Collect image paths and IDs from all uploaded/tracked images
+        all_image_paths: List[str] = [
+            img.get("file_path") or img.get("path") or ""
+            for img in (state.get("uploaded_images") or [])
+            if isinstance(img, dict)
+        ]
+        all_image_ids: List[str] = [
+            img.get("image_id") or img.get("id") or ""
+            for img in (state.get("image_inputs") or [])
+            if isinstance(img, dict)
+        ]
+        all_image_paths = [p for p in all_image_paths if p]
+        all_image_ids   = [i for i in all_image_ids if i]
+
+        all_bboxes: List[Dict[str, Any]] = list(bboxes) + list(
+            tool_outputs.get("bounding_boxes") or []
+        )
+        all_masks: List[Dict[str, Any]] = list(
+            tool_outputs.get("spatial_masks") or []
+        ) + ([c_mask] if c_mask else [])
+
+        # Select the highest-confidence bounding box as the active_roi
+        active_roi: Optional[Dict[str, Any]] = (
+            max(all_bboxes, key=lambda b: b.get("confidence", 0.0))
+            if all_bboxes else None
+        )
+
+        # Tool names from execution trace
+        turn_tool_names: List[str] = [
+            e.get("tool_name", "") for e in execution_trace
+            if isinstance(e, dict) and e.get("tool_name")
+        ]
+
+        turn_index = len(state.get("conversation_history") or [])
+        conversation_turn: Dict[str, Any] = {
+            "turn_id":         str(uuid.uuid4()),
+            "turn_index":      turn_index,
+            "raw_query":       raw_query,
+            "classified_task": task,
+            "final_response":  state.get("final_response") or vqa_answer or "",
+            "bounding_boxes":  all_bboxes,
+            "spatial_masks":   all_masks,
+            "image_ids":       all_image_ids,
+            "image_paths":     all_image_paths,
+            "active_roi":      active_roi,
+            "tool_names_used": turn_tool_names,
+            "confidence":      overall_conf,
+            "timestamp":       datetime.utcnow().isoformat(),
+        }
+
+        # Build image_paths role map for the cache from uploaded_images metadata
+        image_role_map: Dict[str, str] = {}
+        for img in (state.get("uploaded_images") or []):
+            if not isinstance(img, dict):
+                continue
+            path = img.get("file_path") or img.get("path") or ""
+            role = img.get("role") or img.get("modality") or "primary"
+            if path:
+                image_role_map[role] = path
+        # Also extract from bi_temporal_pair / optical_sar_pair if present
+        if state.get("bi_temporal_pair"):
+            bp = state["bi_temporal_pair"]
+            if bp.get("t1_path"):
+                image_role_map["t1"] = bp["t1_path"]
+            if bp.get("t2_path"):
+                image_role_map["t2"] = bp["t2_path"]
+        if state.get("optical_sar_pair"):
+            op = state["optical_sar_pair"]
+            if op.get("optical_path"):
+                image_role_map["optical"] = op["optical_path"]
+            if op.get("sar_path"):
+                image_role_map["sar"] = op["sar_path"]
+
+        updated_cache: Dict[str, Any] = {
+            "latest_bounding_boxes": all_bboxes,
+            "latest_masks":          all_masks,
+            "latest_image_paths":    image_role_map,
+            "latest_image_ids":      all_image_ids,
+            "active_roi":            active_roi,
+            "last_task":             task,
+            "turn_count":            turn_index + 1,
+        }
+
+        # -------------------------------------------------------------------
+        # 9. Build reasoning step for the aggregation node itself
+        # -------------------------------------------------------------------
+        reasoning = {
+            "step_number": len(thought_steps) + 1,
+            "agent_name": "AggregationNode",
+            "thought": (
+                f"Aggregation complete. Compiled {len(tool_calls_for_ui)} tool call record(s). "
+                f"Overall confidence: {overall_conf:.3f}. "
+                f"Pipeline OK: {execution_summary['pipeline_ok']}. "
+                f"Failed tools: {failed_tools or 'none'}. "
+                f"Turn {turn_index} committed to conversation_history. "
+                f"SpatialContextCache updated with {len(all_bboxes)} bbox(es), "
+                f"active_roi={'set' if active_roi else 'none'}."
+            ),
+            "action_taken": "compile_execution_summary",
+            "confidence": overall_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
         return {
             # Store the full UI-facing summary in intermediate_outputs
             "intermediate_outputs": {"execution_summary": execution_summary},
@@ -868,6 +1599,9 @@ class Orchestrator:
                 f"Confidence: {overall_conf:.3f}. "
                 f"OK: {execution_summary['pipeline_ok']}."
             ),
+            # Conversational memory: append turn record and update rolling cache
+            "conversation_history":  [conversation_turn],   # operator.add appends
+            "spatial_context_cache": updated_cache,          # merge_dicts overwrites slots
             # Append reasoning step
             "thought_trace": [reasoning],
             "routing_history": ["aggregation"],
@@ -1355,14 +2089,23 @@ class Orchestrator:
     def _route_after_synthesizer(state: AgentState) -> str:
         """Route to fallback if confidence is low or spatial features are missing."""
         conf = state.get("confidence_score")
+        task = state.get("classified_task")
         if conf is not None and conf < 0.5:
             return "fallback_reasoning"
-            
-        task = state.get("classified_task")
+
         if task == "grounding" and not state.get("bounding_boxes"):
             return "fallback_reasoning"
-            
-        return "aggregation"
+
+        return Orchestrator._route_next_specialist(state)
+
+    @staticmethod
+    def _route_after_validate_params(state: AgentState) -> str:
+        """
+        Delegates to the same logic as _route_after_interpret so that the
+        validate_tool_params guardrail node seamlessly feeds the correct
+        specialist (or clarification) without duplicating routing logic.
+        """
+        return Orchestrator._route_after_interpret(state)
 
     # -----------------------------------------------------------------------
     # Graph Construction
@@ -1376,6 +2119,7 @@ class Orchestrator:
             builder.add_node("input_validator",             self.input_validator_node)
             builder.add_node("controller_router",           self.controller_router_node)
             builder.add_node("interpret_and_validate",      self.interpret_and_validate_node)
+            builder.add_node("validate_tool_params",         self.validate_tool_params_node)
             builder.add_node("human_clarification",         self.human_clarification_node)
             builder.add_node("vision_vqa_specialist",       self.vision_vqa_specialist_node)
             builder.add_node("vqa_specialist",              self.vqa_specialist_node)
@@ -1406,7 +2150,21 @@ class Orchestrator:
                 {"interpret_and_validate": "interpret_and_validate"},
             )
 
-            # ── Interpret & Validate → [VisionVQA | specialist loop | Clarification] ────────
+            # ── Interpret & Validate → validate_tool_params (always) ────────
+            # If invalid, the guardrail passes through and interpret routes to clarification.
+            # Otherwise, interpret always transitions to the param guardrail first.
+            builder.add_conditional_edges(
+                "interpret_and_validate",
+                lambda s: "human_clarification" if (
+                    not s.get("is_valid", True) or s.get("requires_clarification", False)
+                ) else "validate_tool_params",
+                {
+                    "human_clarification": "human_clarification",
+                    "validate_tool_params": "validate_tool_params",
+                },
+            )
+
+            # ── validate_tool_params → specialists ──────────────────────────
             _all_specialist_targets = {
                 "vision_vqa_specialist":        "vision_vqa_specialist",
                 "vqa_specialist":               "vqa_specialist",
@@ -1418,12 +2176,12 @@ class Orchestrator:
                 "human_clarification":          "human_clarification",
             }
             builder.add_conditional_edges(
-                "interpret_and_validate",
-                self._route_after_interpret,
+                "validate_tool_params",
+                self._route_after_validate_params,
                 _all_specialist_targets,
             )
 
-            # ── strict tools → aggregation ──────────────────────
+            # ── strict tools → synthesizer ──────────────────────
             builder.add_edge("vision_vqa_specialist", "synthesizer")
             builder.add_edge("change_detection_specialist", "synthesizer")
             builder.add_edge("cross_modal_fusion_specialist", "synthesizer")
@@ -1446,14 +2204,14 @@ class Orchestrator:
                     _specialist_to_aggregation,
                 )
 
-            # ── synthesizer → [fallback | aggregation] ───────────────────────
+            # ── synthesizer → [fallback | aggregation | next_specialist] ───
+            _synthesizer_targets = _all_specialist_targets.copy()
+            _synthesizer_targets["fallback_reasoning"] = "fallback_reasoning"
+
             builder.add_conditional_edges(
                 "synthesizer",
                 self._route_after_synthesizer,
-                {
-                    "fallback_reasoning": "fallback_reasoning",
-                    "aggregation": "aggregation"
-                }
+                _synthesizer_targets
             )
             builder.add_edge("fallback_reasoning", "aggregation")
             builder.add_edge("aggregation", END)
@@ -1472,11 +2230,13 @@ class Orchestrator:
                     """Ensure all append-only fields are initialised to empty lists/dicts."""
                     for field in ["routing_history", "thought_trace", "tool_logs",
                                   "artifacts", "bounding_boxes", "completed_specialists",
-                                  "execution_trace", "image_inputs"]:
+                                  "execution_trace", "image_inputs", "param_guardrail_log",
+                                  "conversation_history", "reference_resolution_log"]:
                         if curr.get(field) is None:
                             curr[field] = []
                     for field in ["intermediate_outputs", "spatial_outputs",
-                                  "tool_outputs", "tool_confidence_scores"]:
+                                  "tool_outputs", "tool_confidence_scores",
+                                  "sanitized_tool_params", "spatial_context_cache"]:
                         if curr.get(field) is None:
                             curr[field] = {}
 
@@ -1485,11 +2245,13 @@ class Orchestrator:
                     _append_keys = {
                         "thought_trace", "routing_history", "tool_logs", "artifacts",
                         "bounding_boxes", "completed_specialists", "execution_trace",
-                        "image_inputs",
+                        "image_inputs", "param_guardrail_log",
+                        "conversation_history", "reference_resolution_log",
                     }
                     _dict_merge_keys = {
                         "intermediate_outputs", "spatial_outputs",
-                        "specialist_model_configs",
+                        "specialist_model_configs", "sanitized_tool_params",
+                        "spatial_context_cache",
                     }
                     for k, v in updates.items():
                         if k in _append_keys:
@@ -1520,49 +2282,60 @@ class Orchestrator:
                     # 3. Interpret & Validate
                     self._merge(curr, self.orch.interpret_and_validate_node(curr))
 
-                    # 4. Route — VisionVQA strict path or legacy specialist loop
+                    # 4. If invalid → clarify, else run guardrail then specialists
                     next_route = Orchestrator._route_after_interpret(curr)
                     if next_route == "human_clarification":
                         self._merge(curr, self.orch.human_clarification_node(curr))
                         return curr
-                    elif next_route == "vision_vqa_specialist":
-                        self._merge(curr, self.orch.vision_vqa_specialist_node(curr))
-                        self._merge(curr, self.orch.synthesizer_node(curr))
-                    elif next_route == "change_detection_specialist":
-                        self._merge(curr, self.orch.change_detection_specialist_node(curr))
-                        self._merge(curr, self.orch.synthesizer_node(curr))
-                    elif next_route == "cross_modal_fusion_specialist":
-                        self._merge(curr, self.orch.cross_modal_fusion_specialist_node(curr))
-                        self._merge(curr, self.orch.synthesizer_node(curr))
-                    else:
-                        # Dynamic legacy specialist loop
-                        max_steps = 10
-                        step_count = 0
-                        while step_count < max_steps:
-                            next_spec = Orchestrator._route_next_specialist(curr)
-                            if next_spec == "aggregation":
-                                break
-                            if next_spec == "change_detection_specialist":
-                                spec_res = self.orch.change_detection_specialist_node(curr)
-                            elif next_spec == "grounding_specialist":
-                                spec_res = self.orch.grounding_specialist_node(curr)
-                            elif next_spec == "cross_modal_fusion_specialist":
-                                spec_res = self.orch.cross_modal_fusion_specialist_node(curr)
-                            elif next_spec == "land_cover_specialist":
-                                spec_res = self.orch.land_cover_specialist_node(curr)
-                            else:
-                                spec_res = self.orch.vqa_specialist_node(curr)
-                            self._merge(curr, spec_res)
-                            step_count += 1
-                        # synthesizer for legacy path
-                        self._merge(curr, self.orch.synthesizer_node(curr))
 
-                    # 5. Route after synthesizer
-                    next_route = Orchestrator._route_after_synthesizer(curr)
-                    if next_route == "fallback_reasoning":
-                        self._merge(curr, self.orch.fallback_reasoning_node(curr))
+                    # Execute guardrail + specialists in a loop to match LangGraph
+                    max_steps = 10
+                    step_count = 0
+                    while step_count < max_steps:
+                        if next_route == "aggregation":
+                            break
 
-                    # 6. Aggregation (always last)
+                        # ── 4a. Guardrail fires before every specialist ──────
+                        self._merge(curr, self.orch.validate_tool_params_node(curr))
+                        next_route = Orchestrator._route_after_validate_params(curr)
+
+                        if next_route == "aggregation":
+                            break
+                        if next_route == "human_clarification":
+                            self._merge(curr, self.orch.human_clarification_node(curr))
+                            return curr
+
+                        # ── 4b. Execute the specialist ───────────────────────
+                        if next_route == "vision_vqa_specialist":
+                            self._merge(curr, self.orch.vision_vqa_specialist_node(curr))
+                            self._merge(curr, self.orch.synthesizer_node(curr))
+                            next_route = Orchestrator._route_after_synthesizer(curr)
+                        elif next_route == "change_detection_specialist":
+                            self._merge(curr, self.orch.change_detection_specialist_node(curr))
+                            self._merge(curr, self.orch.synthesizer_node(curr))
+                            next_route = Orchestrator._route_after_synthesizer(curr)
+                        elif next_route == "cross_modal_fusion_specialist":
+                            self._merge(curr, self.orch.cross_modal_fusion_specialist_node(curr))
+                            self._merge(curr, self.orch.synthesizer_node(curr))
+                            next_route = Orchestrator._route_after_synthesizer(curr)
+                        elif next_route == "grounding_specialist":
+                            self._merge(curr, self.orch.grounding_specialist_node(curr))
+                            next_route = Orchestrator._route_next_specialist(curr)
+                        elif next_route == "land_cover_specialist":
+                            self._merge(curr, self.orch.land_cover_specialist_node(curr))
+                            next_route = Orchestrator._route_next_specialist(curr)
+                        elif next_route == "vqa_specialist":
+                            self._merge(curr, self.orch.vqa_specialist_node(curr))
+                            next_route = Orchestrator._route_next_specialist(curr)
+                        elif next_route == "fallback_reasoning":
+                            self._merge(curr, self.orch.fallback_reasoning_node(curr))
+                            break
+                        else:
+                            break
+
+                        step_count += 1
+
+                    # 5. Aggregation (always last)
                     self._merge(curr, self.orch.aggregation_node(curr))
                     return curr
 
