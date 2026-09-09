@@ -23,22 +23,23 @@
 .liquid-chat-header-row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
 }
 
-.liquid-chat-header-row .top-query-bar {
-  flex: 1;
+/* ── Compact Top Query Bar ── */
+.top-query-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  background: rgba(15, 23, 42, 0.45);
+  width: auto;
+  max-width: fit-content;
 }
 
-/* ── Top Query Bar ── */
-.top-query-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 20px;
-  background: rgba(15, 23, 42, 0.45);
+.about-header-btn {
+  margin-left: auto;
 }
 
 .query-pill-left {

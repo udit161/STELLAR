@@ -71,28 +71,18 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
 
   return (
     <div className="liquid-chat-container">
-      {/* ── Top Header Row (Logo on far left, Query Bar spanning top) ── */}
+      {/* ── Top Header Row (Logo, Compact Query Bar, Outside About button) ── */}
       <div className="liquid-chat-header-row">
         <SatQueryLogo onClick={onResetQuery} />
 
         <LiquidGlassCard pill className="top-query-bar">
-          <div className="query-pill-left">
-            <button className="action-pill-btn" onClick={onResetQuery} title="New Search">
-              <ArrowLeft size={14} /> Back
-            </button>
-            <span className="query-label">Active Query</span>
-            <span className="current-query-text" title={queryText}>"{queryText}"</span>
-          </div>
-
-          <div className="top-query-actions">
-            <span className="action-pill-btn" style={{ cursor: 'default', background: 'rgba(0, 242, 254, 0.12)', color: '#00F2FE' }}>
-              <Activity size={13} /> Live Telemetry
-            </span>
-            <button className="action-pill-btn" onClick={() => setShowAboutModal(true)}>
-              <Info size={14} /> About
-            </button>
-          </div>
+          <span className="query-label">Active Query</span>
+          <span className="current-query-text" title={queryText}>"{queryText}"</span>
         </LiquidGlassCard>
+
+        <button className="action-pill-btn about-header-btn" onClick={() => setShowAboutModal(true)}>
+          <Info size={14} /> About
+        </button>
       </div>
 
       {/* ── Main Layout Grid ── */}
