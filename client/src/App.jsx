@@ -1,23 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Home,
-  Bell,
-  FileText,
-  Search,
-  Users,
-  User,
   ArrowUp,
   Sparkles,
-  Layers,
-  Activity,
-  Globe,
-  CornerDownLeft,
   LogOut,
-  Compass,
 } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
+import GlassSidebar from './components/GlassSidebar';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
 import Scene from './pages/Scene';
@@ -28,7 +18,7 @@ function App() {
   const [authed, setAuthed] = useState(isAuthenticated());
   const [currentUser, setCurrentUser] = useState(getUser());
   const [query, setQuery] = useState('');
-  const [activeNav, setActiveNav] = useState('home');
+  const [activeNav, setActiveNav] = useState('chat');
   const [showIntro, setShowIntro] = useState(true);
 
   const handleAuthSuccess = (user) => {
@@ -46,15 +36,6 @@ function App() {
   if (showIntro) {
     return <Scene onEnter={() => setShowIntro(false)} />;
   }
-
-  const navItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'notifications', icon: Bell, label: 'Notifications' },
-    { id: 'documents', icon: FileText, label: 'Documents' },
-    { id: 'search', icon: Search, label: 'Search' },
-    { id: 'community', icon: Users, label: 'Community' },
-    { id: 'profile', icon: User, label: 'Profile' },
-  ];
 
   const handleSend = (e) => {
     e?.preventDefault();
@@ -74,27 +55,8 @@ function App() {
       <TwinklingStars />
       <div className="app-container">
 
-        {/* Left Very Dark Deep Blue Floating Pill Sidebar */}
-        <aside className="floating-sidebar-wrapper">
-          <div className="dark-blue-pill-sidebar">
-            <div className="pill-gloss-highlight" />
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeNav === item.id;
-              return (
-                <button
-                  key={item.id}
-                  className={`pill-nav-btn ${isActive ? 'active' : ''}`}
-                  onClick={() => setActiveNav(item.id)}
-                  title={item.label}
-                  aria-label={item.label}
-                >
-                  <Icon size={24} className="pill-icon" />
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+        {/* Glassmorphic Liquid Metal Sidebar */}
+        <GlassSidebar activeNav={activeNav} onNavChange={setActiveNav} />
 
         {/* Main Content Area */}
         <main className="main-content">
