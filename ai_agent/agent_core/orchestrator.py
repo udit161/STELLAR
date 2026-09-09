@@ -130,6 +130,13 @@ class Orchestrator:
         if single and isinstance(single, dict) and single.get("file_path") and single["file_path"] not in paths:
             paths.append(single["file_path"])
 
+        # 6. RSAgentState typed image_inputs
+        rs_inputs = state.get("image_inputs") or []
+        for e in rs_inputs:
+            p = e.get("image_path") or e.get("file_path")
+            if p and p not in paths:
+                paths.append(p)
+                
         meta["total_images"] = len(paths)
         meta["image_paths"] = paths
         return len(paths), paths, meta
@@ -525,11 +532,19 @@ class Orchestrator:
         # -------------------------------------------------------------------
         # Build IntentClassification telemetry dict for UI / audit
         # -------------------------------------------------------------------
+        # -------------------------------------------------------------------
+        # Multi-image intent routing
+        # -------------------------------------------------------------------
+        is_bi_temporal = (img_count == 2 and max_cat == "change") or img_meta.get("is_bi_temporal", False)
+        is_optical_sar = (img_count == 2 and max_cat == "fusion") or img_meta.get("is_optical_sar", False)
+        
+        use_change_det_tool = is_bi_temporal and max_cat == "change"
+        use_cross_modal_tool = is_optical_sar and max_cat == "fusion"
+
         intent_classification = {
             "classifier_version": "keyword_scored_v1",
             "timestamp": datetime.utcnow().isoformat(),
             "elapsed_ms": elapsed_ms,
-            # Input signals
             "raw_query": raw_query,
             "image_count": img_count,
             "image_paths": image_paths,
@@ -537,7 +552,6 @@ class Orchestrator:
             "rs_spatial_roles": list(rs_roles),
             "is_bi_temporal_meta": img_meta.get("is_bi_temporal", False),
             "is_optical_sar_meta": img_meta.get("is_optical_sar", False),
-            # Scoring
             "keyword_scores": scores,
             "winning_category": max_cat,
             "winning_score": max_score,
@@ -545,20 +559,23 @@ class Orchestrator:
             "classifier_confidence": classifier_conf,
             "vqa_margin_decisive": is_decisive_vqa,
             "is_single_image": is_single_image,
-            # Routing decision
             "controller_task": existing_task,
             "confirmed_task": confirmed_task,
             "use_strict_vqa_tool": use_strict_vqa,
+            "use_change_det_tool": use_change_det_tool,
+            "use_cross_modal_tool": use_cross_modal_tool,
             "routing_decision": (
                 "vision_vqa_specialist" if use_strict_vqa
+                else "change_detection_specialist" if use_change_det_tool
+                else "cross_modal_fusion_specialist" if use_cross_modal_tool
                 else "legacy_vqa_specialist" if max_cat == "vqa"
                 else f"{max_cat}_specialist"
             ),
             "decision_rationale": (
-                f"Single image + decisive VQA score ({max_score:.2f} vs runner-up {runner_up:.2f}) "
-                f"→ routing to vision_vqa_tool (strict path, VisionVQAModel.infer())." if use_strict_vqa
-                else f"Task '{confirmed_task}' confirmed; "
-                     f"scores: {scores}; routed to existing pipeline."
+                "Single image + decisive VQA score → vision_vqa_tool." if use_strict_vqa
+                else "Bi-temporal + change query → change_detection_tool." if use_change_det_tool
+                else "Optical-SAR + fusion query → cross_modal_fusion_tool." if use_cross_modal_tool
+                else f"Task '{confirmed_task}' confirmed; routed to existing pipeline."
             ),
         }
 
@@ -583,6 +600,8 @@ class Orchestrator:
             "task_classification_confidence": classifier_conf,
             "intent_classification": intent_classification,
             "use_strict_vqa_tool": use_strict_vqa,
+            "use_change_det_tool": use_change_det_tool,
+            "use_cross_modal_tool": use_cross_modal_tool,
             "thought_trace": [reasoning],
             "routing_history": ["intent_classifier"],
             "active_agent": "intent_classifier",
@@ -1020,32 +1039,53 @@ class Orchestrator:
     # Specialist Node: Bi-temporal Change Detection
     # -----------------------------------------------------------------------
     def change_detection_specialist_node(self, state: AgentState) -> Dict[str, Any]:
-        """
-        Executes bi-temporal change detection on T1 and T2 images using change_detection_tool.
-        """
+        """Executes bi-temporal change detection using change_detection_tool."""
+        import time as _time
+        t0 = _time.perf_counter()
         img_count, paths, _ = self._inspect_image_metadata(state)
         t1_path = paths[0] if len(paths) > 0 else "/data/t1_baseline.tif"
         t2_path = paths[1] if len(paths) > 1 else "/data/t2_target.tif"
-        query = state.get("raw_query") or state.get("query")
+        query = state.get("raw_query") or state.get("query") or ""
 
-        # Execute registered standardized change_detection_tool
         tool_result = change_detection_tool(
-            t1_image_path=t1_path,
-            t2_image_path=t2_path,
-            threshold=0.5,
-            query=query,
+            image_path_t1=t1_path,
+            image_path_t2=t2_path,
+            text_query=query,
             state=state
         )
-
-        # Synchronize into state tracker
-        updates = update_state_tracker_from_tool_output(
-            state=state,
-            tool_output=tool_result,
-            specialist_key="change_detection",
-            specialist_model_type=SpecialistModelType.CHANGE_DETECTOR_MODEL.value
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+        
+        rs_updates = tool_result.get("rs_state_updates") or {}
+        merged_tool_outputs = merge_intermediate_outputs(state.get("tool_outputs") or {}, rs_updates.get("tool_outputs") or {})
+        merged_conf = {**(state.get("tool_confidence_scores") or {}), **(rs_updates.get("tool_confidence_scores") or {})}
+        
+        legacy_updates = update_state_tracker_from_tool_output(
+            state=state, tool_output=tool_result, specialist_key="change_detection", specialist_model_type=SpecialistModelType.CHANGE_DETECTOR_MODEL.value
         )
-        updates["status"] = RequestStatus.SPECIALIST_INFERENCE.value
-        return updates
+        
+        node_conf = float(tool_result.get("confidence", 0.0))
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "ChangeDetectionSpecialist",
+            "thought": f"change_detection_tool executed. conf={node_conf:.3f}, elapsed={elapsed_ms:.1f}ms.",
+            "classified_task": TaskType.CHANGE_DETECTION.value,
+            "action_taken": "change_detection_tool",
+            "confidence": node_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return {
+            "tool_outputs": merged_tool_outputs,
+            "tool_confidence_scores": merged_conf,
+            "execution_trace": rs_updates.get("execution_trace") or [],
+            "bounding_boxes": rs_updates.get("bounding_boxes") or [],
+            "image_inputs": rs_updates.get("image_inputs") or [],
+            **legacy_updates,
+            "thought_trace": [reasoning],
+            "routing_history": ["change_detection_specialist"],
+            "status": RequestStatus.SPECIALIST_INFERENCE.value,
+            "active_agent": "change_detection_specialist",
+        }
 
     # -----------------------------------------------------------------------
     # Specialist Node: Object Grounding & Spatial Localization
@@ -1073,29 +1113,54 @@ class Orchestrator:
     # Specialist Node: Optical-SAR Cross-Modal Fusion
     # -----------------------------------------------------------------------
     def cross_modal_fusion_specialist_node(self, state: AgentState) -> Dict[str, Any]:
-        """Executes optical and radar feature fusion using fusion_routing_tool."""
+        """Executes optical and radar feature fusion using cross_modal_fusion_tool."""
+        from agent_core.tools import cross_modal_fusion_tool
+        import time as _time
+        t0 = _time.perf_counter()
         img_count, paths, _ = self._inspect_image_metadata(state)
         opt_path = paths[0] if len(paths) > 0 else "/data/optical.tif"
         sar_path = paths[1] if len(paths) > 1 else "/data/sar.tif"
-        query = state.get("raw_query") or state.get("query")
+        query = state.get("raw_query") or state.get("query") or ""
 
-        # Execute registered standardized fusion_routing_tool
-        tool_result = fusion_routing_tool(
-            optical_image_path=opt_path,
-            sar_image_path=sar_path,
-            query=query,
+        tool_result = cross_modal_fusion_tool(
+            image_path_optical=opt_path,
+            image_path_sar=sar_path,
+            text_query=query,
             state=state
         )
-
-        # Synchronize into state tracker
-        updates = update_state_tracker_from_tool_output(
-            state=state,
-            tool_output=tool_result,
-            specialist_key="fusion",
-            specialist_model_type=SpecialistModelType.CROSS_MODAL_FUSION_NET.value
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
+        
+        rs_updates = tool_result.get("rs_state_updates") or {}
+        merged_tool_outputs = merge_intermediate_outputs(state.get("tool_outputs") or {}, rs_updates.get("tool_outputs") or {})
+        merged_conf = {**(state.get("tool_confidence_scores") or {}), **(rs_updates.get("tool_confidence_scores") or {})}
+        
+        legacy_updates = update_state_tracker_from_tool_output(
+            state=state, tool_output=tool_result, specialist_key="fusion", specialist_model_type=SpecialistModelType.CROSS_MODAL_FUSION_NET.value
         )
-        updates["status"] = RequestStatus.FUSION.value
-        return updates
+        
+        node_conf = float(tool_result.get("confidence", 0.0))
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "CrossModalFusionSpecialist",
+            "thought": f"cross_modal_fusion_tool executed. conf={node_conf:.3f}, elapsed={elapsed_ms:.1f}ms.",
+            "classified_task": TaskType.CROSS_MODAL_FUSION.value,
+            "action_taken": "cross_modal_fusion_tool",
+            "confidence": node_conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return {
+            "tool_outputs": merged_tool_outputs,
+            "tool_confidence_scores": merged_conf,
+            "execution_trace": rs_updates.get("execution_trace") or [],
+            "bounding_boxes": rs_updates.get("bounding_boxes") or [],
+            "image_inputs": rs_updates.get("image_inputs") or [],
+            **legacy_updates,
+            "thought_trace": [reasoning],
+            "routing_history": ["cross_modal_fusion_specialist"],
+            "status": RequestStatus.FUSION.value,
+            "active_agent": "cross_modal_fusion_specialist",
+        }
 
     # -----------------------------------------------------------------------
     # Specialist Node: Land Cover Classification
@@ -1343,6 +1408,10 @@ class Orchestrator:
             task = state.get("classified_task") or ""
             if task in (TaskType.VQA.value, "VQA", ""):
                 return "vision_vqa_specialist"
+        elif state.get("use_change_det_tool", False):
+            return "change_detection_specialist"
+        elif state.get("use_cross_modal_tool", False):
+            return "cross_modal_fusion_specialist"
         return Orchestrator._route_next_specialist(state)
 
     @staticmethod
@@ -1428,23 +1497,21 @@ class Orchestrator:
                 _all_specialist_targets,
             )
 
-            # ── vision_vqa_specialist → aggregation ──────────────────────
+            # ── strict tools → aggregation ──────────────────────
             builder.add_edge("vision_vqa_specialist", "synthesizer")
+            builder.add_edge("change_detection_specialist", "synthesizer")
+            builder.add_edge("cross_modal_fusion_specialist", "synthesizer")
 
             # ── Legacy specialists → dynamic queue routing ───────────────
             _specialist_to_aggregation = {
                 "vqa_specialist":               "vqa_specialist",
-                "change_detection_specialist":  "change_detection_specialist",
                 "grounding_specialist":         "grounding_specialist",
-                "cross_modal_fusion_specialist":"cross_modal_fusion_specialist",
                 "land_cover_specialist":        "land_cover_specialist",
                 "aggregation":                  "aggregation",
             }
             for spec_node in [
                 "vqa_specialist",
-                "change_detection_specialist",
                 "grounding_specialist",
-                "cross_modal_fusion_specialist",
                 "land_cover_specialist",
             ]:
                 builder.add_conditional_edges(
@@ -1523,7 +1590,12 @@ class Orchestrator:
                     next_route = Orchestrator._route_after_intent(curr)
                     if next_route == "vision_vqa_specialist":
                         self._merge(curr, self.orch.vision_vqa_specialist_node(curr))
-                        # vision_vqa → synthesizer → aggregation
+                        self._merge(curr, self.orch.synthesizer_node(curr))
+                    elif next_route == "change_detection_specialist":
+                        self._merge(curr, self.orch.change_detection_specialist_node(curr))
+                        self._merge(curr, self.orch.synthesizer_node(curr))
+                    elif next_route == "cross_modal_fusion_specialist":
+                        self._merge(curr, self.orch.cross_modal_fusion_specialist_node(curr))
                         self._merge(curr, self.orch.synthesizer_node(curr))
                     else:
                         # Dynamic legacy specialist loop
@@ -1645,10 +1717,14 @@ class Orchestrator:
 
         # ── Step 4: Specialist Execution ──────────────────────────────────
         next_route = self._route_after_intent(curr)
-        if next_route == "vision_vqa_specialist":
-            # Strict VQA path — single image + decisive QA query
-            _merge(self.vision_vqa_specialist_node(curr))
-            yield {"step": "vision_vqa_specialist", "state": curr,
+        if next_route in ["vision_vqa_specialist", "change_detection_specialist", "cross_modal_fusion_specialist"]:
+            if next_route == "vision_vqa_specialist":
+                _merge(self.vision_vqa_specialist_node(curr))
+            elif next_route == "change_detection_specialist":
+                _merge(self.change_detection_specialist_node(curr))
+            elif next_route == "cross_modal_fusion_specialist":
+                _merge(self.cross_modal_fusion_specialist_node(curr))
+            yield {"step": next_route, "state": curr,
                    "latest_thought": curr["thought_trace"][-1]}
             # synthesizer for synthesis step
             _merge(self.synthesizer_node(curr))
