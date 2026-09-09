@@ -27,9 +27,9 @@
 /* ── Main Container (Levitating Float Animation) ── */
 .liquid-bar-container {
   position: relative;
-  width: min(420px, 90vw);
-  height: 80px;
-  padding: 0 24px;
+  width: min(590px, 90vw);
+  height: 52px;
+  padding: 0 18px;
   border-radius: 50px;
   display: flex;
   align-items: center;
@@ -42,20 +42,17 @@
   backdrop-filter: blur(25px) saturate(160%) brightness(1.08);
   -webkit-backdrop-filter: blur(25px) saturate(160%) brightness(1.08);
 
-  /* Multi-Layered Box Shadows */
+  /* Subtle depth only — no glow */
   box-shadow:
-    0 12px 40px rgba(0, 213, 255, 0.15),
-    0 0 60px rgba(138, 43, 226, 0.1),
+    0 4px 16px rgba(0, 0, 0, 0.25),
     inset 0 1px 2px rgba(255, 255, 255, 0.3),
     inset 0 -1px 2px rgba(0, 0, 0, 0.3);
 
   /* Liquid Border */
-  border: 2px solid rgba(0, 213, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 
-  /* Float & Shimmer Animations */
-  animation:
-    containerFloat 4s ease-in-out infinite,
-    borderFlow 3s ease-in-out infinite;
+  /* Float Animation only */
+  animation: containerFloat 4s ease-in-out infinite;
 
   transition:
     background 0.3s var(--lm-transition-cubic),
@@ -66,10 +63,9 @@
 
 .liquid-bar-container:hover {
   background: var(--lm-glass-bg-hover);
-  border-color: rgba(0, 213, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.25);
   box-shadow:
-    0 16px 50px rgba(0, 213, 255, 0.3),
-    0 0 80px rgba(138, 43, 226, 0.25),
+    0 6px 20px rgba(0, 0, 0, 0.3),
     inset 0 1px 3px rgba(255, 255, 255, 0.4),
     inset 0 -1px 2px rgba(0, 0, 0, 0.3);
 }
@@ -84,15 +80,7 @@
   }
 }
 
-/* ── Liquid Border Gradient Flow Keyframe ── */
-@keyframes borderFlow {
-  0%, 100% {
-    border-color: rgba(0, 213, 255, 0.25);
-  }
-  50% {
-    border-color: rgba(138, 43, 226, 0.35);
-  }
-}
+
 
 /* ── Liquid Metal Shimmer Overlay ── */
 .liquid-shimmer-overlay {
@@ -175,49 +163,31 @@
 /* ── Action Button Wrapper (Right Side Rocket Launcher) ── */
 .rocket-launch-button {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 213, 255, 0.3);
-  background: radial-gradient(circle at 30% 30%, rgba(0, 213, 255, 0.2) 0%, rgba(138, 43, 226, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 5;
   outline: none;
-
-  /* Idle Rocket Pulse Box Shadow */
-  animation: rocketIdleGlow 2s ease-in-out infinite;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 
   transition:
     transform 0.3s var(--lm-transition-cubic),
     background 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-@keyframes rocketIdleGlow {
-  0%, 100% {
-    box-shadow:
-      0 0 15px rgba(0, 213, 255, 0.4),
-      0 0 30px rgba(138, 43, 226, 0.2);
-  }
-  50% {
-    box-shadow:
-      0 0 25px rgba(0, 213, 255, 0.7),
-      0 0 45px rgba(138, 43, 226, 0.4);
-  }
+    border-color 0.3s ease;
 }
 
 /* ── Rocket Button Hover State ── */
 .rocket-launch-button:hover {
-  transform: scale(1.12) translateY(-5px);
-  border-color: rgba(0, 213, 255, 0.8);
-  background: radial-gradient(circle at 30% 30%, rgba(0, 213, 255, 0.35) 0%, rgba(138, 43, 226, 0.25) 100%);
-  box-shadow:
-    0 0 40px rgba(0, 213, 255, 0.8),
-    0 0 80px rgba(138, 43, 226, 0.6);
+  transform: scale(1.08) translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.4);
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .rocket-launch-button:active {
@@ -226,8 +196,7 @@
 
 /* ── Rocket Icon Styling ── */
 .rocket-icon-svg {
-  color: var(--lm-cyan);
-  filter: drop-shadow(0 0 8px rgba(0, 213, 255, 0.8));
+  color: rgba(255, 255, 255, 0.85);
   transition:
     transform 0.3s var(--lm-transition-cubic),
     filter 0.3s ease;
@@ -367,14 +336,14 @@
 /* Tablet (480px - 768px) */
 @media (max-width: 768px) {
   .liquid-bar-container {
-    height: 70px;
-    padding: 0 20px;
-    width: min(360px, 92vw);
+    height: 46px;
+    padding: 0 16px;
+    width: min(480px, 92vw);
   }
 
   .rocket-launch-button {
-    width: 52px;
-    height: 52px;
+    width: 34px;
+    height: 34px;
   }
 }
 
@@ -385,15 +354,15 @@
   }
 
   .liquid-bar-container {
-    height: 60px;
-    padding: 0 16px;
+    height: 42px;
+    padding: 0 12px;
     border-radius: 40px;
     width: min(300px, 94vw);
   }
 
   .rocket-launch-button {
-    width: 48px;
-    height: 48px;
+    width: 30px;
+    height: 30px;
   }
 
   /* Hide decorative corner particles on mobile */

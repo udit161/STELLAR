@@ -95,14 +95,14 @@
   transform: scale(1.04) translateX(1px);
 }
 
-/* ── Icon inside pill — Dead-center inside 46px circle ── */
+/* ── Icon inside pill — Dead-center inside 36px circle ── */
 .glass-nav-pill-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   transition: color var(--glass-sidebar-transition-smooth),
               transform var(--glass-sidebar-transition-smooth);
   z-index: 1;
@@ -161,8 +161,7 @@
   background: rgba(52, 211, 153, 0.15);
   color: var(--glass-sidebar-color-search);
   box-shadow:
-    0 0 24px rgba(52, 211, 153, 0.3),
-    0 8px 30px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(52, 211, 153, 0.3);
 }
 .glass-nav-pill.active[data-item="search"]::before {
@@ -175,8 +174,7 @@
   background: rgba(251, 191, 36, 0.15);
   color: var(--glass-sidebar-color-history);
   box-shadow:
-    0 0 24px rgba(251, 191, 36, 0.3),
-    0 8px 30px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(251, 191, 36, 0.3);
 }
 .glass-nav-pill.active[data-item="history"]::before {
@@ -189,8 +187,7 @@
   background: rgba(167, 139, 250, 0.15);
   color: var(--glass-sidebar-color-documents);
   box-shadow:
-    0 0 24px rgba(167, 139, 250, 0.3),
-    0 8px 30px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(167, 139, 250, 0.3);
 }
 .glass-nav-pill.active[data-item="documents"]::before {
@@ -203,8 +200,7 @@
   background: rgba(248, 113, 113, 0.15);
   color: var(--glass-sidebar-color-settings);
   box-shadow:
-    0 0 24px rgba(248, 113, 113, 0.3),
-    0 8px 30px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(248, 113, 113, 0.3);
 }
 .glass-nav-pill.active[data-item="settings"]::before {
@@ -217,8 +213,7 @@
   background: rgba(56, 189, 248, 0.15);
   color: var(--glass-sidebar-color-profile);
   box-shadow:
-    0 0 24px rgba(56, 189, 248, 0.3),
-    0 8px 30px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(56, 189, 248, 0.3);
 }
 .glass-nav-pill.active[data-item="profile"]::before {
