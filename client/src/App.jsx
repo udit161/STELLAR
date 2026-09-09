@@ -54,8 +54,12 @@ function App() {
       <TwinklingStars />
       <div className="app-container">
 
-        {/* Glassmorphic Liquid Metal Sidebar */}
-        <GlassSidebar activeNav={activeNav} onNavChange={setActiveNav} />
+        {/* Glassmorphic Liquid Metal Sidebar with History Flyout */}
+        <GlassSidebar 
+          activeNav={activeNav} 
+          onNavChange={setActiveNav} 
+          onSelectQuery={handleLaunchQuery}
+        />
 
         {/* Main Content Area */}
         <main className="main-content">
