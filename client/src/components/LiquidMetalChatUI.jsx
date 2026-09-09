@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Rocket, 
   Share2, 
@@ -24,6 +24,8 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
   const [summaryMode, setSummaryMode] = useState('summary'); // 'summary' | 'raw'
   const [followupText, setFollowupText] = useState('');
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const outputBodyRef = useRef(null);
+
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -31,6 +33,16 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
       text: `Based on real-time orbital calculations and catalog telemetry for "${queryText}": The object is currently operating in Low Earth Orbit (LEO) at an inclination of ~51.64°. All onboard sub-systems report normal telemetry values.`
     }
   ]);
+
+  // Smooth Auto-scroll to newly pushed query/response content
+  useEffect(() => {
+    if (outputBodyRef.current) {
+      outputBodyRef.current.scrollTo({
+        top: outputBodyRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [messages]);
 
   const handleSendFollowup = (e) => {
     e?.preventDefault();
@@ -45,7 +57,8 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
     const aiMsg = {
       id: Date.now() + 1,
       sender: 'ai',
-      text: `Processing follow-up query on "${followupText.trim()}". Telemetry node updated with live Doppler frequency adjustments and orbital decay parameters.`
+      text: `Processing follow-up query on "${followupText.trim()}". Deep space radio array ground station telemetry synced with satellite constellation laser communications link.`,
+      image: '/deep_space.jpg'
     };
 
     setMessages((prev) => [...prev, userMsg, aiMsg]);
@@ -126,7 +139,7 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
           </div>
 
           {/* Body Content according to active tab */}
-          <div className="output-body">
+          <div className="output-body" ref={outputBodyRef}>
             {activeTab === 'report' && (
               <>
                 {messages.map((msg) => (
@@ -144,8 +157,8 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
                       {msg.sender === 'ai' && (
                         <div className="dummy-img-card" style={{ marginTop: '12px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0, 242, 254, 0.25)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
                           <img 
-                            src="/sat_orbit.jpg" 
-                            alt="Satellite Orbit Telemetry Rendering" 
+                            src={msg.image || "/sat_orbit.jpg"} 
+                            alt="Satellite Telemetry Rendering" 
                             style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }}
                           />
                           <div style={{ padding: '8px 12px', background: 'rgba(3, 7, 18, 0.75)', fontSize: '0.75rem', color: '#00F2FE', display: 'flex', justifyContent: 'space-between' }}>
