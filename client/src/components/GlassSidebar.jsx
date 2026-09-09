@@ -69,19 +69,6 @@ function GlassSidebar({ activeNav, onNavChange }) {
             );
           })}
         </nav>
-
-        {/* Floating Indicator Dots */}
-        <div className="glass-sidebar-dots">
-          {NAV_ITEMS.map((item) => (
-            <span
-              key={item.id}
-              className={`glass-dot ${active === item.id ? 'active' : ''}`}
-              data-color={item.id}
-              onClick={(e) => handleSelect(item.id, e)}
-              title={item.label}
-            />
-          ))}
-        </div>
       </div>
     </div>
   );

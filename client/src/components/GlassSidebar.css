@@ -229,66 +229,6 @@
   background: radial-gradient(ellipse at 30% 50%, rgba(56, 189, 248, 0.5), transparent 70%);
 }
 
-/* ── Indicator Dots Bar (Floating under pills) ── */
-.glass-sidebar-dots {
-  display: flex;
-  gap: 6px;
-  padding: 4px 8px;
-  position: relative;
-  z-index: 2;
-  margin-top: 2px;
-}
-
-.glass-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.1);
-  transition:
-    background var(--glass-sidebar-transition-smooth),
-    border-color var(--glass-sidebar-transition-smooth),
-    box-shadow var(--glass-sidebar-transition-smooth),
-    transform var(--glass-sidebar-transition);
-  cursor: pointer;
-}
-
-.glass-dot:hover {
-  transform: scale(1.4);
-  background: rgba(255, 255, 255, 0.35);
-}
-
-.glass-dot.active {
-  transform: scale(1.5);
-}
-
-/* Per-color active dots */
-.glass-dot.active[data-color="search"] {
-  background: var(--glass-sidebar-color-search);
-  border-color: var(--glass-sidebar-color-search);
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
-}
-.glass-dot.active[data-color="history"] {
-  background: var(--glass-sidebar-color-history);
-  border-color: var(--glass-sidebar-color-history);
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
-}
-.glass-dot.active[data-color="documents"] {
-  background: var(--glass-sidebar-color-documents);
-  border-color: var(--glass-sidebar-color-documents);
-  box-shadow: 0 0 8px rgba(167, 139, 250, 0.8);
-}
-.glass-dot.active[data-color="settings"] {
-  background: var(--glass-sidebar-color-settings);
-  border-color: var(--glass-sidebar-color-settings);
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.8);
-}
-.glass-dot.active[data-color="profile"] {
-  background: var(--glass-sidebar-color-profile);
-  border-color: var(--glass-sidebar-color-profile);
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
-}
-
 /* ═══════════════════════════════════════════════════
    Responsive Breakpoints
    ═══════════════════════════════════════════════════ */
@@ -334,14 +274,5 @@
   .glass-nav-pill-icon {
     width: 18px;
     height: 18px;
-  }
-
-  .glass-sidebar-dots {
-    gap: 4px;
-  }
-
-  .glass-dot {
-    width: 4px;
-    height: 4px;
   }
 }
