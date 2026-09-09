@@ -128,30 +128,58 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
           {/* Body Content according to active tab */}
           <div className="output-body">
             {activeTab === 'report' && (
-              messages.map((msg) => (
-                <div key={msg.id} className="chat-message">
-                  <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar' : ''}`}>
-                    {msg.sender === 'user' ? 'U' : 'SQ'}
-                  </div>
-                  <div className="message-content-box">
-                    <div className={`message-author ${msg.sender === 'user' ? 'user-author' : ''}`}>
-                      {msg.sender === 'user' ? 'You' : 'SatQuery AI'}
+              <>
+                {messages.map((msg) => (
+                  <div key={msg.id} className="chat-message">
+                    <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar' : ''}`}>
+                      {msg.sender === 'user' ? 'U' : 'SQ'}
                     </div>
-                    {msg.text}
+                    <div className="message-content-box">
+                      <div className={`message-author ${msg.sender === 'user' ? 'user-author' : ''}`}>
+                        {msg.sender === 'user' ? 'You' : 'SatQuery AI'}
+                      </div>
+                      <p style={{ margin: '0 0 10px 0' }}>{msg.text}</p>
+                      
+                      {/* Generated Dummy Satellite Image Card */}
+                      {msg.sender === 'ai' && (
+                        <div className="dummy-img-card" style={{ marginTop: '12px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0, 242, 254, 0.25)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+                          <img 
+                            src="/sat_orbit.jpg" 
+                            alt="Satellite Orbit Telemetry Rendering" 
+                            style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }}
+                          />
+                          <div style={{ padding: '8px 12px', background: 'rgba(3, 7, 18, 0.75)', fontSize: '0.75rem', color: '#00F2FE', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>🛰️ LEO Satellite Telemetry Stream • Live Node</span>
+                            <span>Scale 1:100,000</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                ))}
+
+                {/* Additional Earth Observation Multispectral Imagery Card */}
+                <div className="dummy-img-card" style={{ marginTop: '8px', borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0, 242, 254, 0.2)', background: 'rgba(0,0,0,0.3)' }}>
+                  <div style={{ padding: '10px 14px', background: 'rgba(15, 23, 42, 0.6)', fontSize: '0.8rem', fontWeight: 600, color: '#e0e8f5', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00F2FE', boxShadow: '0 0 8px #00F2FE' }}></span>
+                    Sentinel-2 Multispectral Infrared Terrain Capture
+                  </div>
+                  <img 
+                    src="/earth_scan.jpg" 
+                    alt="Multispectral Satellite Earth Observation Scan" 
+                    style={{ width: '100%', height: '240px', objectFit: 'cover', display: 'block' }}
+                  />
                 </div>
-              ))
+              </>
             )}
 
             {activeTab === 'radar' && (
-              <div className="radar-graphic-box">
-                <div className="radar-sweep-line"></div>
-                <div className="radar-rings"></div>
-                <div className="satellite-dot" style={{ top: '35%', left: '42%' }}></div>
-                <div className="satellite-dot" style={{ top: '65%', left: '60%' }}></div>
-                <div style={{ position: 'absolute', bottom: '12px', right: '14px', fontSize: '0.75rem', color: '#00F2FE' }}>
-                  Polar Coordinates: 51.64° N, 12.3° E | Alt: 408.2 km
-                </div>
+              <div className="dummy-img-card" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0, 242, 254, 0.3)' }}>
+                <img 
+                  src="/earth_scan.jpg" 
+                  alt="Live Orbital Radar & Earth Imagery Scan" 
+                  style={{ width: '100%', height: '290px', objectFit: 'cover', display: 'block' }}
+                />
               </div>
             )}
 
