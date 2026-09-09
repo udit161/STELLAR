@@ -173,31 +173,6 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
               </div>
             )}
           </div>
-
-          {/* Follow-up Glass Input Bar */}
-          <form className="followup-input-box" onSubmit={handleSendFollowup}>
-            <button type="button" className="input-icon-btn" title="Attach Telemetry Data">
-              <Paperclip size={16} />
-            </button>
-            <button type="button" className="input-icon-btn" title="Voice Input">
-              <Mic size={16} />
-            </button>
-            <input 
-              type="text" 
-              className="followup-text-field"
-              placeholder="Ask a follow-up about orbital parameters or trajectory..."
-              value={followupText}
-              onChange={(e) => setFollowupText(e.target.value)}
-            />
-            <button 
-              type="submit" 
-              className="submit-rocket-btn" 
-              disabled={!followupText.trim()}
-              title="Submit follow-up"
-            >
-              <Rocket size={16} />
-            </button>
-          </form>
         </LiquidGlassCard>
 
         {/* ── Right Summary Panel ── */}
@@ -284,6 +259,31 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
 }`}
             </div>
           )}
+
+          {/* Follow-up Glass Input Bar (shifted below summary content) */}
+          <form className="followup-input-box" onSubmit={handleSendFollowup} style={{ marginTop: 'auto' }}>
+            <button type="button" className="input-icon-btn" title="Attach Telemetry Data">
+              <Paperclip size={16} />
+            </button>
+            <button type="button" className="input-icon-btn" title="Voice Input">
+              <Mic size={16} />
+            </button>
+            <input 
+              type="text" 
+              className="followup-text-field"
+              placeholder="Ask a follow-up query..."
+              value={followupText}
+              onChange={(e) => setFollowupText(e.target.value)}
+            />
+            <button 
+              type="submit" 
+              className="submit-rocket-btn" 
+              disabled={!followupText.trim()}
+              title="Submit follow-up"
+            >
+              <Rocket size={16} />
+            </button>
+          </form>
         </LiquidGlassCard>
       </div>
 
