@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Clock,
@@ -17,15 +17,32 @@ const NAV_ITEMS = [
 ];
 
 function GlassSidebar({ activeNav, onNavChange }) {
-  const [active, setActive] = useState(activeNav || 'search');
+  const [active, setActive] = useState(activeNav || null);
+  const sidebarRef = useRef(null);
 
-  const handleSelect = (id) => {
-    setActive(id);
-    if (onNavChange) onNavChange(id);
+  const handleSelect = (id, e) => {
+    if (e) e.stopPropagation();
+    const nextActive = active === id ? null : id;
+    setActive(nextActive);
+    if (onNavChange) onNavChange(nextActive);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setActive(null);
+        if (onNavChange) onNavChange(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onNavChange]);
+
   return (
-    <div className="glass-sidebar-wrapper">
+    <div className="glass-sidebar-wrapper" ref={sidebarRef}>
       <div className="glass-sidebar">
         {/* Floating Nav Pills */}
         <nav className="glass-sidebar-nav">
@@ -38,7 +55,7 @@ function GlassSidebar({ activeNav, onNavChange }) {
                 key={item.id}
                 className={`glass-nav-pill ${isActive ? 'active' : ''}`}
                 data-item={item.id}
-                onClick={() => handleSelect(item.id)}
+                onClick={(e) => handleSelect(item.id, e)}
                 title={item.label}
                 aria-label={item.label}
               >
@@ -60,7 +77,7 @@ function GlassSidebar({ activeNav, onNavChange }) {
               key={item.id}
               className={`glass-dot ${active === item.id ? 'active' : ''}`}
               data-color={item.id}
-              onClick={() => handleSelect(item.id)}
+              onClick={(e) => handleSelect(item.id, e)}
               title={item.label}
             />
           ))}
