@@ -19,6 +19,18 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Top Header Row ── */
+.liquid-chat-header-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.liquid-chat-header-row .top-query-bar {
+  flex: 1;
+}
+
 /* ── Top Query Bar ── */
 .top-query-bar {
   display: flex;

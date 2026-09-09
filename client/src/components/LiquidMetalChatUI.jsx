@@ -71,27 +71,29 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
 
   return (
     <div className="liquid-chat-container">
-      {/* ── Top Bar ── */}
-      <LiquidGlassCard pill className="top-query-bar">
+      {/* ── Top Header Row (Logo on far left, Query Bar spanning top) ── */}
+      <div className="liquid-chat-header-row">
         <SatQueryLogo onClick={onResetQuery} />
 
-        <div className="query-pill-left">
-          <button className="action-pill-btn" onClick={onResetQuery} title="New Search">
-            <ArrowLeft size={14} /> Back
-          </button>
-          <span className="query-label">Active Query</span>
-          <span className="current-query-text" title={queryText}>"{queryText}"</span>
-        </div>
+        <LiquidGlassCard pill className="top-query-bar">
+          <div className="query-pill-left">
+            <button className="action-pill-btn" onClick={onResetQuery} title="New Search">
+              <ArrowLeft size={14} /> Back
+            </button>
+            <span className="query-label">Active Query</span>
+            <span className="current-query-text" title={queryText}>"{queryText}"</span>
+          </div>
 
-        <div className="top-query-actions">
-          <span className="action-pill-btn" style={{ cursor: 'default', background: 'rgba(0, 242, 254, 0.12)', color: '#00F2FE' }}>
-            <Activity size={13} /> Live Telemetry
-          </span>
-          <button className="action-pill-btn" onClick={() => setShowAboutModal(true)}>
-            <Info size={14} /> About
-          </button>
-        </div>
-      </LiquidGlassCard>
+          <div className="top-query-actions">
+            <span className="action-pill-btn" style={{ cursor: 'default', background: 'rgba(0, 242, 254, 0.12)', color: '#00F2FE' }}>
+              <Activity size={13} /> Live Telemetry
+            </span>
+            <button className="action-pill-btn" onClick={() => setShowAboutModal(true)}>
+              <Info size={14} /> About
+            </button>
+          </div>
+        </LiquidGlassCard>
+      </div>
 
       {/* ── Main Layout Grid ── */}
       <div className="chat-layout-grid">
