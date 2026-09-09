@@ -16,6 +16,7 @@ import {
   X
 } from 'lucide-react';
 import LiquidGlassCard from './LiquidGlassCard';
+import SatQueryLogo from './SatQueryLogo';
 import './LiquidMetalChatUI.css';
 
 export function LiquidMetalChatUI({ queryText, onResetQuery }) {
@@ -72,6 +73,8 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
     <div className="liquid-chat-container">
       {/* ── Top Bar ── */}
       <LiquidGlassCard pill className="top-query-bar">
+        <SatQueryLogo onClick={onResetQuery} />
+
         <div className="query-pill-left">
           <button className="action-pill-btn" onClick={onResetQuery} title="New Search">
             <ArrowLeft size={14} /> Back
