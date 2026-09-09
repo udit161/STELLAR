@@ -1,0 +1,403 @@
+/* ═══════════════════════════════════════════════════════════════════
+   LiquidMetalQueryBar — Premium Metal Liquid Glass Action Launcher
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Custom Properties ── */
+:root {
+  --lm-cyan: #00d5ff;
+  --lm-purple: #8a2be2;
+  --lm-transition-cubic: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --lm-glass-bg: rgba(255, 255, 255, 0.08);
+  --lm-glass-bg-hover: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Outer Dock Positioner ── */
+.liquid-bar-dock {
+  position: fixed;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+}
+
+/* ── Main Container (Levitating Float Animation) ── */
+.liquid-bar-container {
+  position: relative;
+  width: min(420px, 90vw);
+  height: 80px;
+  padding: 0 24px;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  cursor: pointer;
+
+  /* Glassmorphism Foundation */
+  background: var(--lm-glass-bg);
+  backdrop-filter: blur(25px) saturate(160%) brightness(1.08);
+  -webkit-backdrop-filter: blur(25px) saturate(160%) brightness(1.08);
+
+  /* Multi-Layered Box Shadows */
+  box-shadow:
+    0 12px 40px rgba(0, 213, 255, 0.15),
+    0 0 60px rgba(138, 43, 226, 0.1),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+
+  /* Liquid Border */
+  border: 2px solid rgba(0, 213, 255, 0.2);
+
+  /* Float & Shimmer Animations */
+  animation:
+    containerFloat 4s ease-in-out infinite,
+    borderFlow 3s ease-in-out infinite;
+
+  transition:
+    background 0.3s var(--lm-transition-cubic),
+    border-color 0.3s var(--lm-transition-cubic),
+    box-shadow 0.3s var(--lm-transition-cubic),
+    transform 0.3s var(--lm-transition-cubic);
+}
+
+.liquid-bar-container:hover {
+  background: var(--lm-glass-bg-hover);
+  border-color: rgba(0, 213, 255, 0.4);
+  box-shadow:
+    0 16px 50px rgba(0, 213, 255, 0.3),
+    0 0 80px rgba(138, 43, 226, 0.25),
+    inset 0 1px 3px rgba(255, 255, 255, 0.4),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Container Levitation Keyframe ── */
+@keyframes containerFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* ── Liquid Border Gradient Flow Keyframe ── */
+@keyframes borderFlow {
+  0%, 100% {
+    border-color: rgba(0, 213, 255, 0.25);
+  }
+  50% {
+    border-color: rgba(138, 43, 226, 0.35);
+  }
+}
+
+/* ── Liquid Metal Shimmer Overlay ── */
+.liquid-shimmer-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.liquid-shimmer-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    rgba(0, 213, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.05) 70%,
+    transparent 100%
+  );
+  animation: liquidShimmerMove 3s linear infinite;
+}
+
+@keyframes liquidShimmerMove {
+  0% {
+    left: -150%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+/* ── Minimal Ambient Indicator / Brand Sparkle (Left Side) ── */
+.liquid-left-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.indicator-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lm-cyan);
+  box-shadow: 0 0 10px var(--lm-cyan);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+    box-shadow: 0 0 16px var(--lm-cyan), 0 0 30px var(--lm-purple);
+  }
+}
+
+.indicator-label {
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(0, 213, 255, 0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Action Button Wrapper (Right Side Rocket Launcher) ── */
+.rocket-launch-button {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 213, 255, 0.3);
+  background: radial-gradient(circle at 30% 30%, rgba(0, 213, 255, 0.2) 0%, rgba(138, 43, 226, 0.1) 100%);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  outline: none;
+
+  /* Idle Rocket Pulse Box Shadow */
+  animation: rocketIdleGlow 2s ease-in-out infinite;
+
+  transition:
+    transform 0.3s var(--lm-transition-cubic),
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+@keyframes rocketIdleGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 15px rgba(0, 213, 255, 0.4),
+      0 0 30px rgba(138, 43, 226, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 25px rgba(0, 213, 255, 0.7),
+      0 0 45px rgba(138, 43, 226, 0.4);
+  }
+}
+
+/* ── Rocket Button Hover State ── */
+.rocket-launch-button:hover {
+  transform: scale(1.12) translateY(-5px);
+  border-color: rgba(0, 213, 255, 0.8);
+  background: radial-gradient(circle at 30% 30%, rgba(0, 213, 255, 0.35) 0%, rgba(138, 43, 226, 0.25) 100%);
+  box-shadow:
+    0 0 40px rgba(0, 213, 255, 0.8),
+    0 0 80px rgba(138, 43, 226, 0.6);
+}
+
+.rocket-launch-button:active {
+  transform: scale(0.95);
+}
+
+/* ── Rocket Icon Styling ── */
+.rocket-icon-svg {
+  color: var(--lm-cyan);
+  filter: drop-shadow(0 0 8px rgba(0, 213, 255, 0.8));
+  transition:
+    transform 0.3s var(--lm-transition-cubic),
+    filter 0.3s ease;
+}
+
+/* ── Rocket Launching Animation ── */
+.rocket-icon-svg.launching {
+  animation: rocketLaunch 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes rocketLaunch {
+  0% {
+    transform: translateY(0px) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(10px) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-160px) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* ── Rocket Launch Particle Trail ── */
+.launch-trail-container {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.trail-particle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--lm-cyan) 0%, var(--lm-purple) 100%);
+  opacity: 0;
+}
+
+.trail-particle.active-0 {
+  animation: trailEffect 0.8s ease-out forwards;
+  animation-delay: 0s;
+}
+.trail-particle.active-1 {
+  animation: trailEffect 0.85s ease-out forwards;
+  animation-delay: 0.1s;
+}
+.trail-particle.active-2 {
+  animation: trailEffect 0.9s ease-out forwards;
+  animation-delay: 0.15s;
+}
+.trail-particle.active-3 {
+  animation: trailEffect 0.95s ease-out forwards;
+  animation-delay: 0.2s;
+}
+
+@keyframes trailEffect {
+  0% {
+    transform: translateY(0px) scale(1.2);
+    opacity: 0.9;
+    box-shadow: 0 0 12px var(--lm-cyan);
+  }
+  100% {
+    transform: translateY(60px) scale(0.2);
+    opacity: 0;
+    box-shadow: 0 0 2px var(--lm-purple);
+  }
+}
+
+/* ── Decorative Floating Ambient Particles ── */
+.ambient-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lm-cyan);
+  box-shadow: 0 0 8px var(--lm-cyan);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.particle-tl {
+  top: -12px;
+  left: 15%;
+  animation: particleFloat1 5s infinite ease-in-out;
+}
+
+.particle-tr {
+  top: -10px;
+  right: 18%;
+  animation: particleFloat2 6s infinite ease-in-out 1s;
+}
+
+.particle-bl {
+  bottom: -10px;
+  left: 20%;
+  animation: particleFloat2 5.5s infinite ease-in-out 0.5s;
+}
+
+.particle-br {
+  bottom: -12px;
+  right: 15%;
+  animation: particleFloat1 6.5s infinite ease-in-out 1.5s;
+}
+
+@keyframes particleFloat1 {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(6px, -10px);
+    opacity: 0.8;
+  }
+}
+
+@keyframes particleFloat2 {
+  0%, 100% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-8px, -8px);
+    opacity: 0.9;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Responsive Design Breakpoints
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Tablet (480px - 768px) */
+@media (max-width: 768px) {
+  .liquid-bar-container {
+    height: 70px;
+    padding: 0 20px;
+    width: min(360px, 92vw);
+  }
+
+  .rocket-launch-button {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Mobile (< 480px) */
+@media (max-width: 480px) {
+  .liquid-bar-dock {
+    bottom: 20px;
+  }
+
+  .liquid-bar-container {
+    height: 60px;
+    padding: 0 16px;
+    border-radius: 40px;
+    width: min(300px, 94vw);
+  }
+
+  .rocket-launch-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Hide decorative corner particles on mobile */
+  .ambient-particle {
+    display: none;
+  }
+}

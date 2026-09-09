@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ArrowUp,
-  Sparkles,
   LogOut,
 } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import GlassSidebar from './components/GlassSidebar';
+import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
 import Scene from './pages/Scene';
@@ -17,7 +16,6 @@ import './index.css';
 function App() {
   const [authed, setAuthed] = useState(isAuthenticated());
   const [currentUser, setCurrentUser] = useState(getUser());
-  const [query, setQuery] = useState('');
   const [activeNav, setActiveNav] = useState('chat');
   const [showIntro, setShowIntro] = useState(true);
 
@@ -37,16 +35,8 @@ function App() {
     return <Scene onEnter={() => setShowIntro(false)} />;
   }
 
-  const handleSend = (e) => {
-    e?.preventDefault();
-    if (!query.trim()) return;
-    console.log('Query submitted:', query);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSend();
-    }
+  const handleLaunchQuery = () => {
+    console.log('Satellite AI Query launched from Liquid Metal Bar');
   };
 
   return (
@@ -76,37 +66,8 @@ function App() {
 
       </div>
 
-      {/* Bottom Center Liquid Glass Query Bar — outside app-container to escape stacking context */}
-      <div className="glass-bar-dock">
-        <div className="glass-bar-container">
-          <div className="glass-bar-inner">
-            <div className="glass-wave2" />
-            <div className="glass-sparkle-icon">
-              <Sparkles size={18} />
-            </div>
-            <input
-              type="text"
-              className="glass-bar-input"
-              placeholder="Ask about any satellite scene, coordinates, or change detection..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-            />
-            <button
-              className={`glass-bar-send ${query.trim() ? 'active' : ''}`}
-              onClick={handleSend}
-              title="Submit Query"
-            >
-              <ArrowUp size={16} />
-            </button>
-          </div>
-          <div className="glass-telemetry">
-            <div className="telemetry-live-dot"></div>
-            <span>STAC Sentinel-2 &amp; Landsat-9 Constellations Online</span>
-          </div>
-        </div>
-      </div>
+      {/* Metal Liquid Glass Query Action Bar */}
+      <LiquidMetalQueryBar onLaunchQuery={handleLaunchQuery} />
       <ISROBadge />
       <IndiaFlagBadge />
     </>
