@@ -1258,6 +1258,42 @@ class Orchestrator:
         }
 
     # -----------------------------------------------------------------------
+    # Node 9b: Fallback Reasoning Node
+    # -----------------------------------------------------------------------
+    def fallback_reasoning_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Fallback reasoning node triggered when specialist tools yield low confidence
+        or fail to extract required spatial features.
+        """
+        conf = state.get("confidence_score", 0.0)
+        task = state.get("classified_task", "unknown")
+        
+        fallback_msg = (
+            f"The primary analysis for '{task}' returned a low confidence score ({conf:.2f}) "
+            "or failed to extract the expected spatial features. "
+            "Please consider adjusting your prompt (e.g., specifying the target more clearly) "
+            "or providing higher-resolution imagery."
+        )
+        
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "FallbackReasoning",
+            "thought": f"Triggered fallback due to low confidence ({conf:.2f}) or missing spatial features.",
+            "action_taken": "fallback_notification",
+            "confidence": conf,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        
+        return {
+            "final_response": fallback_msg,
+            "executive_summary": "Analysis yielded low confidence. Clarification or prompt adjustment needed.",
+            "thought_trace": [reasoning],
+            "routing_history": ["fallback_reasoning"],
+            "status": RequestStatus.REQUIRES_USER_INPUT.value,
+            "requires_clarification": True,
+        }
+
+    # -----------------------------------------------------------------------
     # Dynamic Chained Routing Logic
     # -----------------------------------------------------------------------
     @staticmethod
@@ -1315,6 +1351,19 @@ class Orchestrator:
         # If all specialists executed, move to aggregation
         return "aggregation"
 
+    @staticmethod
+    def _route_after_synthesizer(state: AgentState) -> str:
+        """Route to fallback if confidence is low or spatial features are missing."""
+        conf = state.get("confidence_score")
+        if conf is not None and conf < 0.5:
+            return "fallback_reasoning"
+            
+        task = state.get("classified_task")
+        if task == "grounding" and not state.get("bounding_boxes"):
+            return "fallback_reasoning"
+            
+        return "aggregation"
+
     # -----------------------------------------------------------------------
     # Graph Construction
     # -----------------------------------------------------------------------
@@ -1335,6 +1384,7 @@ class Orchestrator:
             builder.add_node("cross_modal_fusion_specialist",self.cross_modal_fusion_specialist_node)
             builder.add_node("land_cover_specialist",       self.land_cover_specialist_node)
             builder.add_node("synthesizer",                 self.synthesizer_node)
+            builder.add_node("fallback_reasoning",          self.fallback_reasoning_node)
             builder.add_node("aggregation",                 self.aggregation_node)
 
             # ── Start → Validation → [Clarification | Controller] ────────
@@ -1396,8 +1446,16 @@ class Orchestrator:
                     _specialist_to_aggregation,
                 )
 
-            # ── synthesizer → aggregation → END ─────────────────────────
-            builder.add_edge("synthesizer", "aggregation")
+            # ── synthesizer → [fallback | aggregation] ───────────────────────
+            builder.add_conditional_edges(
+                "synthesizer",
+                self._route_after_synthesizer,
+                {
+                    "fallback_reasoning": "fallback_reasoning",
+                    "aggregation": "aggregation"
+                }
+            )
+            builder.add_edge("fallback_reasoning", "aggregation")
             builder.add_edge("aggregation", END)
             return builder
 
@@ -1499,7 +1557,12 @@ class Orchestrator:
                         # synthesizer for legacy path
                         self._merge(curr, self.orch.synthesizer_node(curr))
 
-                    # 5. Aggregation (always last)
+                    # 5. Route after synthesizer
+                    next_route = Orchestrator._route_after_synthesizer(curr)
+                    if next_route == "fallback_reasoning":
+                        self._merge(curr, self.orch.fallback_reasoning_node(curr))
+
+                    # 6. Aggregation (always last)
                     self._merge(curr, self.orch.aggregation_node(curr))
                     return curr
 
