@@ -34,10 +34,6 @@ export function TopologyBackground() {
     renderer.domElement.style.cssText = 'position:absolute;inset:0;';
     container.appendChild(renderer.domElement);
 
-    // Glow orb
-    const glow = document.createElement('div');
-    glow.style.cssText = 'position:absolute;top:50%;left:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(140px);opacity:0.05;background:white;width:800px;height:800px;';
-    container.appendChild(glow);
 
     const group = new THREE.Group();
     scene.add(group);
