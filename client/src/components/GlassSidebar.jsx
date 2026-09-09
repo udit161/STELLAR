@@ -8,7 +8,11 @@ import {
   Trash2,
   X,
   ChevronRight,
-  ExternalLink
+  Plus,
+  Image as ImageIcon,
+  Tag,
+  Save,
+  Edit3
 } from 'lucide-react';
 import './GlassSidebar.css';
 
@@ -28,10 +32,44 @@ const INITIAL_HISTORY = [
   { id: 5, query: 'Analyse Sentinel-2 SAR radar imagery', time: '2 days ago', tag: 'Radar', desc: 'Multispectral false-color infrared terrain scan inspection.' },
 ];
 
+const INITIAL_NOTES = [
+  {
+    id: 1,
+    title: 'ISRO Cartosat-3 Orbit & Node Telemetry',
+    content: 'Inclination: 97.5° SSO. Operating altitude ~509 km. High-resolution panchromatic & multispectral sensors active with Doppler frequency correction.',
+    tag: 'Telemetry',
+    color: '#a78bfa',
+    image: '/sat_orbit.jpg',
+    date: 'Sep 10, 2026'
+  },
+  {
+    id: 2,
+    title: 'Sentinel-2 Infrared Coastal Scan Analysis',
+    content: 'Multispectral false-color infrared highlights active coral reef ecosystems and coastal erosion patterns along Australian shoreline.',
+    tag: 'Earth Scan',
+    color: '#38bdf8',
+    image: '/earth_scan.jpg',
+    date: 'Sep 09, 2026'
+  }
+];
+
 function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
   const [active, setActive] = useState(activeNav || null);
   const [historyList, setHistoryList] = useState(INITIAL_HISTORY);
   const [historyFilter, setHistoryFilter] = useState('');
+  
+  // Note Taking State
+  const [notesList, setNotesList] = useState(INITIAL_NOTES);
+  const [noteFilter, setNoteFilter] = useState('');
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  
+  // New Note Form State
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [noteTag, setNoteTag] = useState('Telemetry');
+  const [noteImage, setNoteImage] = useState('/sat_orbit.jpg');
+
   const sidebarRef = useRef(null);
 
   const handleSelect = (id, e) => {
@@ -50,16 +88,79 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
     setHistoryList([]);
   };
 
+  // Note Taking Actions
+  const handleSaveNote = (e) => {
+    e?.preventDefault();
+    if (!noteTitle.trim() || !noteContent.trim()) return;
+
+    if (editingNoteId) {
+      setNotesList(prev => prev.map(n => n.id === editingNoteId ? {
+        ...n,
+        title: noteTitle.trim(),
+        content: noteContent.trim(),
+        tag: noteTag,
+        image: noteImage
+      } : n));
+      setEditingNoteId(null);
+    } else {
+      const newNote = {
+        id: Date.now(),
+        title: noteTitle.trim(),
+        content: noteContent.trim(),
+        tag: noteTag,
+        color: noteTag === 'Telemetry' ? '#a78bfa' : noteTag === 'Earth Scan' ? '#38bdf8' : '#fbbf24',
+        image: noteImage,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      };
+      setNotesList(prev => [newNote, ...prev]);
+    }
+
+    setNoteTitle('');
+    setNoteContent('');
+    setIsCreatingNote(false);
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNoteId(note.id);
+    setNoteTitle(note.title);
+    setNoteContent(note.content);
+    setNoteTag(note.tag);
+    setNoteImage(note.image || '/sat_orbit.jpg');
+    setIsCreatingNote(true);
+  };
+
+  const handleDeleteNote = (id, e) => {
+    e?.stopPropagation();
+    setNotesList(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        setNoteImage(uploadEvent.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const filteredHistory = historyList.filter(item => 
     item.query.toLowerCase().includes(historyFilter.toLowerCase()) ||
     item.tag.toLowerCase().includes(historyFilter.toLowerCase()) ||
     item.desc.toLowerCase().includes(historyFilter.toLowerCase())
   );
 
+  const filteredNotes = notesList.filter(note => 
+    note.title.toLowerCase().includes(noteFilter.toLowerCase()) ||
+    note.content.toLowerCase().includes(noteFilter.toLowerCase()) ||
+    note.tag.toLowerCase().includes(noteFilter.toLowerCase())
+  );
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-        if (active !== 'history') {
+        if (active !== 'history' && active !== 'documents') {
           setActive(null);
           if (onNavChange) onNavChange(null);
         }
@@ -98,36 +199,6 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
                       {item.label}
                     </span>
                   </button>
-
-                  {/* ── Documents Flyout ── */}
-                  {isActive && item.id === 'documents' && (
-                    <div className="sidebar-flyout-panel docs-flyout" onClick={(e) => e.stopPropagation()}>
-                      <div className="flyout-header">
-                        <span className="flyout-title">
-                          <FileText size={15} /> Orbit Documents
-                        </span>
-                        <button className="flyout-icon-btn" onClick={() => setActive(null)}>
-                          <X size={14} />
-                        </button>
-                      </div>
-                      <div className="history-list-box">
-                        <div className="history-item-row">
-                          <div className="history-item-left">
-                            <span className="history-item-query">NORAD Satellite Catalog 2026</span>
-                            <span className="history-item-meta">PDF • 14.2 MB</span>
-                          </div>
-                          <ExternalLink size={13} style={{ color: '#00F2FE' }} />
-                        </div>
-                        <div className="history-item-row">
-                          <div className="history-item-left">
-                            <span className="history-item-query">ISRO Earth Observation Guide</span>
-                            <span className="history-item-meta">DOCX • 8.6 MB</span>
-                          </div>
-                          <ExternalLink size={13} style={{ color: '#00F2FE' }} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* ── Settings Flyout ── */}
                   {isActive && item.id === 'settings' && (
@@ -234,6 +305,167 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Center Transparent Big Documents & Notes Center Modal (Purple Theme) ── */}
+      {active === 'documents' && (
+        <div className="history-modal-backdrop" onClick={() => setActive(null)}>
+          <div className="docs-center-card" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="docs-card-header">
+              <div className="docs-title-purple">
+                <div className="docs-purple-icon-badge">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h2 className="docs-main-heading">Orbit Notes & Documents</h2>
+                  <p className="docs-sub-heading">Create custom research notes & save satellite imagery from AI queries</p>
+                </div>
+              </div>
+
+              <div className="docs-header-actions">
+                <button 
+                  className="docs-create-note-btn" 
+                  onClick={() => {
+                    setIsCreatingNote(!isCreatingNote);
+                    setEditingNoteId(null);
+                    setNoteTitle('');
+                    setNoteContent('');
+                  }}
+                >
+                  <Plus size={15} /> {isCreatingNote ? 'Cancel' : 'New Note'}
+                </button>
+                <button className="history-close-btn" onClick={() => setActive(null)} title="Close">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Note Creation / Editing Editor */}
+            {isCreatingNote ? (
+              <form className="note-editor-form" onSubmit={handleSaveNote}>
+                <div className="editor-row">
+                  <input 
+                    type="text"
+                    className="note-title-input"
+                    placeholder="Note Title (e.g. Cartosat-3 Solar Array Inspection)..."
+                    value={noteTitle}
+                    onChange={(e) => setNoteTitle(e.target.value)}
+                    required
+                  />
+                  <select 
+                    className="note-tag-select"
+                    value={noteTag}
+                    onChange={(e) => setNoteTag(e.target.value)}
+                  >
+                    <option value="Telemetry">#Telemetry</option>
+                    <option value="Earth Scan">#Earth Scan</option>
+                    <option value="Debris Risk">#Debris Risk</option>
+                    <option value="General">#General</option>
+                  </select>
+                </div>
+
+                <textarea 
+                  className="note-content-textarea"
+                  placeholder="Type your notes, orbital calculations, or satellite analysis observations..."
+                  value={noteContent}
+                  onChange={(e) => setNoteContent(e.target.value)}
+                  rows={4}
+                  required
+                />
+
+                {/* Preset Image Picker + File Upload */}
+                <div className="image-picker-row">
+                  <span className="picker-label"><ImageIcon size={14} /> Attach Satellite Image:</span>
+                  <div className="preset-thumbs">
+                    <img 
+                      src="/sat_orbit.jpg" 
+                      alt="Orbit" 
+                      className={`thumb-item ${noteImage === '/sat_orbit.jpg' ? 'selected' : ''}`}
+                      onClick={() => setNoteImage('/sat_orbit.jpg')}
+                    />
+                    <img 
+                      src="/earth_scan.jpg" 
+                      alt="Earth Scan" 
+                      className={`thumb-item ${noteImage === '/earth_scan.jpg' ? 'selected' : ''}`}
+                      onClick={() => setNoteImage('/earth_scan.jpg')}
+                    />
+                    <img 
+                      src="/deep_space.jpg" 
+                      alt="Deep Space" 
+                      className={`thumb-item ${noteImage === '/deep_space.jpg' ? 'selected' : ''}`}
+                      onClick={() => setNoteImage('/deep_space.jpg')}
+                    />
+                  </div>
+                  <label className="upload-custom-lbl">
+                    Upload Custom
+                    <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                  </label>
+                </div>
+
+                <button type="submit" className="save-note-submit-btn">
+                  <Save size={15} /> {editingNoteId ? 'Update Note' : 'Save Note'}
+                </button>
+              </form>
+            ) : (
+              /* Search Filter Bar Purple */
+              <div className="docs-search-bar-purple">
+                <Search size={16} style={{ color: '#a78bfa' }} />
+                <input 
+                  type="text" 
+                  className="history-filter-input"
+                  placeholder="Search saved notes by title, tag, or content..."
+                  value={noteFilter}
+                  onChange={(e) => setNoteFilter(e.target.value)}
+                />
+                {noteFilter && (
+                  <button className="history-filter-clear" onClick={() => setNoteFilter('')}>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Saved Notes Grid */}
+            {!isCreatingNote && (
+              <div className="notes-grid-list">
+                {filteredNotes.length > 0 ? (
+                  filteredNotes.map((note) => (
+                    <div key={note.id} className="note-card-item">
+                      {note.image && (
+                        <div className="note-img-preview-box">
+                          <img src={note.image} alt={note.title} className="note-card-img" />
+                          <span className="note-purple-tag">#{note.tag}</span>
+                        </div>
+                      )}
+                      <div className="note-card-body">
+                        <div className="note-card-top">
+                          <h3 className="note-card-title">{note.title}</h3>
+                          <div className="note-card-actions">
+                            <button className="note-action-icon" onClick={() => handleEditNote(note)} title="Edit Note">
+                              <Edit3 size={14} />
+                            </button>
+                            <button className="note-action-icon delete" onClick={(e) => handleDeleteNote(note.id, e)} title="Delete Note">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="note-card-content">{note.content}</p>
+                        <span className="note-card-date">{note.date}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="history-empty-box">
+                    <FileText size={36} style={{ color: 'rgba(167, 139, 250, 0.4)', marginBottom: '10px' }} />
+                    <p style={{ margin: 0, fontWeight: 600 }}>No notes created yet</p>
+                    <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Click "+ New Note" to save satellite intelligence & images!</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
