@@ -13,7 +13,8 @@ import {
   Cpu, 
   Layers,
   CheckCircle2,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import LiquidGlassCard from './LiquidGlassCard';
 import SatQueryLogo from './SatQueryLogo';
