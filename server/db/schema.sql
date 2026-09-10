@@ -3,7 +3,7 @@
 -- Enable UUID extension if supported
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users Table
+
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
