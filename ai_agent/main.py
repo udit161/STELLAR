@@ -13,7 +13,14 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel
-
+from persistence import (
+    init_persistence,
+    create_query,
+    update_query,
+    add_execution_trace,
+    get_query,
+get_execution_traces,
+)
 try:
     from fastapi import (
         FastAPI,
@@ -137,6 +144,8 @@ orchestrator = Orchestrator()
 # In-memory execution trace store.
 # This will later be replaced/extended with persistent database storage.
 JOB_TRACES: Dict[str, Dict[str, Any]] = {}
+# Initialize persistent audit database.
+init_persistence()
 def run_query_job(
     job_id: str,
     q: str,
@@ -149,6 +158,18 @@ def run_query_job(
 
     try:
         JOB_TRACES[job_id]["status"] = "processing"
+
+        update_query(
+            job_id=job_id,
+            status="processing",
+        )
+
+        add_execution_trace(
+            job_id=job_id,
+        event_type="job_started",
+        status="processing",
+        message="Background orchestration started.",
+    )
 
         model = AgentStateModel(
             raw_query=q,
@@ -169,12 +190,40 @@ def run_query_job(
         )
         JOB_TRACES[job_id]["result"] = result_state
 
+        update_query(
+            job_id=job_id,
+            status="completed",
+            result=result_state,
+        )
+
+        add_execution_trace(
+            job_id=job_id,
+            event_type="job_completed",
+            status="completed",
+            message="Background orchestration completed successfully.",
+        )
+
     except Exception as e:
         JOB_TRACES[job_id]["status"] = "failed"
         JOB_TRACES[job_id]["error"] = str(e)
         JOB_TRACES[job_id]["completed_at"] = (
             __import__("datetime").datetime.utcnow().isoformat() + "Z"
         )
+        
+
+        update_query(
+            job_id=job_id,
+            status="failed",
+            error=str(e),
+        )
+
+        add_execution_trace(
+            job_id=job_id,
+        event_type="job_failed",
+        status="failed",
+        message="Background orchestration failed.",
+        details={"error": str(e)},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -411,78 +460,42 @@ def system_status():
 
 @app.get("/api/v1/trace/{job_id}")
 def get_execution_trace(job_id: str):
-    """Return execution trace information for a job."""
+    """Return persistent execution trace information for a job."""
+
     trace = JOB_TRACES.get(job_id)
 
-    if trace is None:
+    # If the job is still in memory, return the live trace.
+    if trace is not None:
+        persisted_query = get_query(job_id)
+        persisted_events = get_execution_traces(job_id)
+
+        return {
+            **trace,
+            "persistent_query": persisted_query,
+            "execution_events": persisted_events,
+        }
+
+    # Otherwise recover it from the SQLite audit database.
+    persisted_query = get_query(job_id)
+
+    if persisted_query is None:
         raise HTTPException(
             status_code=404,
             detail=f"Job '{job_id}' not found",
         )
 
-    return trace
-
-@app.websocket("/api/v1/ws/{job_id}")
-async def websocket_job_status(websocket: WebSocket, job_id: str):
-    """
-    Stream real-time execution status updates for a background job.
-    """
-
-    await websocket.accept()
-
-    if job_id not in JOB_TRACES:
-        await websocket.send_json({
-            "job_id": job_id,
-            "status": "not_found",
-            "message": f"Job '{job_id}' not found",
-        })
-        await websocket.close(code=1008)
-        return
-
-    last_status = None
-
-    try:
-        while True:
-            trace = JOB_TRACES.get(job_id)
-
-            if trace is None:
-                await websocket.send_json({
-                    "job_id": job_id,
-                    "status": "not_found",
-                })
-                await websocket.close(code=1008)
-                return
-
-            status = trace.get("status")
-
-            # Send only when the status changes.
-            if status != last_status:
-                await websocket.send_json({
-                    "job_id": job_id,
-                    "status": status,
-                    "error": trace.get("error"),
-                    "completed_at": trace.get("completed_at"),
-                })
-
-                last_status = status
-
-            # Job has reached a terminal state.
-            if status in ("completed", "failed"):
-                await websocket.send_json({
-                    "job_id": job_id,
-                    "status": status,
-                    "result_available": trace.get("result") is not None,
-                    "error": trace.get("error"),
-                    "completed_at": trace.get("completed_at"),
-                })
-
-                await websocket.close(code=1000)
-                return
-
-            await asyncio.sleep(0.5)
-
-    except WebSocketDisconnect:
-        return
+    return {
+        "job_id": job_id,
+        "status": persisted_query["status"],
+        "query": persisted_query["query_text"],
+        "user_id": persisted_query["user_id"],
+        "session_id": persisted_query["session_id"],
+        "started_at": persisted_query["started_at"],
+        "completed_at": persisted_query["completed_at"],
+        "error": persisted_query["error"],
+        "result": persisted_query.get("result"),
+        "execution_events": get_execution_traces(job_id),
+    }
 
 @app.post("/api/v1/orchestrate")
 @app.post("/api/v1/query")
@@ -521,6 +534,20 @@ def orchestrate_query(
         "error": None,
         "result": None,
     }
+    
+    create_query(
+        job_id=job_id,
+        query_text=q,
+        user_id=uid,
+        session_id=sid,
+    )
+
+    add_execution_trace(
+        job_id=job_id,
+        event_type="job_queued",
+        status="queued",
+        message="Query accepted by API gateway.",
+)
 
     background_tasks.add_task(
         run_query_job,
