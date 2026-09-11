@@ -474,7 +474,18 @@ async def analyze_bitemporal(
 
     t1_info = await save_uploaded_file(t1_file)
     t2_info = await save_uploaded_file(t2_file)
-
+    alignment_result = validate_image_pair_alignment(
+    t1_info["file_path"],
+    t2_info["file_path"],
+)
+    if not alignment_result["aligned"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Bitemporal images are not spatially aligned.",
+                "alignment_checks": alignment_result,
+        },
+    )
     t1_image_input = create_image_input_model(t1_info, sensor_name=sensor or "Sentinel-2")
     t2_image_input = create_image_input_model(t2_info, sensor_name=sensor or "Sentinel-2")
 
