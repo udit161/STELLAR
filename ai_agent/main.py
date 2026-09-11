@@ -14,7 +14,17 @@ from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel
 
 try:
-    from fastapi import FastAPI, HTTPException, Body, File, UploadFile, Form, Depends, Header
+    from fastapi import (
+        FastAPI,
+        HTTPException,
+        Body,
+        File,
+        UploadFile,
+        Form,
+        Depends,
+        Header,
+        BackgroundTasks,
+    )
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.staticfiles import StaticFiles
 
@@ -124,6 +134,44 @@ orchestrator = Orchestrator()
 # In-memory execution trace store.
 # This will later be replaced/extended with persistent database storage.
 JOB_TRACES: Dict[str, Dict[str, Any]] = {}
+def run_query_job(
+    job_id: str,
+    q: str,
+    geo: Dict[str, Any],
+    mod: Dict[str, Any],
+    uid: Optional[str],
+    sid: Optional[str],
+):
+    """Run an orchestration job in the FastAPI background worker."""
+
+    try:
+        JOB_TRACES[job_id]["status"] = "processing"
+
+        model = AgentStateModel(
+            raw_query=q,
+            query=q,
+            geo_context=geo,
+            modalities=mod,
+            user_id=uid,
+            session_id=sid,
+        )
+
+        initial_state = model.to_graph_state()
+
+        result_state = orchestrator.run(q, initial_state)
+
+        JOB_TRACES[job_id]["status"] = "completed"
+        JOB_TRACES[job_id]["completed_at"] = (
+            __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        )
+        JOB_TRACES[job_id]["result"] = result_state
+
+    except Exception as e:
+        JOB_TRACES[job_id]["status"] = "failed"
+        JOB_TRACES[job_id]["error"] = str(e)
+        JOB_TRACES[job_id]["completed_at"] = (
+            __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -373,87 +421,58 @@ def get_execution_trace(job_id: str):
 
 @app.post("/api/v1/orchestrate")
 @app.post("/api/v1/query")
-def orchestrate_query(payload: QueryRequest):
+def orchestrate_query(
+    payload: QueryRequest,
+    background_tasks: BackgroundTasks,
+):
     """
-    Execute the multi-agent state graph pipeline for text-only queries.
+    Create an asynchronous orchestration job.
 
-    A unique job_id is created for every execution and stored in the
-    in-memory execution trace store.
+    The API returns immediately with a job_id while the
+    VLM/orchestrator runs in the background.
     """
+
+    q = getattr(payload, "query", "")
+
+    if not q.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Query string cannot be empty",
+        )
+
+    geo = getattr(payload, "geo_context", {}) or {}
+    mod = getattr(payload, "modalities", {}) or {}
+    uid = getattr(payload, "user_id", None)
+    sid = getattr(payload, "session_id", None)
+
     job_id = str(uuid.uuid4())
 
     JOB_TRACES[job_id] = {
         "job_id": job_id,
-        "status": "running",
-        "query": getattr(payload, "query", ""),
+        "status": "queued",
+        "query": q,
         "started_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
         "completed_at": None,
         "error": None,
+        "result": None,
     }
 
-    try:
-        q = getattr(payload, "query", "")
+    background_tasks.add_task(
+        run_query_job,
+        job_id,
+        q,
+        geo,
+        mod,
+        uid,
+        sid,
+    )
 
-        if not q.strip():
-            JOB_TRACES[job_id]["status"] = "failed"
-            JOB_TRACES[job_id]["error"] = "Query string cannot be empty"
-
-            raise HTTPException(
-                status_code=400,
-                detail="Query string cannot be empty",
-            )
-
-        geo = getattr(payload, "geo_context", {}) or {}
-        mod = getattr(payload, "modalities", {}) or {}
-        uid = getattr(payload, "user_id", None)
-        sid = getattr(payload, "session_id", None)
-
-        JOB_TRACES[job_id]["status"] = "processing"
-
-        model = AgentStateModel(
-            raw_query=q,
-            query=q,
-            geo_context=geo,
-            modalities=mod,
-            user_id=uid,
-            session_id=sid,
-        )
-
-        initial_state = model.to_graph_state()
-
-        result_state = orchestrator.run(q, initial_state)
-
-        JOB_TRACES[job_id]["status"] = "completed"
-        JOB_TRACES[job_id]["completed_at"] = (
-            __import__("datetime").datetime.utcnow().isoformat() + "Z"
-        )
-
-        JOB_TRACES[job_id]["result_available"] = True
-
-        return {
-            "job_id": job_id,
-            "status": "completed",
-            "result": result_state,
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        JOB_TRACES[job_id]["status"] = "failed"
-        JOB_TRACES[job_id]["error"] = str(e)
-        JOB_TRACES[job_id]["completed_at"] = (
-            __import__("datetime").datetime.utcnow().isoformat() + "Z"
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "job_id": job_id,
-                "message": f"Orchestration failure: {str(e)}",
-            },
-        )
-
+    return {
+        "job_id": job_id,
+        "status": "queued",
+        "message": "Query accepted and processing started.",
+        "trace_url": f"/api/v1/trace/{job_id}",
+    }
 @app.post("/api/v1/upload")
 async def upload_standalone_file(file: UploadFile = File(...)):
     """
