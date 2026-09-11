@@ -9,6 +9,7 @@ import os
 import uuid
 import json
 import shutil
+import asyncio
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel
@@ -24,6 +25,8 @@ try:
         Depends,
         Header,
         BackgroundTasks,
+        WebSocket,
+        WebSocketDisconnect,
     )
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.staticfiles import StaticFiles
@@ -418,6 +421,68 @@ def get_execution_trace(job_id: str):
         )
 
     return trace
+
+@app.websocket("/api/v1/ws/{job_id}")
+async def websocket_job_status(websocket: WebSocket, job_id: str):
+    """
+    Stream real-time execution status updates for a background job.
+    """
+
+    await websocket.accept()
+
+    if job_id not in JOB_TRACES:
+        await websocket.send_json({
+            "job_id": job_id,
+            "status": "not_found",
+            "message": f"Job '{job_id}' not found",
+        })
+        await websocket.close(code=1008)
+        return
+
+    last_status = None
+
+    try:
+        while True:
+            trace = JOB_TRACES.get(job_id)
+
+            if trace is None:
+                await websocket.send_json({
+                    "job_id": job_id,
+                    "status": "not_found",
+                })
+                await websocket.close(code=1008)
+                return
+
+            status = trace.get("status")
+
+            # Send only when the status changes.
+            if status != last_status:
+                await websocket.send_json({
+                    "job_id": job_id,
+                    "status": status,
+                    "error": trace.get("error"),
+                    "completed_at": trace.get("completed_at"),
+                })
+
+                last_status = status
+
+            # Job has reached a terminal state.
+            if status in ("completed", "failed"):
+                await websocket.send_json({
+                    "job_id": job_id,
+                    "status": status,
+                    "result_available": trace.get("result") is not None,
+                    "error": trace.get("error"),
+                    "completed_at": trace.get("completed_at"),
+                })
+
+                await websocket.close(code=1000)
+                return
+
+            await asyncio.sleep(0.5)
+
+    except WebSocketDisconnect:
+        return
 
 @app.post("/api/v1/orchestrate")
 @app.post("/api/v1/query")
