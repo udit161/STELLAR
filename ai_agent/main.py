@@ -121,6 +121,10 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 # Initialize single orchestrator instance
 orchestrator = Orchestrator()
 
+# In-memory execution trace store.
+# This will later be replaced/extended with persistent database storage.
+JOB_TRACES: Dict[str, Dict[str, Any]] = {}
+
 
 # ---------------------------------------------------------------------------
 # Helper Utility Functions
@@ -335,22 +339,76 @@ def health_check():
         "uploads_writable": os.access(UPLOAD_DIR, os.W_OK)
     }
 
+@app.get("/api/v1/system-status")
+def system_status():
+    """Return backend service and model status."""
+    return {
+        "status": "operational",
+        "service": "satquery-agent",
+        "version": "1.0.0",
+        "components": {
+            "api": "operational",
+            "orchestrator": "operational" if orchestrator else "unavailable",
+            "vlm": "loaded",
+            "geospatial": "operational",
+            "upload_directory": {
+                "path": str(UPLOAD_DIR.resolve()),
+                "writable": os.access(UPLOAD_DIR, os.W_OK),
+            },
+        },
+    }
+
+@app.get("/api/v1/trace/{job_id}")
+def get_execution_trace(job_id: str):
+    """Return execution trace information for a job."""
+    trace = JOB_TRACES.get(job_id)
+
+    if trace is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found",
+        )
+
+    return trace
 
 @app.post("/api/v1/orchestrate")
 @app.post("/api/v1/query")
 def orchestrate_query(payload: QueryRequest):
     """
-    Execute multi-agent state graph pipeline for text-only user queries (with optional JSON context).
+    Execute the multi-agent state graph pipeline for text-only queries.
+
+    A unique job_id is created for every execution and stored in the
+    in-memory execution trace store.
     """
+    job_id = str(uuid.uuid4())
+
+    JOB_TRACES[job_id] = {
+        "job_id": job_id,
+        "status": "running",
+        "query": getattr(payload, "query", ""),
+        "started_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+        "completed_at": None,
+        "error": None,
+    }
+
     try:
         q = getattr(payload, "query", "")
+
         if not q.strip():
-            raise HTTPException(status_code=400, detail="Query string cannot be empty")
+            JOB_TRACES[job_id]["status"] = "failed"
+            JOB_TRACES[job_id]["error"] = "Query string cannot be empty"
+
+            raise HTTPException(
+                status_code=400,
+                detail="Query string cannot be empty",
+            )
 
         geo = getattr(payload, "geo_context", {}) or {}
         mod = getattr(payload, "modalities", {}) or {}
         uid = getattr(payload, "user_id", None)
         sid = getattr(payload, "session_id", None)
+
+        JOB_TRACES[job_id]["status"] = "processing"
 
         model = AgentStateModel(
             raw_query=q,
@@ -360,12 +418,41 @@ def orchestrate_query(payload: QueryRequest):
             user_id=uid,
             session_id=sid,
         )
-        initial_state = model.to_graph_state()
-        result_state = orchestrator.run(q, initial_state)
-        return result_state
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Orchestration failure: {str(e)}")
 
+        initial_state = model.to_graph_state()
+
+        result_state = orchestrator.run(q, initial_state)
+
+        JOB_TRACES[job_id]["status"] = "completed"
+        JOB_TRACES[job_id]["completed_at"] = (
+            __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        )
+
+        JOB_TRACES[job_id]["result_available"] = True
+
+        return {
+            "job_id": job_id,
+            "status": "completed",
+            "result": result_state,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        JOB_TRACES[job_id]["status"] = "failed"
+        JOB_TRACES[job_id]["error"] = str(e)
+        JOB_TRACES[job_id]["completed_at"] = (
+            __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "job_id": job_id,
+                "message": f"Orchestration failure: {str(e)}",
+            },
+        )
 
 @app.post("/api/v1/upload")
 async def upload_standalone_file(file: UploadFile = File(...)):
