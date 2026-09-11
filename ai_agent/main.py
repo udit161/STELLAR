@@ -16,7 +16,7 @@ try:
     from fastapi import FastAPI, HTTPException, Body, File, UploadFile, Form, Depends, Header
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.staticfiles import StaticFiles
-    from pydantic import BaseModel, Field
+
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
