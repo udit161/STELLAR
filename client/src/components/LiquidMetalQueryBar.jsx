@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Rocket } from 'lucide-react';
+import { Rocket, Plus, FileText, Image as ImageIcon, X } from 'lucide-react';
 import './LiquidMetalQueryBar.css';
 
 const PROMPTS = [
@@ -61,19 +61,24 @@ function useTypewriter(prompts) {
 
 function LiquidMetalQueryBar({ onLaunchQuery }) {
   const [query, setQuery]             = useState('');
+  const [attachments, setAttachments] = useState([]);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isFocused, setIsFocused]     = useState(false);
-  const inputRef   = useRef(null);
-  const ghostText  = useTypewriter(PROMPTS);
+  const [isDragOver, setIsDragOver]   = useState(false);
+  const inputRef      = useRef(null);
+  const fileInputRef  = useRef(null);
+  const ghostText     = useTypewriter(PROMPTS);
 
   const handleLaunch = (e) => {
     e?.stopPropagation();
-    if (isLaunching || !query.trim()) return;
+    if (isLaunching || (!query.trim() && attachments.length === 0)) return;
     setIsLaunching(true);
-    if (onLaunchQuery) onLaunchQuery(query.trim());
+    const finalQuery = query.trim() || 'Analyze attached telemetry and imagery data';
+    if (onLaunchQuery) onLaunchQuery(finalQuery, attachments);
     setTimeout(() => {
       setIsLaunching(false);
       setQuery('');
+      setAttachments([]);
     }, 1000);
   };
 
@@ -83,8 +88,68 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
 
   const focusInput = () => inputRef.current?.focus();
 
+  const handleAttachClick = (e) => {
+    e?.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
+  const processFiles = (files) => {
+    const fileList = Array.from(files);
+    fileList.forEach(file => {
+      const isImage = file.type.startsWith('image/');
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        setAttachments(prev => [
+          ...prev,
+          {
+            id: Date.now() + Math.random(),
+            name: file.name,
+            size: file.size < 1024 * 1024 
+              ? `${(file.size / 1024).toFixed(1)} KB` 
+              : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+            isImage,
+            type: file.type || (isImage ? 'image' : 'document'),
+            data: loadEvent.target.result
+          }
+        ]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(e.target.files);
+      e.target.value = '';
+    }
+  };
+
+  const removeAttachment = (id, e) => {
+    e?.stopPropagation();
+    setAttachments(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(e.dataTransfer.files);
+    }
+  };
+
   // Show ghost text only when input is empty
   const showGhost = !query;
+  const canSubmit = query.trim().length > 0 || attachments.length > 0;
 
   return (
     <div className="liquid-bar-dock">
@@ -93,9 +158,41 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
       <span className="ambient-particle particle-bl" aria-hidden="true" />
       <span className="ambient-particle particle-br" aria-hidden="true" />
 
+      {/* Attachments Shelf above Query Bar */}
+      {attachments.length > 0 && (
+        <div className="liquid-attachments-shelf" onClick={(e) => e.stopPropagation()}>
+          {attachments.map((att) => (
+            <div key={att.id} className="attachment-chip">
+              {att.isImage ? (
+                <img src={att.data} alt={att.name} className="attachment-chip-thumb" />
+              ) : (
+                <div className="attachment-chip-doc-icon">
+                  <FileText size={13} />
+                </div>
+              )}
+              <div className="attachment-chip-text">
+                <span className="attachment-chip-name" title={att.name}>{att.name}</span>
+                <span className="attachment-chip-size">{att.size}</span>
+              </div>
+              <button 
+                type="button" 
+                className="attachment-chip-remove" 
+                onClick={(e) => removeAttachment(att.id, e)}
+                title="Remove attachment"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div
-        className={`liquid-bar-container ${isFocused ? 'focused' : ''}`}
+        className={`liquid-bar-container ${isFocused ? 'focused' : ''} ${isDragOver ? 'drag-over' : ''}`}
         onClick={focusInput}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         role="search"
         aria-label="Satellite Intelligence Query Bar"
       >
@@ -103,6 +200,27 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
 
         {/* Pulse dot */}
         <div className="indicator-pulse-dot" aria-hidden="true" />
+
+        {/* Attachment '+' Button */}
+        <button
+          type="button"
+          className="liquid-attach-btn"
+          onClick={handleAttachClick}
+          title="Attach telemetry document, dataset, or satellite picture"
+          aria-label="Attach documents or photos"
+        >
+          <Plus size={16} />
+        </button>
+
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+        />
 
         {/* Input + ghost-text wrapper */}
         <div className="liquid-input-wrap">
@@ -133,11 +251,11 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
 
         {/* Rocket / Send button */}
         <button
-          className={`rocket-launch-button ${isLaunching ? 'launching' : ''} ${query.trim() ? 'has-query' : ''}`}
+          className={`rocket-launch-button ${isLaunching ? 'launching' : ''} ${canSubmit ? 'has-query' : ''}`}
           onClick={handleLaunch}
           aria-label="Launch Satellite AI Query"
           title="Launch query"
-          disabled={!query.trim()}
+          disabled={!canSubmit}
         >
           <Rocket
             className={`rocket-icon-svg ${isLaunching ? 'launching' : ''}`}
@@ -159,3 +277,4 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
 }
 
 export default LiquidMetalQueryBar;
+

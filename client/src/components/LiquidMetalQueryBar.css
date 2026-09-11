@@ -434,3 +434,145 @@
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Query Bar '+' Attachment Button & Attachments Shelf
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Attachment '+' Button */
+.liquid-attach-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  margin-left: 8px;
+  margin-right: 6px;
+  flex-shrink: 0;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+}
+
+.liquid-attach-btn:hover {
+  background: rgba(0, 213, 255, 0.2);
+  border-color: rgba(0, 213, 255, 0.6);
+  color: #00d5ff;
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 0 12px rgba(0, 213, 255, 0.4);
+}
+
+.liquid-attach-btn:active {
+  transform: scale(0.95);
+}
+
+/* Drag & drop active state on container */
+.liquid-bar-container.drag-over {
+  border-color: #00d5ff;
+  background: rgba(0, 213, 255, 0.15);
+  box-shadow: 0 0 25px rgba(0, 213, 255, 0.35);
+}
+
+/* Attachments Shelf above Query Bar */
+.liquid-attachments-shelf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  max-width: min(590px, 90vw);
+  overflow-x: auto;
+  padding: 4px 6px;
+  animation: shelfFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes shelfFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 213, 255, 0.3);
+  border-radius: 20px;
+  padding: 4px 8px 4px 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  animation: chipPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes chipPop {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.attachment-chip-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.attachment-chip-doc-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(0, 213, 255, 0.15);
+  border: 1px solid rgba(0, 213, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00d5ff;
+}
+
+.attachment-chip-text {
+  display: flex;
+  flex-direction: column;
+  max-width: 140px;
+}
+
+.attachment-chip-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-chip-size {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.attachment-chip-remove {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.attachment-chip-remove:hover {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
+}

@@ -427,6 +427,11 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
               </div>
 
               <div className="docs-header-actions">
+                {notesList.length > 0 && (
+                  <button className="docs-export-btn" onClick={handleExportNotes} title="Export All Notes">
+                    <Download size={14} /> Export
+                  </button>
+                )}
                 <button 
                   className="docs-create-note-btn" 
                   onClick={() => {
@@ -434,6 +439,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     setEditingNoteId(null);
                     setNoteTitle('');
                     setNoteContent('');
+                    setNoteDocument(null);
                   }}
                 >
                   <Plus size={15} /> {isCreatingNote ? 'Cancel' : 'New Note'}
@@ -464,6 +470,8 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     <option value="Telemetry">#Telemetry</option>
                     <option value="Earth Scan">#Earth Scan</option>
                     <option value="Debris Risk">#Debris Risk</option>
+                    <option value="Mission Log">#Mission Log</option>
+                    <option value="Research">#Research</option>
                     <option value="General">#General</option>
                   </select>
                 </div>
@@ -501,32 +509,61 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     />
                   </div>
                   <label className="upload-custom-lbl">
-                    Upload Custom
+                    <ImageIcon size={12} /> Image
                     <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
                   </label>
+                  <label className="upload-custom-lbl doc-upload">
+                    <Paperclip size={12} /> Document
+                    <input type="file" accept=".pdf,.txt,.json,.csv,.doc,.docx" onChange={handleFileUpload} style={{ display: 'none' }} />
+                  </label>
                 </div>
+
+                {noteDocument && (
+                  <div className="attached-doc-badge">
+                    <FileCheck size={14} />
+                    <span className="doc-name">{noteDocument.name} ({noteDocument.size})</span>
+                    <button type="button" className="doc-remove-btn" onClick={() => setNoteDocument(null)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
 
                 <button type="submit" className="save-note-submit-btn">
                   <Save size={15} /> {editingNoteId ? 'Update Note' : 'Save Note'}
                 </button>
               </form>
             ) : (
-              /* Search Filter Bar Purple */
-              <div className="docs-search-bar-purple">
-                <Search size={16} style={{ color: '#a78bfa' }} />
-                <input 
-                  type="text" 
-                  className="history-filter-input"
-                  placeholder="Search saved notes by title, tag, or content..."
-                  value={noteFilter}
-                  onChange={(e) => setNoteFilter(e.target.value)}
-                />
-                {noteFilter && (
-                  <button className="history-filter-clear" onClick={() => setNoteFilter('')}>
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
+              <>
+                {/* Search Filter Bar Purple */}
+                <div className="docs-search-bar-purple">
+                  <Search size={16} style={{ color: '#a78bfa' }} />
+                  <input 
+                    type="text" 
+                    className="history-filter-input"
+                    placeholder="Search saved notes by title, tag, document, or content..."
+                    value={noteFilter}
+                    onChange={(e) => setNoteFilter(e.target.value)}
+                  />
+                  {noteFilter && (
+                    <button className="history-filter-clear" onClick={() => setNoteFilter('')}>
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Tag Filter Pills */}
+                <div className="notes-tag-pills">
+                  {['All', 'Telemetry', 'Earth Scan', 'Debris Risk', 'Mission Log', 'Research', 'General'].map(tag => (
+                    <button
+                      key={tag}
+                      className={`notes-tag-pill ${activeTagFilter === tag ? 'active' : ''}`}
+                      onClick={() => setActiveTagFilter(tag)}
+                    >
+                      {tag === 'All' ? 'All Notes' : `#${tag}`}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
 
             {/* Saved Notes Grid */}
@@ -545,6 +582,13 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                         <div className="note-card-top">
                           <h3 className="note-card-title">{note.title}</h3>
                           <div className="note-card-actions">
+                            <button 
+                              className="note-action-icon" 
+                              onClick={(e) => handleCopyNote(note, e)} 
+                              title="Copy Note Text"
+                            >
+                              {copiedId === note.id ? <Check size={14} color="#34d399" /> : <Copy size={14} />}
+                            </button>
                             <button className="note-action-icon" onClick={() => handleEditNote(note)} title="Edit Note">
                               <Edit3 size={14} />
                             </button>
@@ -554,6 +598,15 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                           </div>
                         </div>
                         <p className="note-card-content">{note.content}</p>
+                        
+                        {note.document && (
+                          <div className="note-doc-pill">
+                            <Paperclip size={12} />
+                            <span>{note.document.name}</span>
+                            <span className="note-doc-size">{note.document.size}</span>
+                          </div>
+                        )}
+
                         <span className="note-card-date">{note.date}</span>
                       </div>
                     </div>
@@ -562,7 +615,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   <div className="history-empty-box">
                     <FileText size={36} style={{ color: 'rgba(167, 139, 250, 0.4)', marginBottom: '10px' }} />
                     <p style={{ margin: 0, fontWeight: 600 }}>No notes created yet</p>
-                    <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Click "+ New Note" to save satellite intelligence & images!</span>
+                    <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Click "+ New Note" to save satellite intelligence, telemetry, & documents!</span>
                   </div>
                 )}
               </div>
