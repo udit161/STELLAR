@@ -12,14 +12,20 @@ import {
   Image as ImageIcon,
   Tag,
   Save,
-  Edit3
+  Edit3,
+  Paperclip,
+  Copy,
+  Check,
+  Download,
+  LogOut,
+  FileCheck
 } from 'lucide-react';
 import './GlassSidebar.css';
 
 const NAV_ITEMS = [
   { id: 'search',    icon: Search,   label: 'Search' },
   { id: 'history',   icon: Clock,    label: 'History' },
-  { id: 'documents', icon: FileText,  label: 'Documents' },
+  { id: 'documents', icon: FileText,  label: 'Notes & Docs', title: 'Orbit Notes & Documents' },
   { id: 'settings',  icon: Settings,  label: 'Settings' },
   { id: 'profile',   icon: User,      label: 'Profile' },
 ];
@@ -53,24 +59,42 @@ const INITIAL_NOTES = [
   }
 ];
 
-function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
+function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLogout }) {
   const [active, setActive] = useState(activeNav || null);
   const [historyList, setHistoryList] = useState(INITIAL_HISTORY);
   const [historyFilter, setHistoryFilter] = useState('');
   
-  // Note Taking State
-  const [notesList, setNotesList] = useState(INITIAL_NOTES);
+  // Note Taking State with LocalStorage Persistence
+  const [notesList, setNotesList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('satquery_orbit_notes');
+      return saved ? JSON.parse(saved) : INITIAL_NOTES;
+    } catch {
+      return INITIAL_NOTES;
+    }
+  });
   const [noteFilter, setNoteFilter] = useState('');
+  const [activeTagFilter, setActiveTagFilter] = useState('All');
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
   
   // New Note Form State
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteTag, setNoteTag] = useState('Telemetry');
   const [noteImage, setNoteImage] = useState('/sat_orbit.jpg');
+  const [noteDocument, setNoteDocument] = useState(null); // { name, size, data }
 
   const sidebarRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('satquery_orbit_notes', JSON.stringify(notesList));
+    } catch (e) {
+      console.error('Failed to persist notes:', e);
+    }
+  }, [notesList]);
 
   const handleSelect = (id, e) => {
     if (e) e.stopPropagation();
@@ -99,7 +123,8 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
         title: noteTitle.trim(),
         content: noteContent.trim(),
         tag: noteTag,
-        image: noteImage
+        image: noteImage,
+        document: noteDocument
       } : n));
       setEditingNoteId(null);
     } else {
@@ -108,8 +133,9 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
         title: noteTitle.trim(),
         content: noteContent.trim(),
         tag: noteTag,
-        color: noteTag === 'Telemetry' ? '#a78bfa' : noteTag === 'Earth Scan' ? '#38bdf8' : '#fbbf24',
+        color: noteTag === 'Telemetry' ? '#a78bfa' : noteTag === 'Earth Scan' ? '#38bdf8' : noteTag === 'Debris Risk' ? '#f87171' : '#fbbf24',
         image: noteImage,
+        document: noteDocument,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       };
       setNotesList(prev => [newNote, ...prev]);
@@ -117,6 +143,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
 
     setNoteTitle('');
     setNoteContent('');
+    setNoteDocument(null);
     setIsCreatingNote(false);
   };
 
@@ -125,7 +152,8 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
     setNoteTitle(note.title);
     setNoteContent(note.content);
     setNoteTag(note.tag);
-    setNoteImage(note.image || '/sat_orbit.jpg');
+    setNoteImage(note.image || '');
+    setNoteDocument(note.document || null);
     setIsCreatingNote(true);
   };
 
@@ -134,12 +162,49 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
     setNotesList(prev => prev.filter(n => n.id !== id));
   };
 
+  const handleCopyNote = (note, e) => {
+    e?.stopPropagation();
+    const textToCopy = `[${note.tag}] ${note.title}\nDate: ${note.date}\n\n${note.content}${note.document ? `\nAttached Document: ${note.document.name}` : ''}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopiedId(note.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
+
+  const handleExportNotes = () => {
+    const exportData = JSON.stringify(notesList, null, 2);
+    const blob = new Blob([exportData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `satquery_notes_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         setNoteImage(uploadEvent.target.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Document file (PDF, TXT, JSON, DOCX)
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        setNoteDocument({
+          name: file.name,
+          size: `${(file.size / 1024).toFixed(1)} KB`,
+          type: file.type || 'document',
+          data: uploadEvent.target.result
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -151,11 +216,15 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
     item.desc.toLowerCase().includes(historyFilter.toLowerCase())
   );
 
-  const filteredNotes = notesList.filter(note => 
-    note.title.toLowerCase().includes(noteFilter.toLowerCase()) ||
-    note.content.toLowerCase().includes(noteFilter.toLowerCase()) ||
-    note.tag.toLowerCase().includes(noteFilter.toLowerCase())
-  );
+  const filteredNotes = notesList.filter(note => {
+    const matchesTag = activeTagFilter === 'All' || note.tag.toLowerCase() === activeTagFilter.toLowerCase();
+    const matchesKeyword = 
+      note.title.toLowerCase().includes(noteFilter.toLowerCase()) ||
+      note.content.toLowerCase().includes(noteFilter.toLowerCase()) ||
+      note.tag.toLowerCase().includes(noteFilter.toLowerCase()) ||
+      (note.document && note.document.name.toLowerCase().includes(noteFilter.toLowerCase()));
+    return matchesTag && matchesKeyword;
+  });
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -219,6 +288,38 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery }) {
                         <span>High Precision TLE Calculation</span>
                         <input type="checkbox" defaultChecked />
                       </div>
+                    </div>
+                  )}
+
+                  {/* ── Profile Flyout ── */}
+                  {isActive && item.id === 'profile' && (
+                    <div className="sidebar-flyout-panel profile-flyout" onClick={(e) => e.stopPropagation()}>
+                      <div className="flyout-header">
+                        <span className="flyout-title">
+                          <User size={15} /> Mission Operator
+                        </span>
+                        <button className="flyout-icon-btn" onClick={() => setActive(null)}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="profile-badge-row">
+                        <div className="profile-avatar">
+                          {currentUser?.username ? currentUser.username.charAt(0).toUpperCase() : 'ISRO'}
+                        </div>
+                        <div className="profile-meta">
+                          <span className="profile-name">{currentUser?.username || 'ISRO Command Center'}</span>
+                          <span className="profile-desc">Orbital Flight Dynamics</span>
+                        </div>
+                      </div>
+                      {onLogout && (
+                        <button 
+                          className="profile-signout-btn" 
+                          onClick={() => { onLogout(); setActive(null); }}
+                          title="Sign Out"
+                        >
+                          <LogOut size={14} /> Sign Out
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
