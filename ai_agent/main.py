@@ -11,6 +11,7 @@ import json
 import shutil
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
+from pydantic import BaseModel
 
 try:
     from fastapi import FastAPI, HTTPException, Body, File, UploadFile, Form, Depends, Header
@@ -59,6 +60,11 @@ except ImportError:
         return default
 
 from agent_core.orchestrator import Orchestrator
+from utils.geospatial import (
+    inspect_raster,
+    validate_image_pair_alignment,
+    verify_band_configuration,
+)
 from agent_core.state import (
     AgentStateModel,
     RequestStatus,
@@ -139,32 +145,44 @@ def detect_image_format(filename: str) -> str:
 
 
 async def save_uploaded_file(upload_file) -> Dict[str, Any]:
-    """
-    Saves an UploadFile to the local uploads directory and inspects basic metadata.
-    Returns dictionary with file path, filename, format, and size.
-    """
     file_id = str(uuid.uuid4())[:8]
-    safe_filename = f"{file_id}_{upload_file.filename.replace(' ', '_')}"
+
+    original_filename = upload_file.filename or "uploaded_file"
+    safe_filename = f"{file_id}_{original_filename.replace(' ', '_')}"
+
     file_path = UPLOAD_DIR / safe_filename
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(upload_file.file, buffer)
 
     file_size = os.path.getsize(file_path)
-    fmt = detect_image_format(upload_file.filename)
+    fmt = detect_image_format(original_filename)
     relative_url = f"/uploads/{safe_filename}"
+
+    # Validate and inspect geospatial/image metadata
+    try:
+        geospatial_metadata = inspect_raster(str(file_path))
+    except Exception as exc:
+        # Remove invalid uploaded file
+        if file_path.exists():
+            file_path.unlink()
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid or unsupported image file: {exc}",
+        )
 
     return {
         "image_id": str(uuid.uuid4()),
-        "file_name": upload_file.filename,
+        "file_name": original_filename,
         "saved_filename": safe_filename,
         "file_path": str(file_path.resolve()),
         "relative_url": relative_url,
         "file_format": fmt,
         "size_bytes": file_size,
         "size_mb": round(file_size / (1024 * 1024), 2),
+        "geospatial_metadata": geospatial_metadata,
     }
-
 
 def create_image_input_model(file_info: Dict[str, Any], sensor_name: str = "Sentinel-2", modality: str = "optical") -> Dict[str, Any]:
     """Helper to structure an ImageInput object/dict for AgentStateModel."""
