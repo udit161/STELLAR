@@ -20,7 +20,7 @@ import LiquidGlassCard from './LiquidGlassCard';
 import SatQueryLogo from './SatQueryLogo';
 import './LiquidMetalChatUI.css';
 
-export function LiquidMetalChatUI({ queryText, onResetQuery }) {
+export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery }) {
   const [activeTab, setActiveTab] = useState('report'); // 'report' | 'radar' | 'tle'
   const [summaryMode, setSummaryMode] = useState('summary'); // 'summary' | 'raw'
   const [followupText, setFollowupText] = useState('');
@@ -31,7 +31,7 @@ export function LiquidMetalChatUI({ queryText, onResetQuery }) {
     {
       id: 1,
       sender: 'ai',
-      text: `Based on real-time orbital calculations and catalog telemetry for "${queryText}": The object is currently operating in Low Earth Orbit (LEO) at an inclination of ~51.64°. All onboard sub-systems report normal telemetry values.`
+      text: `Based on real-time orbital calculations${attachments && attachments.length > 0 ? ` and analysis of ${attachments.length} attached document(s)/imagery (${attachments.map(a => a.name).join(', ')})` : ''} for "${queryText}": The object is currently operating in Low Earth Orbit (LEO) at an inclination of ~51.64°. All onboard sub-systems report normal telemetry values.`
     }
   ]);
 

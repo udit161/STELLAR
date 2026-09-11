@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { LogOut } from 'lucide-react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
@@ -20,6 +19,7 @@ function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [querySubmitted, setQuerySubmitted] = useState(false);
   const [activeQuery, setActiveQuery] = useState('');
+  const [activeAttachments, setActiveAttachments] = useState([]);
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
@@ -37,15 +37,17 @@ function App() {
     return <Scene onEnter={() => setShowIntro(false)} />;
   }
 
-  const handleLaunchQuery = (queryText) => {
-    console.log('Satellite AI Query launched:', queryText);
+  const handleLaunchQuery = (queryText, attachments = []) => {
+    console.log('Satellite AI Query launched:', queryText, attachments);
     setActiveQuery(queryText || 'Track ISRO satellite orbits');
+    setActiveAttachments(attachments || []);
     setQuerySubmitted(true);
   };
 
   const handleResetQuery = () => {
     setQuerySubmitted(false);
     setActiveQuery('');
+    setActiveAttachments([]);
   };
 
   return (
@@ -59,6 +61,8 @@ function App() {
           activeNav={activeNav} 
           onNavChange={setActiveNav} 
           onSelectQuery={handleLaunchQuery}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         {/* Main Content Area */}
@@ -69,20 +73,12 @@ function App() {
             </div>
           ) : (
             <LiquidMetalChatUI 
-              queryText={activeQuery} 
+              queryText={activeQuery}
+              attachments={activeAttachments}
               onResetQuery={handleResetQuery} 
             />
           )}
         </main>
-
-        {/* Logout button */}
-        <button
-          className="logout-fab"
-          onClick={handleLogout}
-          title={`Logout${currentUser?.username ? ` (${currentUser.username})` : ''}`}
-        >
-          <LogOut size={18} />
-        </button>
 
       </div>
 
