@@ -492,7 +492,8 @@ async def analyze_bitemporal(
     bi_temporal_pair = {
         "t1_image": t1_image_input,
         "t2_image": t2_image_input,
-        "alignment_verified": True
+        "alignment_verified": alignment_result["aligned"],
+        "alignment_checks": alignment_result,
     }
 
     modalities = {
@@ -535,13 +536,41 @@ async def analyze_crossmodal(
     opt_info = await save_uploaded_file(optical_file)
     sar_info = await save_uploaded_file(sar_file)
 
+    optical_metadata = verify_band_configuration(
+        opt_info["file_path"],
+        expected_modality="optical",
+    )
+
+    sar_metadata = verify_band_configuration(
+        sar_info["file_path"],
+        expected_modality="sar",
+    )
+
+    if not optical_metadata["valid"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Optical image failed band/modality validation.",
+                "validation": optical_metadata,
+            },
+        )
+
+    if not sar_metadata["valid"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "SAR image failed band/modality validation.",
+                "validation": sar_metadata,
+        },
+    )
+
     opt_input = create_image_input_model(opt_info, sensor_name="Sentinel-2", modality="optical")
     sar_input = create_image_input_model(sar_info, sensor_name="Sentinel-1", modality="sar")
 
     optical_sar_pair = {
         "optical_image": opt_input,
         "sar_image": sar_input,
-        "polarization": "VV+VH",
+        "polarization": "+".join(sar_metadata.get("polarizations", [])),
         "fusion_strategy": "cross_attention"
     }
 
