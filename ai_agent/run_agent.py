@@ -49,27 +49,33 @@ def execute_satquery_agent(
     req_id = metadata.get("request_id") or str(uuid.uuid4())
     img_paths = image_paths or []
 
-    # Build uploaded_images list with spatial roles
+    # Build uploaded_images list with spatial roles and modalities
     uploaded_images = []
+    has_sar = False
+    has_opt = False
+
     for idx, path in enumerate(img_paths):
         path_lower = str(path).lower()
         role = "primary"
-        if len(img_paths) >= 2:
-            if "t1" in path_lower or "before" in path_lower or idx == 0:
-                role = "t1"
-            elif "t2" in path_lower or "after" in path_lower or idx == 1:
-                role = "t2"
-            if "optical" in path_lower:
-                role = "optical"
-            elif "sar" in path_lower:
-                role = "sar"
+        modality = "optical"
+        
+        if "sar" in path_lower or "radar" in path_lower or "sentinel1" in path_lower:
+            role = "sar"
+            modality = "sar"
+            has_sar = True
+        elif "optical" in path_lower or "sentinel2" in path_lower or "rgb" in path_lower:
+            role = "optical"
+            modality = "optical"
+            has_opt = True
+        elif len(img_paths) >= 2:
+            role = "t1" if idx == 0 else "t2"
 
         uploaded_images.append({
             "image_id": str(uuid.uuid4()),
             "file_path": path,
             "path": path,
             "role": role,
-            "modality": "sar" if role == "sar" else "optical"
+            "modality": modality,
         })
 
     # Prepare initial graph state
@@ -87,6 +93,20 @@ def execute_satquery_agent(
         "spatial_context_cache": metadata.get("spatial_context_cache") or {},
         "specialist_model_configs": metadata.get("specialist_model_configs") or {},
     }
+
+    # Automatically attach pair metadata for multi-image requests
+    if len(img_paths) >= 2:
+        if has_sar or has_opt or any("sar" in str(p).lower() or "radar" in str(p).lower() for p in img_paths):
+            opt_p = next((p for p in img_paths if "sar" not in str(p).lower() and "radar" not in str(p).lower()), img_paths[0])
+            sar_p = next((p for p in img_paths if "sar" in str(p).lower() or "radar" in str(p).lower()), img_paths[1] if len(img_paths) > 1 else img_paths[0])
+            initial_state["optical_sar_pair"] = {
+                "optical_image": {"file_path": opt_p, "modality": "optical"},
+                "sar_image": {"file_path": sar_p, "modality": "sar"},
+            }
+        initial_state["bi_temporal_pair"] = {
+            "t1_image": {"file_path": img_paths[0], "role": "t1"},
+            "t2_image": {"file_path": img_paths[1], "role": "t2"},
+        }
 
     # Initialize orchestrator and run compiled workflow
     orchestrator = Orchestrator()

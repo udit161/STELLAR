@@ -783,52 +783,138 @@ def load_jsonl(path: str, limit: Optional[int] = None) -> List[BenchmarkSample]:
 
 def make_mock_dataset() -> List[BenchmarkSample]:
     """
-    Built-in mini mock dataset — 3 samples covering all task types.
-    Used for smoke-testing without real benchmark files on disk.
+    Built-in mock dataset — 12 representative satellite intelligence questions
+    covering VQA, Grounding, Change Detection, and Cross-Modal Optical+SAR analysis.
     """
     return [
-        # Sample 1 — Single-image VQA (RSVQA style)
+        # ── 1. Single-Image Understanding & VQA ──
         BenchmarkSample(
-            sample_id      = "rsvqa_mock_001",
+            sample_id      = "vqa_q01",
             task           = "vqa",
-            query          = "What is the predominant land cover type visible in this satellite image?",
-            image_paths    = ["/data/sentinel2_patch_001.tif"],
-            gt_answer      = "agricultural farmland",
-            gt_bboxes      = None,
+            query          = "Describe the land-cover and major objects visible in this image.",
+            image_paths    = ["/data/coastal_urban_scene.tif"],
+            gt_answer      = "dense urban built-up area and coastal water body",
             expected_tools = ["vqa_tool"],
-            benchmark      = "RSVQA",
+            benchmark      = "VQA_Suite",
             subtask        = "vqa",
         ),
-        # Sample 2 — Object grounding (VRSBench style)
         BenchmarkSample(
-            sample_id      = "vrsbench_mock_042",
+            sample_id      = "vqa_q02",
+            task           = "vqa",
+            query          = "Are there any residential buildings or paved roads present in this area?",
+            image_paths    = ["/data/suburban_zone.tif"],
+            gt_answer      = "yes, multiple residential structures and paved road networks are present",
+            expected_tools = ["vqa_tool"],
+            benchmark      = "VQA_Suite",
+            subtask        = "vqa",
+        ),
+        BenchmarkSample(
+            sample_id      = "vqa_q03",
+            task           = "vqa",
+            query          = "What is the primary land-use type shown in this satellite capture?",
+            image_paths    = ["/data/agricultural_parcel.tif"],
+            gt_answer      = "agricultural farmland and cultivated crop fields",
+            expected_tools = ["vqa_tool"],
+            benchmark      = "VQA_Suite",
+            subtask        = "vqa",
+        ),
+
+        # ── 2. Text-Guided Region Grounding ──
+        BenchmarkSample(
+            sample_id      = "grounding_q04",
             task           = "grounding",
-            query          = "Locate all storage tanks visible in this aerial image.",
-            image_paths    = ["/data/aerial_industrial_scene.tif"],
-            gt_answer      = None,
-            gt_bboxes      = [
-                [0.10, 0.20, 0.28, 0.40],
-                [0.55, 0.30, 0.72, 0.52],
-                [0.35, 0.60, 0.50, 0.78],
-            ],
+            query          = "Highlight the specific water body referred to in the image.",
+            image_paths    = ["/data/coastal_reservoir.tif"],
+            gt_bboxes      = [[0.20, 0.25, 0.65, 0.75]],
             expected_tools = ["grounding_tool"],
-            benchmark      = "VRSBench",
+            benchmark      = "Grounding_Suite",
             subtask        = "grounding",
         ),
-        # Sample 3 — Bi-temporal change detection (CDVQA style)
         BenchmarkSample(
-            sample_id      = "cdvqa_mock_007",
+            sample_id      = "grounding_q05",
+            task           = "grounding",
+            query          = "Draw a bounding box around the largest cluster of built-up infrastructure.",
+            image_paths    = ["/data/industrial_compound.tif"],
+            gt_bboxes      = [[0.10, 0.15, 0.55, 0.60]],
+            expected_tools = ["grounding_tool"],
+            benchmark      = "Grounding_Suite",
+            subtask        = "grounding",
+        ),
+        BenchmarkSample(
+            sample_id      = "grounding_q06",
+            task           = "grounding",
+            query          = "Locate and highlight the agricultural fields in this frame.",
+            image_paths    = ["/data/rural_farmland.tif"],
+            gt_bboxes      = [[0.30, 0.40, 0.85, 0.90]],
+            expected_tools = ["grounding_tool"],
+            benchmark      = "Grounding_Suite",
+            subtask        = "grounding",
+        ),
+
+        # ── 3. Bi-Temporal Change Detection ──
+        BenchmarkSample(
+            sample_id      = "change_q07",
             task           = "change_detection",
-            query          = "What changed between these two satellite images taken six months apart?",
-            image_paths    = [
-                "/data/gaofen_t1_2023_06.tif",
-                "/data/gaofen_t2_2023_12.tif",
-            ],
-            gt_answer      = "new construction of residential buildings in the northeastern sector",
-            gt_bboxes      = [[0.60, 0.05, 0.95, 0.45]],
+            query          = "What changed between these two dates, and where did the change occur?",
+            image_paths    = ["/data/t1_pre_event_2023.tif", "/data/t2_post_event_2024.tif"],
+            gt_answer      = "new urban construction in the central zone",
+            gt_bboxes      = [[0.35, 0.35, 0.70, 0.70]],
             expected_tools = ["change_detection_tool"],
-            benchmark      = "CDVQA",
+            benchmark      = "CD_Suite",
             subtask        = "change_detection",
+        ),
+        BenchmarkSample(
+            sample_id      = "change_q08",
+            task           = "change_detection",
+            query          = "Has the built-up area increased, decreased, or remained unchanged?",
+            image_paths    = ["/data/t1_before_construction.tif", "/data/t2_after_construction.tif"],
+            gt_answer      = "increased",
+            expected_tools = ["change_detection_tool"],
+            benchmark      = "CD_Suite",
+            subtask        = "change_detection",
+        ),
+        BenchmarkSample(
+            sample_id      = "change_q09",
+            task           = "change_detection",
+            query          = "Identify any new roads or infrastructure constructed between these two satellite captures.",
+            image_paths    = ["/data/t1_suburban_2022.tif", "/data/t2_suburban_2024.tif"],
+            gt_answer      = "new highway segment constructed across the southern region",
+            gt_bboxes      = [[0.60, 0.10, 0.80, 0.90]],
+            expected_tools = ["change_detection_tool"],
+            benchmark      = "CD_Suite",
+            subtask        = "change_detection",
+        ),
+
+        # ── 4. Cross-Modal Analysis (Optical + SAR) ──
+        BenchmarkSample(
+            sample_id      = "crossmodal_q10",
+            task           = "cross_modal",
+            query          = "Use the optical and SAR images together to clearly identify built-up and water-covered regions.",
+            image_paths    = ["/data/optical_sentinel2.tif", "/data/sar_sentinel1.tif"],
+            gt_answer      = "high SAR backscatter confirms urban structures and low specular backscatter confirms water",
+            expected_tools = ["fusion_routing_tool"],
+            benchmark      = "CrossModal_Suite",
+            subtask        = "cross_modal",
+        ),
+        BenchmarkSample(
+            sample_id      = "crossmodal_q11",
+            task           = "cross_modal",
+            query          = "Using the SAR backscatter data, confirm if the cloud-obscured area in the optical image contains any urban structures.",
+            image_paths    = ["/data/cloudy_optical.tif", "/data/radar_sar_scene.tif"],
+            gt_answer      = "SAR backscatter confirms double-bounce signatures of urban buildings beneath cloud layer",
+            expected_tools = ["fusion_routing_tool"],
+            benchmark      = "CrossModal_Suite",
+            subtask        = "cross_modal",
+        ),
+        BenchmarkSample(
+            sample_id      = "crossmodal_q12",
+            task           = "cross_modal",
+            query          = "Combine both modalities to assess the exact extent of the flooded region.",
+            image_paths    = ["/data/optical_flood_extent.tif", "/data/sar_flood_extent.tif"],
+            gt_answer      = "inundated area mapped across 42.5 square kilometers using combined optical-SAR response",
+            expected_tools = ["fusion_routing_tool"],
+            benchmark      = "CrossModal_Suite",
+            subtask        = "cross_modal",
         ),
     ]
 

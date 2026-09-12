@@ -34,25 +34,69 @@ function QueryBar({ onExecuteQuery, currentAoi, initialQuery = '' }) {
   }, [initialQuery]);
 
   const quickPrompts = [
+    // ── Single-Image Understanding & VQA ──
     {
-      label: '🌱 Agricultural NDVI Index',
-      query: 'Calculate NDVI spectral index for Punjab wheat farms and show vegetation health variance between Jan 2023 and Jan 2024.',
-      tag: 'Sentinel-2',
+      label: '👁️ Land-Cover & Objects',
+      query: 'Describe the land-cover and major objects visible in this image.',
+      tag: 'Single-Image VQA',
     },
     {
-      label: '🏗️ Urban Sprawl & Growth',
-      query: 'Detect urban expansion and built-up land use changes in Bengaluru periphery from 2020 to 2024 using bi-temporal optical imagery.',
-      tag: 'Change Det',
+      label: '🏘️ Buildings & Roads',
+      query: 'Are there any residential buildings or paved roads present in this area?',
+      tag: 'Single-Image VQA',
     },
     {
-      label: '🌊 Flood Inundation Mapping',
-      query: 'Assess submerged infrastructure and flooded agricultural areas in Brahmaputra River Basin during peak monsoon 2023.',
-      tag: 'SAR C-Band',
+      label: '🏞️ Primary Land-Use Type',
+      query: 'What is the primary land-use type shown in this satellite capture?',
+      tag: 'Single-Image VQA',
+    },
+    // ── Text-Guided Region Grounding ──
+    {
+      label: '🌊 Ground Water Body',
+      query: 'Highlight the specific water body referred to in the image.',
+      tag: 'Text Grounding',
     },
     {
-      label: '🔥 Wildfire & Thermal Hotspot',
-      query: 'Identify active thermal anomalies and burn scar perimeter in Western Ghats forest reserve with cloud-filtered analysis.',
-      tag: 'Landsat-9',
+      label: '🏢 Built-up Infrastructure',
+      query: 'Draw a bounding box around the largest cluster of built-up infrastructure.',
+      tag: 'Text Grounding',
+    },
+    {
+      label: '🌾 Agricultural Fields',
+      query: 'Locate and highlight the agricultural fields in this frame.',
+      tag: 'Text Grounding',
+    },
+    // ── Bi-Temporal Change Detection ──
+    {
+      label: '⏳ Temporal Changes',
+      query: 'What changed between these two dates, and where did the change occur?',
+      tag: 'Change Detection',
+    },
+    {
+      label: '📈 Built-up Expansion',
+      query: 'Has the built-up area increased, decreased, or remained unchanged?',
+      tag: 'Change Detection',
+    },
+    {
+      label: '🛣️ New Infrastructure',
+      query: 'Identify any new roads or infrastructure constructed between these two satellite captures.',
+      tag: 'Change Detection',
+    },
+    // ── Cross-Modal Analysis (Optical + SAR) ──
+    {
+      label: '🛰️ Optical + SAR Fusion',
+      query: 'Use the optical and SAR images together to clearly identify built-up and water-covered regions.',
+      tag: 'Optical + SAR',
+    },
+    {
+      label: '☁️ SAR Cloud Penetration',
+      query: 'Using the SAR backscatter data, confirm if the cloud-obscured area in the optical image contains any urban structures.',
+      tag: 'Optical + SAR',
+    },
+    {
+      label: '🌊 Flood Extent Mapping',
+      query: 'Combine both modalities to assess the exact extent of the flooded region.',
+      tag: 'Optical + SAR',
     },
   ];
 
