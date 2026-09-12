@@ -1164,15 +1164,15 @@ class Orchestrator:
         force_vqa       = not force_grounding
 
         # Execute vision_vqa_tool (strict Pydantic-validated path)
-        tool_result = vision_vqa_tool(
-            image_path=primary_path,
-            text_query=query,
-            confidence_threshold=0.4,
-            force_vqa=force_vqa,
-            force_grounding=force_grounding,
-            n_bboxes=3 if force_grounding else 1,
-            state=state,
-        )
+        tool_result = vision_vqa_tool.invoke({
+            "image_path": primary_path,
+            "text_query": query,
+            "confidence_threshold": 0.4,
+            "force_vqa": force_vqa,
+            "force_grounding": force_grounding,
+            "n_bboxes": 3 if force_grounding else 1,
+            "state": state,
+        })
         elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
 
         # -------------------------------------------------------------------
@@ -1647,8 +1647,13 @@ class Orchestrator:
         img_path = paths[0] if paths else "/data/input_scene.tif"
 
         # Call standardized tool
-        tool_result = vqa_tool(image_path=img_path, query=query, state=state)
+        tool_result = vqa_tool.invoke({
+            "image_path": img_path,
+            "query": query,
+            "state": state,
+        })
         
+
         # Synchronize into state tracker
         updates = update_state_tracker_from_tool_output(
             state=state,
@@ -1671,12 +1676,12 @@ class Orchestrator:
         t2_path = paths[1] if len(paths) > 1 else "/data/t2_target.tif"
         query = state.get("raw_query") or state.get("query") or ""
 
-        tool_result = change_detection_tool(
-            image_path_t1=t1_path,
-            image_path_t2=t2_path,
-            text_query=query,
-            state=state
-        )
+        tool_result = change_detection_tool.invoke({
+    "image_path_t1": t1_path,
+    "image_path_t2": t2_path,
+    "text_query": query,
+    "state": state,
+})
         elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
         
         rs_updates = tool_result.get("rs_state_updates") or {}
@@ -1721,8 +1726,11 @@ class Orchestrator:
         img_path = paths[0] if paths else "/data/input_scene.tif"
 
         # Execute registered standardized grounding_tool
-        tool_result = grounding_tool(image_path=img_path, target_query=query, state=state)
-
+        tool_result = grounding_tool.invoke({
+    "image_path": img_path,
+    "target_query": query,
+    "state": state,
+})
         # Synchronize into state tracker
         updates = update_state_tracker_from_tool_output(
             state=state,
@@ -1746,12 +1754,12 @@ class Orchestrator:
         sar_path = paths[1] if len(paths) > 1 else "/data/sar.tif"
         query = state.get("raw_query") or state.get("query") or ""
 
-        tool_result = cross_modal_fusion_tool(
-            image_path_optical=opt_path,
-            image_path_sar=sar_path,
-            text_query=query,
-            state=state
-        )
+        tool_result = cross_modal_fusion_tool.invoke({
+    "image_path_optical": opt_path,
+    "image_path_sar": sar_path,
+    "text_query": query,
+    "state": state,
+})
         elapsed_ms = round((_time.perf_counter() - t0) * 1000.0, 2)
         
         rs_updates = tool_result.get("rs_state_updates") or {}
@@ -1795,8 +1803,10 @@ class Orchestrator:
         img_path = paths[0] if paths else "/data/input_scene.tif"
 
         # Execute registered standardized land_cover_tool
-        tool_result = land_cover_tool(image_path=img_path, state=state)
-
+        tool_result = land_cover_tool.invoke({
+    "image_path": img_path,
+    "state": state,
+})
         # Synchronize into state tracker
         updates = update_state_tracker_from_tool_output(
             state=state,
