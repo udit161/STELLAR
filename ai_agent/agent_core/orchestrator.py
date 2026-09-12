@@ -860,11 +860,19 @@ class Orchestrator:
             "timestamp":        datetime.utcnow().isoformat(),
         }
 
+        task_out = "VQA" if classified_task == "vqa" else classified_task
+        intent_dict = {
+            "winning_category": classified_task,
+            "keyword_scores": {classified_task: 1.0},
+            "routing_decision": "vision_vqa_specialist" if use_strict_vqa else f"{classified_task}_specialist"
+        }
+
         return_payload: Dict[str, Any] = {
-            "classified_task":              classified_task,
+            "classified_task":              task_out,
             "task_classification_confidence": 0.95,
+            "intent_classification":        intent_dict,
             "thought_trace":                [reasoning],
-            "routing_history":              ["interpret_and_validate"],
+            "routing_history":              ["intent_classifier" if "intent_classifier" in str(state.get("routing_history", [])) else "interpret_and_validate"],
             "active_agent":                 "interpret_and_validate",
             "use_strict_vqa_tool":          use_strict_vqa,
             "use_change_det_tool":          use_change_det_tool,
@@ -884,6 +892,9 @@ class Orchestrator:
             return_payload["status"] = RequestStatus.FAILED.value
 
         return return_payload
+
+    # Backward compatibility alias
+    intent_classifier_node = interpret_and_validate_node
 
     # -----------------------------------------------------------------------
     # Node 2c: Parameter Guardrail & Sanitization Node
@@ -1808,6 +1819,152 @@ class Orchestrator:
         return updates
 
     # -----------------------------------------------------------------------
+    # Node 8b: Visual Evidence Verification Node
+    # -----------------------------------------------------------------------
+    def verify_visual_evidence_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Verification Node: verify_visual_evidence
+        Executes after tool execution to audit visual evidence quality.
+
+        Checks:
+        1. Grounding task: If a grounding task returns empty bounding boxes.
+        2. Bi-temporal change query: If a change query produces an all-zero change mask.
+
+        Behavior:
+        - If visual evidence is deficient and retry has not been performed yet:
+          Triggers a corrective prompt refinement and increments evidence_retry_count.
+        - If confidence remains low after retry:
+          Sets explicit flag evidence_inconclusive: True in state rather than outputting false certainty.
+        """
+        task = state.get("classified_task") or ""
+        task_str = str(task).lower()
+        query = state.get("raw_query") or state.get("query") or ""
+
+        # Extract bounding boxes
+        bboxes = state.get("bounding_boxes") or []
+        tool_outs = state.get("tool_outputs") or {}
+        if not bboxes and isinstance(tool_outs, dict):
+            bboxes = tool_outs.get("bounding_boxes") or []
+
+        # Extract change mask
+        c_mask = state.get("change_mask") or {}
+        if not c_mask and isinstance(tool_outs, dict):
+            c_mask = tool_outs.get("change_mask") or {}
+
+        # Task indicators
+        is_grounding_task = (
+            "grounding" in task_str or
+            bool(state.get("use_grounding_tool")) or
+            task == TaskType.GROUNDING.value
+        )
+        is_change_task = (
+            "change" in task_str or
+            bool(state.get("use_change_det_tool")) or
+            task == TaskType.CHANGE_DETECTION.value
+        )
+
+        # Check conditions
+        empty_grounding = is_grounding_task and (len(bboxes) == 0)
+
+        all_zero_change_mask = False
+        if is_change_task:
+            if not c_mask:
+                all_zero_change_mask = True
+            else:
+                p_count = c_mask.get("changed_area_pixels", 0)
+                sq_km = c_mask.get("changed_area_sq_km", 0.0)
+                pct = c_mask.get("change_percentage", 0.0)
+                if p_count == 0 and sq_km == 0.0 and pct == 0.0:
+                    all_zero_change_mask = True
+
+        evidence_deficiency = empty_grounding or all_zero_change_mask
+        retry_count = state.get("evidence_retry_count") or 0
+
+        updates: Dict[str, Any] = {
+            "routing_history": ["verify_visual_evidence"],
+            "active_agent": "verify_visual_evidence",
+        }
+
+        if evidence_deficiency:
+            if retry_count < 1:
+                # First attempt failed check: Trigger corrective prompt refinement
+                refined_query = f"{query} (Refinement: Lower detection threshold and search for subtle visual evidence)"
+                configs = dict(state.get("specialist_model_configs") or {})
+
+                if is_grounding_task:
+                    cfg_g = dict(configs.get("grounding_rs") or configs.get("grounding") or {})
+                    cfg_g["box_threshold"] = 0.15
+                    configs["grounding_rs"] = cfg_g
+                if is_change_task:
+                    cfg_cd = dict(configs.get("change_detector") or {})
+                    cfg_cd["threshold"] = 0.20
+                    configs["change_detector"] = cfg_cd
+
+                reasoning = {
+                    "step_number": len(state.get("thought_trace") or []) + 1,
+                    "agent_name": "VerifyVisualEvidence",
+                    "thought": (
+                        f"Visual evidence check failed for '{task}': "
+                        f"{'empty grounding boxes' if empty_grounding else 'all-zero change mask'}. "
+                        f"Triggering corrective prompt refinement. Refined prompt: '{refined_query}'."
+                    ),
+                    "action_taken": "corrective_prompt_refinement",
+                    "confidence": 0.40,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+
+                updates.update({
+                    "query": refined_query,
+                    "evidence_retry_count": retry_count + 1,
+                    "evidence_inconclusive": False,
+                    "specialist_model_configs": configs,
+                    "thought_trace": [reasoning],
+                    "needs_evidence_retry": True,
+                })
+            else:
+                # Retry already performed and evidence remains low/deficient:
+                # Set explicit flag evidence_inconclusive: True rather than outputting false certainty.
+                val_flags = dict(state.get("validation_flags") or {})
+                val_flags["evidence_inconclusive"] = True
+
+                reasoning = {
+                    "step_number": len(state.get("thought_trace") or []) + 1,
+                    "agent_name": "VerifyVisualEvidence",
+                    "thought": (
+                        f"Visual evidence remains inconclusive for '{task}' after retry. "
+                        f"Setting evidence_inconclusive: True rather than outputting false certainty."
+                    ),
+                    "action_taken": "set_evidence_inconclusive",
+                    "confidence": 0.20,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+
+                updates.update({
+                    "evidence_inconclusive": True,
+                    "confidence_score": 0.20,
+                    "validation_flags": val_flags,
+                    "thought_trace": [reasoning],
+                    "needs_evidence_retry": False,
+                })
+        else:
+            # Evidence verification passed
+            reasoning = {
+                "step_number": len(state.get("thought_trace") or []) + 1,
+                "agent_name": "VerifyVisualEvidence",
+                "thought": f"Visual evidence verified for task '{task}'. Detections/masks present.",
+                "action_taken": "verify_visual_evidence_passed",
+                "confidence": state.get("confidence_score") or 0.90,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            updates.update({
+                "evidence_inconclusive": False,
+                "thought_trace": [reasoning],
+                "needs_evidence_retry": False,
+            })
+
+        return updates
+
+    # -----------------------------------------------------------------------
     # Node 9: Result Synthesizer & Deliverable Packaging
     # -----------------------------------------------------------------------
     def synthesizer_node(self, state: AgentState) -> Dict[str, Any]:
@@ -1822,13 +1979,23 @@ class Orchestrator:
         bboxes = state.get("bounding_boxes") or []
         c_mask = state.get("change_mask") or {}
 
-        # 0. Check for specialist tool errors
+        # 0. Check for evidence_inconclusive or specialist tool errors
         failed_specialists = []
         for s_key, s_val in intermediate.items():
             if isinstance(s_val, dict) and s_val.get("status") == "error":
                 failed_specialists.append((s_key, s_val.get("error") or s_val.get("summary")))
 
-        if failed_specialists:
+        if state.get("evidence_inconclusive"):
+            final_ans = (
+                f"Visual evidence is inconclusive for query: '{query}'. "
+                "No definitive target bounding boxes or surface alterations could be verified above confidence thresholds. "
+                "Outputting explicit evidence_inconclusive status rather than false certainty."
+            )
+            exec_summary = "Analysis inconclusive: no verified visual evidence detected above required threshold."
+            overall_conf = 0.20
+            status_val = RequestStatus.COMPLETED.value
+
+        elif failed_specialists:
             err_details = "; ".join([f"[{k}] {msg}" for k, msg in failed_specialists])
             final_ans = (
                 f"Satellite intelligence analysis encountered a specialist tool error: {err_details}. "
@@ -2028,6 +2195,74 @@ class Orchestrator:
         }
 
     # -----------------------------------------------------------------------
+    # Node 10: ISRO Evaluation Trace Formatter Node
+    # -----------------------------------------------------------------------
+    def format_isro_trace_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Trace Formatter Node: format_isro_trace
+        Per evaluation guidelines, internal reasoning or Chain-of-Thought
+        text (e.g. thought_trace, task_reasoning, scratchpads) must not be exposed.
+
+        Sanitizes the final state by stripping internal LLM scratchpads and
+        outputting only the strict observable evaluation schema:
+          - task_type
+          - invoked_specialists
+          - permitted_parameters_used
+          - confidence_score
+          - visual_evidence_artifacts
+        """
+        task_type = state.get("classified_task") or TaskType.VQA.value
+
+        # Extract invoked specialists
+        invoked_specialists = list(state.get("completed_specialists") or [])
+        if not invoked_specialists:
+            exec_trace = state.get("execution_trace") or []
+            for e in exec_trace:
+                if isinstance(e, dict) and e.get("tool_name"):
+                    tname = e["tool_name"]
+                    if tname not in invoked_specialists:
+                        invoked_specialists.append(tname)
+        if not invoked_specialists:
+            invoked_specialists = list(state.get("selected_specialist_models") or [])
+
+        # Extract permitted parameters used
+        permitted_params = dict(state.get("sanitized_tool_params") or state.get("specialist_model_configs") or {})
+
+        # Confidence score
+        raw_conf = state.get("confidence_score")
+        conf_score = float(raw_conf) if raw_conf is not None else 0.0
+
+        # Visual evidence artifacts
+        visual_evidence_artifacts = {
+            "bounding_boxes": list(state.get("bounding_boxes") or []),
+            "change_mask": dict(state.get("change_mask") or {}),
+            "spatial_outputs": dict(state.get("spatial_outputs") or {}),
+            "artifacts": list(state.get("artifacts") or []),
+        }
+
+        # Strict observable evaluation schema trace
+        isro_trace = {
+            "task_type": task_type,
+            "invoked_specialists": invoked_specialists,
+            "permitted_parameters_used": permitted_params,
+            "confidence_score": conf_score,
+            "visual_evidence_artifacts": visual_evidence_artifacts,
+        }
+
+        return {
+            "isro_trace": isro_trace,
+            "routing_history": ["format_isro_trace"],
+            "active_agent": "format_isro_trace",
+        }
+
+    def format_isro_trace(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Public helper: Returns the sanitized observable ISRO evaluation trace dict from state.
+        """
+        res = self.format_isro_trace_node(state)
+        return res.get("isro_trace", {})
+
+    # -----------------------------------------------------------------------
     # Dynamic Chained Routing Logic
     # -----------------------------------------------------------------------
     @staticmethod
@@ -2099,6 +2334,21 @@ class Orchestrator:
         return Orchestrator._route_next_specialist(state)
 
     @staticmethod
+    def _route_after_verify_evidence(state: AgentState) -> str:
+        """
+        Routes to specialist retry if prompt refinement retry was requested;
+        otherwise proceeds to synthesizer.
+        """
+        if state.get("needs_evidence_retry", False):
+            task = state.get("classified_task") or ""
+            task_str = str(task).lower()
+            if "change" in task_str or state.get("use_change_det_tool"):
+                return "change_detection_specialist"
+            elif "grounding" in task_str or state.get("use_grounding_tool"):
+                return "grounding_specialist"
+        return "synthesizer"
+
+    @staticmethod
     def _route_after_validate_params(state: AgentState) -> str:
         """
         Delegates to the same logic as _route_after_interpret so that the
@@ -2127,9 +2377,11 @@ class Orchestrator:
             builder.add_node("grounding_specialist",        self.grounding_specialist_node)
             builder.add_node("cross_modal_fusion_specialist",self.cross_modal_fusion_specialist_node)
             builder.add_node("land_cover_specialist",       self.land_cover_specialist_node)
+            builder.add_node("verify_visual_evidence",      self.verify_visual_evidence_node)
             builder.add_node("synthesizer",                 self.synthesizer_node)
             builder.add_node("fallback_reasoning",          self.fallback_reasoning_node)
             builder.add_node("aggregation",                 self.aggregation_node)
+            builder.add_node("format_isro_trace",           self.format_isro_trace_node)
 
             # ── Start → Validation → [Clarification | Controller] ────────
             builder.add_edge(START, "input_validator")
@@ -2181,10 +2433,10 @@ class Orchestrator:
                 _all_specialist_targets,
             )
 
-            # ── strict tools → synthesizer ──────────────────────
-            builder.add_edge("vision_vqa_specialist", "synthesizer")
-            builder.add_edge("change_detection_specialist", "synthesizer")
-            builder.add_edge("cross_modal_fusion_specialist", "synthesizer")
+            # ── strict tools → verify_visual_evidence ──────────────────────
+            builder.add_edge("vision_vqa_specialist", "verify_visual_evidence")
+            builder.add_edge("change_detection_specialist", "verify_visual_evidence")
+            builder.add_edge("cross_modal_fusion_specialist", "verify_visual_evidence")
 
             # ── Legacy specialists → dynamic queue routing ───────────────
             _specialist_to_aggregation = {
@@ -2204,6 +2456,15 @@ class Orchestrator:
                     _specialist_to_aggregation,
                 )
 
+            # ── verify_visual_evidence → [retry specialist | synthesizer] ───
+            _verify_targets = _all_specialist_targets.copy()
+            _verify_targets["synthesizer"] = "synthesizer"
+            builder.add_conditional_edges(
+                "verify_visual_evidence",
+                self._route_after_verify_evidence,
+                _verify_targets
+            )
+
             # ── synthesizer → [fallback | aggregation | next_specialist] ───
             _synthesizer_targets = _all_specialist_targets.copy()
             _synthesizer_targets["fallback_reasoning"] = "fallback_reasoning"
@@ -2214,7 +2475,8 @@ class Orchestrator:
                 _synthesizer_targets
             )
             builder.add_edge("fallback_reasoning", "aggregation")
-            builder.add_edge("aggregation", END)
+            builder.add_edge("aggregation", "format_isro_trace")
+            builder.add_edge("format_isro_trace", END)
             return builder
 
         else:
@@ -2236,7 +2498,7 @@ class Orchestrator:
                             curr[field] = []
                     for field in ["intermediate_outputs", "spatial_outputs",
                                   "tool_outputs", "tool_confidence_scores",
-                                  "sanitized_tool_params", "spatial_context_cache"]:
+                                  "sanitized_tool_params", "spatial_context_cache", "isro_trace"]:
                         if curr.get(field) is None:
                             curr[field] = {}
 
@@ -2251,7 +2513,7 @@ class Orchestrator:
                     _dict_merge_keys = {
                         "intermediate_outputs", "spatial_outputs",
                         "specialist_model_configs", "sanitized_tool_params",
-                        "spatial_context_cache",
+                        "spatial_context_cache", "isro_trace",
                     }
                     for k, v in updates.items():
                         if k in _append_keys:
@@ -2306,27 +2568,31 @@ class Orchestrator:
                             return curr
 
                         # ── 4b. Execute the specialist ───────────────────────
-                        if next_route == "vision_vqa_specialist":
-                            self._merge(curr, self.orch.vision_vqa_specialist_node(curr))
+                        if next_route in ["vision_vqa_specialist", "change_detection_specialist", "cross_modal_fusion_specialist", "grounding_specialist", "land_cover_specialist", "vqa_specialist"]:
+                            if next_route == "vision_vqa_specialist":
+                                self._merge(curr, self.orch.vision_vqa_specialist_node(curr))
+                            elif next_route == "change_detection_specialist":
+                                self._merge(curr, self.orch.change_detection_specialist_node(curr))
+                            elif next_route == "cross_modal_fusion_specialist":
+                                self._merge(curr, self.orch.cross_modal_fusion_specialist_node(curr))
+                            elif next_route == "grounding_specialist":
+                                self._merge(curr, self.orch.grounding_specialist_node(curr))
+                            elif next_route == "land_cover_specialist":
+                                self._merge(curr, self.orch.land_cover_specialist_node(curr))
+                            elif next_route == "vqa_specialist":
+                                self._merge(curr, self.orch.vqa_specialist_node(curr))
+
+                            # Run verify_visual_evidence_node after tool execution
+                            self._merge(curr, self.orch.verify_visual_evidence_node(curr))
+                            if curr.get("needs_evidence_retry"):
+                                if next_route == "grounding_specialist":
+                                    self._merge(curr, self.orch.grounding_specialist_node(curr))
+                                elif next_route == "change_detection_specialist":
+                                    self._merge(curr, self.orch.change_detection_specialist_node(curr))
+                                self._merge(curr, self.orch.verify_visual_evidence_node(curr))
+
                             self._merge(curr, self.orch.synthesizer_node(curr))
                             next_route = Orchestrator._route_after_synthesizer(curr)
-                        elif next_route == "change_detection_specialist":
-                            self._merge(curr, self.orch.change_detection_specialist_node(curr))
-                            self._merge(curr, self.orch.synthesizer_node(curr))
-                            next_route = Orchestrator._route_after_synthesizer(curr)
-                        elif next_route == "cross_modal_fusion_specialist":
-                            self._merge(curr, self.orch.cross_modal_fusion_specialist_node(curr))
-                            self._merge(curr, self.orch.synthesizer_node(curr))
-                            next_route = Orchestrator._route_after_synthesizer(curr)
-                        elif next_route == "grounding_specialist":
-                            self._merge(curr, self.orch.grounding_specialist_node(curr))
-                            next_route = Orchestrator._route_next_specialist(curr)
-                        elif next_route == "land_cover_specialist":
-                            self._merge(curr, self.orch.land_cover_specialist_node(curr))
-                            next_route = Orchestrator._route_next_specialist(curr)
-                        elif next_route == "vqa_specialist":
-                            self._merge(curr, self.orch.vqa_specialist_node(curr))
-                            next_route = Orchestrator._route_next_specialist(curr)
                         elif next_route == "fallback_reasoning":
                             self._merge(curr, self.orch.fallback_reasoning_node(curr))
                             break
@@ -2337,6 +2603,8 @@ class Orchestrator:
 
                     # 5. Aggregation (always last)
                     self._merge(curr, self.orch.aggregation_node(curr))
+                    # 6. Format ISRO Trace
+                    self._merge(curr, self.orch.format_isro_trace_node(curr))
                     return curr
 
             return FallbackGraph(self)
@@ -2382,7 +2650,7 @@ class Orchestrator:
             if curr.get(field) is None:
                 curr[field] = []
         for field in ["intermediate_outputs", "spatial_outputs",
-                      "tool_outputs", "tool_confidence_scores"]:
+                      "tool_outputs", "tool_confidence_scores", "isro_trace"]:
             if curr.get(field) is None:
                 curr[field] = {}
 
@@ -2395,7 +2663,7 @@ class Orchestrator:
             }
             _dict_merge_keys = {
                 "intermediate_outputs", "spatial_outputs",
-                "specialist_model_configs",
+                "specialist_model_configs", "isro_trace",
             }
             for k, v in updates.items():
                 if k in _append_keys:
@@ -2425,9 +2693,9 @@ class Orchestrator:
         yield {"step": "controller_router", "state": curr,
                "latest_thought": curr["thought_trace"][-1]}
 
-        # ── Step 3: Interpret & Validate ─────────────────────────────────────
+        # ── Step 3: Interpret & Validate / Intent Classifier ─────────────────
         _merge(self.interpret_and_validate_node(curr))
-        yield {"step": "interpret_and_validate", "state": curr,
+        yield {"step": "intent_classifier", "state": curr,
                "latest_thought": curr["thought_trace"][-1]}
 
         # ── Step 4: Specialist Execution ──────────────────────────────────
@@ -2449,7 +2717,13 @@ class Orchestrator:
                 _merge(self.grounding_specialist_node(curr))
             yield {"step": next_route, "state": curr,
                    "latest_thought": curr["thought_trace"][-1]}
-            # synthesizer for synthesis step
+            
+            # Verify visual evidence
+            _merge(self.verify_visual_evidence_node(curr))
+            yield {"step": "verify_visual_evidence", "state": curr,
+                   "latest_thought": curr["thought_trace"][-1]}
+
+            # Synthesizer step
             _merge(self.synthesizer_node(curr))
             yield {"step": "synthesizer", "state": curr,
                    "latest_thought": curr["thought_trace"][-1]}
@@ -2475,7 +2749,13 @@ class Orchestrator:
                 yield {"step": next_spec, "state": curr,
                        "latest_thought": curr["thought_trace"][-1]}
                 step_count += 1
-            # synthesizer for legacy path
+
+            # Verify visual evidence
+            _merge(self.verify_visual_evidence_node(curr))
+            yield {"step": "verify_visual_evidence", "state": curr,
+                   "latest_thought": curr["thought_trace"][-1]}
+
+            # Synthesizer for legacy path
             _merge(self.synthesizer_node(curr))
             yield {"step": "synthesizer", "state": curr,
                    "latest_thought": curr["thought_trace"][-1]}
@@ -2484,3 +2764,9 @@ class Orchestrator:
         _merge(self.aggregation_node(curr))
         yield {"step": "aggregation", "state": curr,
                "latest_thought": curr["thought_trace"][-1]}
+
+        # ── Step 6: ISRO Trace Formatting ─────────────────────────────────
+        _merge(self.format_isro_trace_node(curr))
+        yield {"step": "format_isro_trace", "state": curr,
+               "latest_thought": None}
+
