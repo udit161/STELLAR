@@ -23,6 +23,7 @@ from persistence import (
     save_artifact,
     get_artifacts,
 )
+from utils.report import generate_audit_report
 try:
     from fastapi import (
         FastAPI,
@@ -550,6 +551,46 @@ def get_execution_trace(job_id: str):
         "result": persisted_query.get("result"),
         "execution_events": get_execution_traces(job_id),
         "artifacts": get_artifacts(job_id),
+    }
+
+@app.get("/api/v1/report/{job_id}")
+def generate_job_report(job_id: str):
+    """Generate and return the PDF audit report for a job."""
+
+    query = get_query(job_id)
+
+    if query is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found",
+        )
+
+    execution_events = get_execution_traces(job_id)
+    artifacts = get_artifacts(job_id)
+
+    report_result = generate_audit_report(
+        job_id=job_id,
+        query=query,
+        execution_events=execution_events,
+        artifacts=artifacts,
+    )
+
+    # Record the generated PDF as an artifact.
+    save_artifact(
+        job_id=job_id,
+        artifact_type="audit_report",
+        filename=Path(report_result["path"]).name,
+        file_path=report_result["path"],
+        metadata={
+            "format": "pdf",
+            "description": "SatQuery AI execution audit report",
+        },
+    )
+
+    return {
+        "status": "success",
+        "job_id": job_id,
+        "report": report_result,
     }
 
 @app.post("/api/v1/orchestrate")
