@@ -170,6 +170,7 @@ class ValidationFlags(BaseModel):
     is_temporal_ordered: bool = Field(True, description="True if T1 acquisition precedes or equals T2")
     is_resolution_sufficient: bool = Field(True, description="True if GSD is sufficient for target feature detection")
     requires_human_clarification: bool = Field(False, description="True if user prompt is ambiguous or parameters are missing")
+    evidence_inconclusive: bool = Field(False, description="True if visual evidence for grounding or change detection was inconclusive after verification")
     validation_errors: List[str] = Field(default_factory=list, description="List of blocking validation error messages")
     validation_warnings: List[str] = Field(default_factory=list, description="Non-blocking warning messages (e.g. high cloud cover)")
 
@@ -817,6 +818,8 @@ class AgentState(TypedDict):
     validation_errors: List[str]                           # List of blocking validation errors
     validation_warnings: List[str]                         # Non-blocking warnings
     requires_clarification: bool                           # True if human-in-the-loop clarification is needed
+    evidence_inconclusive: bool                            # True if visual evidence was inconclusive after retry
+    evidence_retry_count: int                              # Retry count for visual evidence verification
 
     # 6. Trajectory & LangGraph Message Reducers
     messages: Annotated[List[Dict[str, Any]], operator.add]
@@ -1015,6 +1018,12 @@ class RSAgentState(TypedDict, total=False):
 
     requires_clarification: bool
     # True if the orchestrator needs additional user input before proceeding.
+
+    evidence_inconclusive: bool
+    # True if visual evidence for grounding or change detection was inconclusive after verification retry.
+
+    evidence_retry_count: int
+    # Counter tracking visual evidence verification retries.
 
     # ── LangGraph Message Bus ─────────────────────────────────────────────────
     messages: Annotated[List[Dict[str, Any]], operator.add]
@@ -1311,6 +1320,8 @@ def make_empty_rs_state(
         validation_errors=[],
         validation_warnings=[],
         requires_clarification=False,
+        evidence_inconclusive=False,
+        evidence_retry_count=0,
         # Message bus
         messages=[],
         active_agent="orchestrator",
@@ -1383,6 +1394,8 @@ class AgentStateModel(BaseModel):
     validation_errors: List[str] = Field(default_factory=list)
     validation_warnings: List[str] = Field(default_factory=list)
     requires_clarification: bool = False
+    evidence_inconclusive: bool = False
+    evidence_retry_count: int = 0
     
     # Trajectory & Messages
     messages: List[Dict[str, Any]] = Field(default_factory=list)
@@ -1486,6 +1499,8 @@ class AgentStateModel(BaseModel):
             "validation_errors": self.validation_errors + (self.validation_flags.validation_errors if hasattr(self.validation_flags, 'validation_errors') else []),
             "validation_warnings": self.validation_warnings + (self.validation_flags.validation_warnings if hasattr(self.validation_flags, 'validation_warnings') else []),
             "requires_clarification": self.requires_clarification or (self.validation_flags.requires_human_clarification if hasattr(self.validation_flags, 'requires_human_clarification') else False),
+            "evidence_inconclusive": self.evidence_inconclusive or (self.validation_flags.evidence_inconclusive if hasattr(self.validation_flags, 'evidence_inconclusive') else False),
+            "evidence_retry_count": self.evidence_retry_count,
             "messages": self.messages,
             "active_agent": self.active_agent,
             "routing_history": self.routing_history,
