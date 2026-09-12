@@ -69,24 +69,34 @@ def mock_lightweight_llm_call(prompt: str) -> str:
     In production, this would call an OpenAI or local vLLM endpoint.
     Returns a JSON string with 'task' and 'reasoning'.
     """
-    # Extract just the query part of the prompt to avoid matching on our own instructions
     query_part = prompt.split("Query:")[-1].lower() if "Query:" in prompt else prompt.lower()
     
+    # 1. Change detection & compound temporal questions
     if "change" in query_part and ("describe" in query_part or "what was built" in query_part):
         task = "compound_pipeline"
         reasoning = "Query asks for a sequence: change detection followed by VQA description."
-    elif "change" in query_part or "difference" in query_part or "t1" in query_part:
+    elif any(kw in query_part for kw in ["change", "difference", "t1", "t2", "between these two", "between two", "constructed between", "before and after", "over time"]):
         task = "change_detection"
-        reasoning = "Query asks for temporal difference or change."
-    elif "fuse" in query_part or "sar" in query_part or "radar" in query_part:
+        reasoning = "Query asks for temporal difference or change between image captures."
+    
+    # 2. Cross-modal Optical + SAR Fusion
+    elif any(kw in query_part for kw in ["fuse", "fusion", "sar", "radar", "optical and sar", "backscatter", "modality", "modalities", "combine both"]):
         task = "cross_modal"
-        reasoning = "Query mentions SAR/radar or fusion."
-    elif "where" in query_part or "locate" in query_part or "detect" in query_part or "find" in query_part:
+        reasoning = "Query mentions SAR/radar, backscatter, or cross-modal optical-SAR fusion."
+    
+    # 3. Explicit spatial grounding / localization (bounding boxes, locate, highlight, draw)
+    elif any(kw in query_part for kw in ["highlight", "draw a bounding box", "bounding box", "locate", "ground", "find the", "show where"]):
+        task = "grounding"
+        reasoning = "Query asks to explicitly localize, highlight, or draw bounding boxes around specific entities."
+
+    elif ("where" in query_part or "find" in query_part or "detect" in query_part) and not any(kw in query_part for kw in ["are there", "is there", "what is", "describe"]):
         task = "grounding"
         reasoning = "Query asks to localize or find specific entities."
+
+    # 4. Standard VQA (single-image understanding, questions asking 'are there', 'is there', 'describe', 'what is')
     else:
         task = "vqa"
-        reasoning = "Query asks a general descriptive question."
+        reasoning = "Query asks a general descriptive or visual question answering prompt."
         
     return json.dumps({"task": task, "reasoning": reasoning})
 
@@ -146,7 +156,11 @@ def _detect_relative_references(query: str) -> Dict[str, Any]:
     Scans a user query for conversational back-reference patterns and returns
     a detection result dict with boolean flags per category and the inferred
     target image modality when an image-switch reference is found.
+    Ignores generic single-turn image extent phrases like 'in this area', 'in this image'.
     """
+    # Exclude common single-turn image extent qualifiers
+    cleaned_query = _re.sub(r"\b(in|present\s+in|visible\s+in|shown\s+in)\s+(this|the)\s+(area|image|frame|scene|satellite\s+capture|tile|patch)\b", "", query, flags=_re.I)
+
     result: Dict[str, Any] = {
         "has_spatial_ref":  False,
         "has_location_ref": False,
@@ -158,7 +172,7 @@ def _detect_relative_references(query: str) -> Dict[str, Any]:
     }
     for category, patterns in RELATIVE_REFERENCE_PATTERNS.items():
         for pat in patterns:
-            if pat.search(query):
+            if pat.search(cleaned_query):
                 if category == "spatial_object":
                     result["has_spatial_ref"] = True
                     if "spatial_object" not in result["reference_types"]:
@@ -241,17 +255,17 @@ def _resolve_spatial_reference(
     # Resolve image-modality references
     if detection.get("has_image_ref"):
         target_role = detection.get("target_modality")
-        image_paths: Dict[str, str] = cache.get("latest_image_paths") or {}
+        image_paths: Dict[str, str] = cache.get("latest_image_paths") or state.get("image_paths") or {}
         if target_role and target_role in image_paths:
             resolved_image_path = image_paths[target_role]
             if source == "none":
-                source = "spatial_context_cache"
+                source = "current_image_payload" if not cache.get("latest_image_paths") else "spatial_context_cache"
             notes.append(f"Resolved modality '{target_role}' → '{resolved_image_path}'.")
         elif image_paths:
             first_role, first_path = next(iter(image_paths.items()))
             resolved_image_path = first_path
             if source == "none":
-                source = "spatial_context_cache"
+                source = "current_image_payload" if not cache.get("latest_image_paths") else "spatial_context_cache"
             notes.append(f"Modality '{target_role}' not found; fallback role='{first_role}'.")
         elif history:
             for turn in reversed(history):
@@ -430,6 +444,20 @@ class Orchestrator:
             if p and p not in paths:
                 paths.append(p)
                 
+        # Auto-detect Optical-SAR & Bi-temporal flags
+        for img in uploaded:
+            if isinstance(img, dict):
+                mod = str(img.get("modality", "")).lower()
+                role = str(img.get("role", "")).lower()
+                fp = str(img.get("file_path", "")).lower()
+                if mod == "sar" or role == "sar" or "sar" in fp or "radar" in fp:
+                    meta["is_optical_sar"] = True
+        
+        if len(paths) >= 2:
+            meta["is_bi_temporal"] = True
+            if any("sar" in str(p).lower() or "radar" in str(p).lower() for p in paths) or any("optical" in str(p).lower() for p in paths):
+                meta["is_optical_sar"] = True
+
         meta["total_images"] = len(paths)
         meta["image_paths"] = paths
         return len(paths), paths, meta
@@ -534,8 +562,11 @@ class Orchestrator:
         fusion_keywords = ["fuse", "fusion", "sar", "radar", "optical-sar", "all-weather", "cloud penetration"]
         is_fusion_query = any(kw in query_lower for kw in fusion_keywords) or metadata.get("is_optical_sar", False)
 
-        grounding_keywords = ["detect", "find", "locate", "count", "bounding box", "airplane", "ship", "vessel", "hangar", "building", "where is", "grounding"]
-        is_grounding_query = any(kw in query_lower for kw in grounding_keywords)
+        grounding_keywords = ["highlight", "draw a box", "draw a bounding box", "bounding box", "locate", "ground", "show where"]
+        is_question_phrasing = any(query_lower.startswith(prefix) for prefix in ["are there", "is there", "does", "is the", "what is", "what are", "describe", "what land"])
+        is_grounding_query = any(kw in query_lower for kw in grounding_keywords) or (
+            any(kw in query_lower for kw in ["find", "detect", "where is"]) and not is_question_phrasing
+        )
 
         lc_keywords = ["land cover", "classification", "segmentation", "crop", "water bodies", "forest cover"]
         is_lc_query = any(kw in query_lower for kw in lc_keywords)
@@ -731,12 +762,17 @@ class Orchestrator:
         detection = _detect_relative_references(raw_query)
 
         if detection["has_any_ref"]:
-            if history or cache:
-                # We have context — attempt resolution
+            has_conversational_spatial_ref = (
+                detection.get("has_spatial_ref") or
+                detection.get("has_location_ref") or
+                detection.get("has_pronoun_ref")
+            )
+            # Resolution is possible if prior context exists OR if the query only references image modality and current turn has image_paths
+            if history or cache or (not has_conversational_spatial_ref and (img_count > 0 or image_paths)):
                 resolution = _resolve_spatial_reference(state, detection)
                 resolved_roi        = resolution["resolved_roi"]
                 resolved_image_path = resolution["resolved_image_path"]
-                is_followup_query   = True
+                is_followup_query   = True if (history or cache) else False
 
                 log_entry = {
                     "event":              "REFERENCE_RESOLVED",
@@ -751,7 +787,7 @@ class Orchestrator:
                 }
                 ref_resolution_log.append(log_entry)
             else:
-                # No prior context — cannot resolve, request clarification
+                # No prior context and conversational spatial reference cannot be resolved
                 warning_msg = (
                     f"Query contains relative reference(s) {detection['reference_types']} "
                     f"(e.g. 'that box', 'same spot') but no prior conversation history exists. "
@@ -819,21 +855,21 @@ class Orchestrator:
         rs_modalities = {e.get("detected_modality", "unknown") for e in rs_inputs}
 
         is_bi_temporal = img_count == 2 or img_meta.get("is_bi_temporal", False)
-        is_optical_sar = (img_count == 2 and "sar" in rs_modalities) or img_meta.get("is_optical_sar", False)
+        is_optical_sar = img_count >= 2 or img_meta.get("is_optical_sar", False) or "sar" in rs_modalities
 
         if classified_task == "change_detection" and not is_bi_temporal:
             errors.append("Change detection requires exactly two images (bi-temporal pair).")
 
-        if classified_task == "cross_modal" and not is_optical_sar:
+        if classified_task in ("cross_modal", "cross_modal_fusion") and not is_optical_sar:
             errors.append("Cross-modal fusion requires both optical and SAR images.")
 
         is_valid = len(errors) == 0
 
         # ── Step 3: Routing Flags ─────────────────────────────────────────────
         use_strict_vqa = classified_task == "vqa" and is_valid
-        use_change_det_tool = classified_task == "change_detection" and is_valid
-        use_cross_modal_tool = classified_task == "cross_modal" and is_valid
-        use_grounding_tool = classified_task == "grounding" and is_valid
+        use_change_det_tool = classified_task in ("change_detection", "change_det") and is_valid
+        use_cross_modal_tool = classified_task in ("cross_modal", "cross_modal_fusion") and is_valid
+        use_grounding_tool = classified_task in ("grounding", "grounding_rs") and is_valid
 
         if classified_task == "compound_pipeline":
             classified_task = state.get("classified_task", "compound_pipeline")
