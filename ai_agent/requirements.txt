@@ -24,3 +24,9 @@ peft>=0.7.0
 bitsandbytes>=0.41.0
 accelerate>=0.25.0
 huggingface_hub>=0.20.0
+
+# Backend geospatial, image processing, and reporting
+shapely>=2.1.0
+pyproj>=3.8.0
+opencv-python-headless>=4.10.0
+reportlab>=4.2.0
