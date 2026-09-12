@@ -19,7 +19,9 @@ from persistence import (
     update_query,
     add_execution_trace,
     get_query,
-get_execution_traces,
+    get_execution_traces,
+    save_artifact,
+    get_artifacts,
 )
 try:
     from fastapi import (
@@ -195,6 +197,57 @@ def run_query_job(
             status="completed",
             result=result_state,
         )
+
+        # Persist artifacts reported by the orchestrator/specialist models.
+        artifacts = result_state.get("artifacts", []) or []
+
+        # Change-detection specialists may expose spatial masks directly.
+        change_mask = result_state.get("change_mask")
+
+        if change_mask:
+            artifacts = list(artifacts)
+
+            mask_uri = change_mask.get("mask_uri")
+
+            if mask_uri:
+                artifacts.append({
+                "artifact_type": "change_mask",
+            "filename": Path(mask_uri).name,
+            "file_path": mask_uri,
+            "metadata": change_mask,
+        })
+
+        for artifact in artifacts:
+            if not isinstance(artifact, dict):
+                continue
+
+            save_artifact(
+            job_id=job_id,
+            artifact_type=artifact.get(
+            "artifact_type",
+            artifact.get("type", "analysis_output"),
+        ),
+        filename=artifact.get(
+            "filename",
+            Path(
+                artifact.get(
+                    "file_path",
+                    artifact.get("path", "artifact"),
+                )
+            ).name,
+        ),
+        file_path=artifact.get(
+            "file_path",
+            artifact.get(
+                "path",
+                artifact.get("uri", ""),
+            ),
+        ),
+        metadata=artifact.get(
+            "metadata",
+            artifact,
+        ),
+    )
 
         add_execution_trace(
             job_id=job_id,
@@ -473,6 +526,7 @@ def get_execution_trace(job_id: str):
             **trace,
             "persistent_query": persisted_query,
             "execution_events": persisted_events,
+              "artifacts": get_artifacts(job_id),
         }
 
     # Otherwise recover it from the SQLite audit database.
@@ -495,6 +549,7 @@ def get_execution_trace(job_id: str):
         "error": persisted_query["error"],
         "result": persisted_query.get("result"),
         "execution_events": get_execution_traces(job_id),
+        "artifacts": get_artifacts(job_id),
     }
 
 @app.post("/api/v1/orchestrate")
