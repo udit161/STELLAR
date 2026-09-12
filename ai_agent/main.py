@@ -889,3 +889,56 @@ async def analyze_crossmodal(
         return result_state
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cross-modal analysis failure: {str(e)}")
+@app.websocket("/api/v1/ws/{job_id}")
+async def websocket_job_status(websocket: WebSocket, job_id: str):
+    await websocket.accept()
+
+    if job_id not in JOB_TRACES:
+        await websocket.send_json({
+            "job_id": job_id,
+            "status": "not_found",
+            "message": f"Job '{job_id}' not found",
+        })
+        await websocket.close(code=1008)
+        return
+
+    last_status = None
+
+    try:
+        while True:
+            trace = JOB_TRACES.get(job_id)
+
+            if trace is None:
+                await websocket.send_json({
+                    "job_id": job_id,
+                    "status": "not_found",
+                })
+                await websocket.close(code=1008)
+                return
+
+            status = trace.get("status")
+
+            if status != last_status:
+                await websocket.send_json({
+                    "job_id": job_id,
+                    "status": status,
+                    "error": trace.get("error"),
+                    "completed_at": trace.get("completed_at"),
+                })
+                last_status = status
+
+            if status in ("completed", "failed"):
+                await websocket.send_json({
+                    "job_id": job_id,
+                    "status": status,
+                    "result_available": trace.get("result") is not None,
+                    "error": trace.get("error"),
+                    "completed_at": trace.get("completed_at"),
+                })
+                await websocket.close(code=1000)
+                return
+
+            await asyncio.sleep(0.5)
+
+    except WebSocketDisconnect:
+        return
