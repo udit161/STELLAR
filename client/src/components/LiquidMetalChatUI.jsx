@@ -24,8 +24,11 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const [activeTab, setActiveTab] = useState('report'); // 'report' | 'radar' | 'tle'
   const [summaryMode, setSummaryMode] = useState('summary'); // 'summary' | 'raw'
   const [followupText, setFollowupText] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState([]);
   const [showAboutModal, setShowAboutModal] = useState(false);
+
   const outputBodyRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const [messages, setMessages] = useState([
     {
@@ -45,25 +48,53 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     }
   }, [messages]);
 
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files).map(file => ({
+        name: file.name,
+        size: file.size < 1024 * 1024 
+          ? `${(file.size / 1024).toFixed(1)} KB` 
+          : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        fileObj: file
+      }));
+      setAttachedFiles(prev => [...prev, ...newFiles]);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachedFile = (index) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSendFollowup = (e) => {
     e?.preventDefault();
-    if (!followupText.trim()) return;
+    if (!followupText.trim() && attachedFiles.length === 0) return;
+
+    let textContent = followupText.trim();
+    if (attachedFiles.length > 0) {
+      const fileNames = attachedFiles.map(f => f.name).join(', ');
+      textContent = textContent 
+        ? `${textContent} [Attached: ${fileNames}]`
+        : `[Attached file(s): ${fileNames}]`;
+    }
 
     const userMsg = {
       id: Date.now(),
       sender: 'user',
-      text: followupText.trim()
+      text: textContent
     };
 
     const aiMsg = {
       id: Date.now() + 1,
       sender: 'ai',
-      text: `Processing follow-up query on "${followupText.trim()}". Deep space radio array ground station telemetry synced with satellite constellation laser communications link.`,
-      image: '/deep_space.jpg'
+      text: `Processing follow-up query on "${followupText.trim() || 'attached imagery'}". Ground station telemetry synced with satellite constellation.`
     };
 
     setMessages((prev) => [...prev, userMsg, aiMsg]);
     setFollowupText('');
+    setAttachedFiles([]);
   };
 
   const handleShare = () => {
@@ -149,7 +180,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           {/* Body Content according to active tab */}
           <div className="output-body" ref={outputBodyRef}>
             {activeTab === 'report' && (
-              <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {messages.map((msg) => (
                   <div key={msg.id} className="chat-message">
                     <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar' : ''}`}>
@@ -159,48 +190,47 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                       <div className={`message-author ${msg.sender === 'user' ? 'user-author' : ''}`}>
                         {msg.sender === 'user' ? 'You' : 'SatQuery AI'}
                       </div>
-                      <p style={{ margin: '0 0 10px 0' }}>{msg.text}</p>
+                      <p style={{ margin: '0' }}>{msg.text}</p>
                       
-                      {/* Generated Dummy Satellite Image Card */}
-                      {msg.sender === 'ai' && (
+                      {/* Render attached dynamically generated result images ONLY if present */}
+                      {msg.sender === 'ai' && msg.image && (
                         <div className="dummy-img-card" style={{ marginTop: '12px', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0, 242, 254, 0.25)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
                           <img 
-                            src={msg.image || "/sat_orbit.jpg"} 
-                            alt="Satellite Telemetry Rendering" 
+                            src={msg.image} 
+                            alt="Satellite Analysis Output" 
                             style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }}
                           />
-                          <div style={{ padding: '8px 12px', background: 'rgba(3, 7, 18, 0.75)', fontSize: '0.75rem', color: '#00F2FE', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>🛰️ LEO Satellite Telemetry Stream • Live Node</span>
-                            <span>Scale 1:100,000</span>
-                          </div>
                         </div>
                       )}
                     </div>
                   </div>
                 ))}
-
-                {/* Additional Earth Observation Multispectral Imagery Card */}
-                <div className="dummy-img-card" style={{ marginTop: '8px', borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0, 242, 254, 0.2)', background: 'rgba(0,0,0,0.3)' }}>
-                  <div style={{ padding: '10px 14px', background: 'rgba(15, 23, 42, 0.6)', fontSize: '0.8rem', fontWeight: 600, color: '#e0e8f5', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00F2FE', boxShadow: '0 0 8px #00F2FE' }}></span>
-                    Sentinel-2 Multispectral Infrared Terrain Capture
-                  </div>
-                  <img 
-                    src="/earth_scan.jpg" 
-                    alt="Multispectral Satellite Earth Observation Scan" 
-                    style={{ width: '100%', height: '240px', objectFit: 'cover', display: 'block' }}
-                  />
-                </div>
-              </>
+              </div>
             )}
 
             {activeTab === 'radar' && (
-              <div className="dummy-img-card" style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(0, 242, 254, 0.3)' }}>
-                <img 
-                  src="/earth_scan.jpg" 
-                  alt="Live Orbital Radar & Earth Imagery Scan" 
-                  style={{ width: '100%', height: '290px', objectFit: 'cover', display: 'block' }}
-                />
+              <div style={{ padding: '20px', background: 'rgba(3, 7, 18, 0.5)', borderRadius: '14px', border: '1px solid rgba(0, 242, 254, 0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#00F2FE', fontWeight: 600 }}>
+                  <Activity size={18} /> Live Orbital Sensor Sweep
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Sensor Frequency</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#e2e8f0', marginTop: '4px' }}>C-Band Radar</div>
+                  </div>
+                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Polarization</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#e2e8f0', marginTop: '4px' }}>VV + VH</div>
+                  </div>
+                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Pass Mode</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#e2e8f0', marginTop: '4px' }}>Descending</div>
+                  </div>
+                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Off-Nadir Angle</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#e2e8f0', marginTop: '4px' }}>38.4°</div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -301,10 +331,54 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
             )}
           </LiquidGlassCard>
 
-          {/* Follow-up Query Bar (Separate Card Below Query Summary) */}
+          {/* Follow-up Query Bar */}
           <LiquidGlassCard pill className="summary-followup-card">
+            {attachedFiles.length > 0 && (
+              <div style={{ display: 'flex', gap: '6px', padding: '6px 12px 2px 12px', flexWrap: 'wrap' }}>
+                {attachedFiles.map((file, idx) => (
+                  <span 
+                    key={idx} 
+                    style={{ 
+                      background: 'rgba(0, 242, 254, 0.15)', 
+                      border: '1px solid rgba(0, 242, 254, 0.4)', 
+                      borderRadius: '12px', 
+                      padding: '2px 8px', 
+                      fontSize: '0.75rem', 
+                      color: '#00f2fe', 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '4px' 
+                    }}
+                  >
+                    <FileText size={11} />
+                    {file.name} ({file.size})
+                    <button 
+                      type="button" 
+                      onClick={() => removeAttachedFile(idx)} 
+                      style={{ background: 'none', border: 'none', color: '#00f2fe', cursor: 'pointer', padding: 0, marginLeft: '2px', display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             <form className="followup-input-box" onSubmit={handleSendFollowup}>
-              <button type="button" className="input-icon-btn" title="Attach Telemetry Data">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileSelect} 
+                style={{ display: 'none' }} 
+                multiple 
+                accept="image/*,.tif,.tiff,.geojson,.png,.jpg,.jpeg"
+              />
+              <button 
+                type="button" 
+                className="input-icon-btn" 
+                title="Attach Imagery or Telemetry File"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Paperclip size={16} />
               </button>
               <button type="button" className="input-icon-btn" title="Voice Input">
@@ -313,14 +387,14 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               <input 
                 type="text" 
                 className="followup-text-field"
-                placeholder="Ask a follow-up query..."
+                placeholder="Ask a follow-up query or attach files..."
                 value={followupText}
                 onChange={(e) => setFollowupText(e.target.value)}
               />
               <button 
                 type="submit" 
                 className="submit-rocket-btn" 
-                disabled={!followupText.trim()}
+                disabled={!followupText.trim() && attachedFiles.length === 0}
                 title="Submit follow-up"
               >
                 <Rocket size={16} />
