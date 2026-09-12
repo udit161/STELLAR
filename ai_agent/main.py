@@ -9,14 +9,38 @@ import os
 import uuid
 import json
 import shutil
+import asyncio
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
-
+from pydantic import BaseModel
+from .persistence import (
+    init_persistence,
+    create_query,
+    update_query,
+    add_execution_trace,
+    get_query,
+    get_execution_traces,
+    save_artifact,
+    get_artifacts,
+)
+from .utils.report import generate_audit_report
 try:
-    from fastapi import FastAPI, HTTPException, Body, File, UploadFile, Form, Depends, Header
+    from fastapi import (
+        FastAPI,
+        HTTPException,
+        Body,
+        File,
+        UploadFile,
+        Form,
+        Depends,
+        Header,
+        BackgroundTasks,
+        WebSocket,
+        WebSocketDisconnect,
+    )
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.staticfiles import StaticFiles
-    from pydantic import BaseModel, Field
+
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -58,8 +82,13 @@ except ImportError:
     def Header(default=None, **kwargs):
         return default
 
-from agent_core.orchestrator import Orchestrator
-from agent_core.state import (
+from .agent_core.orchestrator import Orchestrator
+from .utils.geospatial import (
+    inspect_raster,
+    validate_image_pair_alignment,
+    verify_band_configuration,
+)
+from .agent_core.state import (
     AgentStateModel,
     RequestStatus,
     ImageInput,
@@ -70,7 +99,7 @@ from agent_core.state import (
     ModalityInputs,
     GeoSpatialContext,
 )
-from auth import (
+from .auth import (
     get_db,
     User,
     UserCreate,
@@ -115,6 +144,141 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 # Initialize single orchestrator instance
 orchestrator = Orchestrator()
 
+# In-memory execution trace store.
+# This will later be replaced/extended with persistent database storage.
+JOB_TRACES: Dict[str, Dict[str, Any]] = {}
+# Initialize persistent audit database.
+init_persistence()
+def run_query_job(
+    job_id: str,
+    q: str,
+    geo: Dict[str, Any],
+    mod: Dict[str, Any],
+    uid: Optional[str],
+    sid: Optional[str],
+):
+    """Run an orchestration job in the FastAPI background worker."""
+
+    try:
+        JOB_TRACES[job_id]["status"] = "processing"
+
+        update_query(
+            job_id=job_id,
+            status="processing",
+        )
+
+        add_execution_trace(
+            job_id=job_id,
+        event_type="job_started",
+        status="processing",
+        message="Background orchestration started.",
+    )
+
+        model = AgentStateModel(
+            raw_query=q,
+            query=q,
+            geo_context=geo,
+            modalities=mod,
+            user_id=uid,
+            session_id=sid,
+        )
+
+        initial_state = model.to_graph_state()
+
+        result_state = orchestrator.run(q, initial_state)
+
+        JOB_TRACES[job_id]["status"] = "completed"
+        JOB_TRACES[job_id]["completed_at"] = (
+            __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        )
+        JOB_TRACES[job_id]["result"] = result_state
+
+        update_query(
+            job_id=job_id,
+            status="completed",
+            result=result_state,
+        )
+
+        # Persist artifacts reported by the orchestrator/specialist models.
+        artifacts = result_state.get("artifacts", []) or []
+
+        # Change-detection specialists may expose spatial masks directly.
+        change_mask = result_state.get("change_mask")
+
+        if change_mask:
+            artifacts = list(artifacts)
+
+            mask_uri = change_mask.get("mask_uri")
+
+            if mask_uri:
+                artifacts.append({
+                "artifact_type": "change_mask",
+            "filename": Path(mask_uri).name,
+            "file_path": mask_uri,
+            "metadata": change_mask,
+        })
+
+        for artifact in artifacts:
+            if not isinstance(artifact, dict):
+                continue
+
+            save_artifact(
+            job_id=job_id,
+            artifact_type=artifact.get(
+            "artifact_type",
+            artifact.get("type", "analysis_output"),
+        ),
+        filename=artifact.get(
+            "filename",
+            Path(
+                artifact.get(
+                    "file_path",
+                    artifact.get("path", "artifact"),
+                )
+            ).name,
+        ),
+        file_path=artifact.get(
+            "file_path",
+            artifact.get(
+                "path",
+                artifact.get("uri", ""),
+            ),
+        ),
+        metadata=artifact.get(
+            "metadata",
+            artifact,
+        ),
+    )
+
+        add_execution_trace(
+            job_id=job_id,
+            event_type="job_completed",
+            status="completed",
+            message="Background orchestration completed successfully.",
+        )
+
+    except Exception as e:
+        JOB_TRACES[job_id]["status"] = "failed"
+        JOB_TRACES[job_id]["error"] = str(e)
+        JOB_TRACES[job_id]["completed_at"] = (
+            __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        )
+        
+
+        update_query(
+            job_id=job_id,
+            status="failed",
+            error=str(e),
+        )
+
+        add_execution_trace(
+            job_id=job_id,
+        event_type="job_failed",
+        status="failed",
+        message="Background orchestration failed.",
+        details={"error": str(e)},
+    )
+
 
 # ---------------------------------------------------------------------------
 # Helper Utility Functions
@@ -139,32 +303,44 @@ def detect_image_format(filename: str) -> str:
 
 
 async def save_uploaded_file(upload_file) -> Dict[str, Any]:
-    """
-    Saves an UploadFile to the local uploads directory and inspects basic metadata.
-    Returns dictionary with file path, filename, format, and size.
-    """
     file_id = str(uuid.uuid4())[:8]
-    safe_filename = f"{file_id}_{upload_file.filename.replace(' ', '_')}"
+
+    original_filename = upload_file.filename or "uploaded_file"
+    safe_filename = f"{file_id}_{original_filename.replace(' ', '_')}"
+
     file_path = UPLOAD_DIR / safe_filename
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(upload_file.file, buffer)
 
     file_size = os.path.getsize(file_path)
-    fmt = detect_image_format(upload_file.filename)
+    fmt = detect_image_format(original_filename)
     relative_url = f"/uploads/{safe_filename}"
+
+    # Validate and inspect geospatial/image metadata
+    try:
+        geospatial_metadata = inspect_raster(str(file_path))
+    except Exception as exc:
+        # Remove invalid uploaded file
+        if file_path.exists():
+            file_path.unlink()
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid or unsupported image file: {exc}",
+        )
 
     return {
         "image_id": str(uuid.uuid4()),
-        "file_name": upload_file.filename,
+        "file_name": original_filename,
         "saved_filename": safe_filename,
         "file_path": str(file_path.resolve()),
         "relative_url": relative_url,
         "file_format": fmt,
         "size_bytes": file_size,
         "size_mb": round(file_size / (1024 * 1024), 2),
+        "geospatial_metadata": geospatial_metadata,
     }
-
 
 def create_image_input_model(file_info: Dict[str, Any], sensor_name: str = "Sentinel-2", modality: str = "optical") -> Dict[str, Any]:
     """Helper to structure an ImageInput object/dict for AgentStateModel."""
@@ -317,38 +493,174 @@ def health_check():
         "uploads_writable": os.access(UPLOAD_DIR, os.W_OK)
     }
 
+@app.get("/api/v1/system-status")
+def system_status():
+    """Return backend service and model status."""
+    return {
+        "status": "operational",
+        "service": "satquery-agent",
+        "version": "1.0.0",
+        "components": {
+            "api": "operational",
+            "orchestrator": "operational" if orchestrator else "unavailable",
+            "vlm": "loaded",
+            "geospatial": "operational",
+            "upload_directory": {
+                "path": str(UPLOAD_DIR.resolve()),
+                "writable": os.access(UPLOAD_DIR, os.W_OK),
+            },
+        },
+    }
+
+@app.get("/api/v1/trace/{job_id}")
+def get_execution_trace(job_id: str):
+    """Return persistent execution trace information for a job."""
+
+    trace = JOB_TRACES.get(job_id)
+
+    # If the job is still in memory, return the live trace.
+    if trace is not None:
+        persisted_query = get_query(job_id)
+        persisted_events = get_execution_traces(job_id)
+
+        return {
+            **trace,
+            "persistent_query": persisted_query,
+            "execution_events": persisted_events,
+              "artifacts": get_artifacts(job_id),
+        }
+
+    # Otherwise recover it from the SQLite audit database.
+    persisted_query = get_query(job_id)
+
+    if persisted_query is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found",
+        )
+
+    return {
+        "job_id": job_id,
+        "status": persisted_query["status"],
+        "query": persisted_query["query_text"],
+        "user_id": persisted_query["user_id"],
+        "session_id": persisted_query["session_id"],
+        "started_at": persisted_query["started_at"],
+        "completed_at": persisted_query["completed_at"],
+        "error": persisted_query["error"],
+        "result": persisted_query.get("result"),
+        "execution_events": get_execution_traces(job_id),
+        "artifacts": get_artifacts(job_id),
+    }
+
+@app.get("/api/v1/report/{job_id}")
+def generate_job_report(job_id: str):
+    """Generate and return the PDF audit report for a job."""
+
+    query = get_query(job_id)
+
+    if query is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found",
+        )
+
+    execution_events = get_execution_traces(job_id)
+    artifacts = get_artifacts(job_id)
+
+    report_result = generate_audit_report(
+        job_id=job_id,
+        query=query,
+        execution_events=execution_events,
+        artifacts=artifacts,
+    )
+
+    # Record the generated PDF as an artifact.
+    save_artifact(
+        job_id=job_id,
+        artifact_type="audit_report",
+        filename=Path(report_result["path"]).name,
+        file_path=report_result["path"],
+        metadata={
+            "format": "pdf",
+            "description": "SatQuery AI execution audit report",
+        },
+    )
+
+    return {
+        "status": "success",
+        "job_id": job_id,
+        "report": report_result,
+    }
 
 @app.post("/api/v1/orchestrate")
 @app.post("/api/v1/query")
-def orchestrate_query(payload: QueryRequest):
+def orchestrate_query(
+    payload: QueryRequest,
+    background_tasks: BackgroundTasks,
+):
     """
-    Execute multi-agent state graph pipeline for text-only user queries (with optional JSON context).
+    Create an asynchronous orchestration job.
+
+    The API returns immediately with a job_id while the
+    VLM/orchestrator runs in the background.
     """
-    try:
-        q = getattr(payload, "query", "")
-        if not q.strip():
-            raise HTTPException(status_code=400, detail="Query string cannot be empty")
 
-        geo = getattr(payload, "geo_context", {}) or {}
-        mod = getattr(payload, "modalities", {}) or {}
-        uid = getattr(payload, "user_id", None)
-        sid = getattr(payload, "session_id", None)
+    q = getattr(payload, "query", "")
 
-        model = AgentStateModel(
-            raw_query=q,
-            query=q,
-            geo_context=geo,
-            modalities=mod,
-            user_id=uid,
-            session_id=sid,
+    if not q.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Query string cannot be empty",
         )
-        initial_state = model.to_graph_state()
-        result_state = orchestrator.run(q, initial_state)
-        return result_state
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Orchestration failure: {str(e)}")
 
+    geo = getattr(payload, "geo_context", {}) or {}
+    mod = getattr(payload, "modalities", {}) or {}
+    uid = getattr(payload, "user_id", None)
+    sid = getattr(payload, "session_id", None)
 
+    job_id = str(uuid.uuid4())
+
+    JOB_TRACES[job_id] = {
+        "job_id": job_id,
+        "status": "queued",
+        "query": q,
+        "started_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+        "completed_at": None,
+        "error": None,
+        "result": None,
+    }
+    
+    create_query(
+        job_id=job_id,
+        query_text=q,
+        user_id=uid,
+        session_id=sid,
+    )
+
+    add_execution_trace(
+        job_id=job_id,
+        event_type="job_queued",
+        status="queued",
+        message="Query accepted by API gateway.",
+)
+
+    background_tasks.add_task(
+        run_query_job,
+        job_id,
+        q,
+        geo,
+        mod,
+        uid,
+        sid,
+    )
+
+    return {
+        "job_id": job_id,
+        "status": "queued",
+        "message": "Query accepted and processing started.",
+        "trace_url": f"/api/v1/trace/{job_id}",
+    }
 @app.post("/api/v1/upload")
 async def upload_standalone_file(file: UploadFile = File(...)):
     """
@@ -456,14 +768,26 @@ async def analyze_bitemporal(
 
     t1_info = await save_uploaded_file(t1_file)
     t2_info = await save_uploaded_file(t2_file)
-
+    alignment_result = validate_image_pair_alignment(
+    t1_info["file_path"],
+    t2_info["file_path"],
+)
+    if not alignment_result["aligned"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Bitemporal images are not spatially aligned.",
+                "alignment_checks": alignment_result,
+        },
+    )
     t1_image_input = create_image_input_model(t1_info, sensor_name=sensor or "Sentinel-2")
     t2_image_input = create_image_input_model(t2_info, sensor_name=sensor or "Sentinel-2")
 
     bi_temporal_pair = {
         "t1_image": t1_image_input,
         "t2_image": t2_image_input,
-        "alignment_verified": True
+        "alignment_verified": alignment_result["aligned"],
+        "alignment_checks": alignment_result,
     }
 
     modalities = {
@@ -506,13 +830,41 @@ async def analyze_crossmodal(
     opt_info = await save_uploaded_file(optical_file)
     sar_info = await save_uploaded_file(sar_file)
 
+    optical_metadata = verify_band_configuration(
+        opt_info["file_path"],
+        expected_modality="optical",
+    )
+
+    sar_metadata = verify_band_configuration(
+        sar_info["file_path"],
+        expected_modality="sar",
+    )
+
+    if not optical_metadata["valid"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Optical image failed band/modality validation.",
+                "validation": optical_metadata,
+            },
+        )
+
+    if not sar_metadata["valid"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "SAR image failed band/modality validation.",
+                "validation": sar_metadata,
+        },
+    )
+
     opt_input = create_image_input_model(opt_info, sensor_name="Sentinel-2", modality="optical")
     sar_input = create_image_input_model(sar_info, sensor_name="Sentinel-1", modality="sar")
 
     optical_sar_pair = {
         "optical_image": opt_input,
         "sar_image": sar_input,
-        "polarization": "VV+VH",
+        "polarization": "+".join(sar_metadata.get("polarizations", [])),
         "fusion_strategy": "cross_attention"
     }
 
