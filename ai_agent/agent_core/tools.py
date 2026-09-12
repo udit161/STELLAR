@@ -112,11 +112,22 @@ try:
 except ImportError:
     LANGCHAIN_TOOL_AVAILABLE = False
     def tool(*args, **kwargs):
-        """Fallback tool decorator mimicking LangChain @tool."""
+        """Fallback tool decorator mimicking LangChain @tool with .invoke() support."""
         def decorator(fn):
             fn.is_tool = True
             fn.args_schema = kwargs.get("args_schema")
             fn.description = kwargs.get("description", fn.__doc__)
+            def _inv(input_args=None, **extra_kwargs):
+                if input_args is None:
+                    return fn(**extra_kwargs)
+                if isinstance(input_args, dict):
+                    merged = {**input_args, **extra_kwargs}
+                    try:
+                        return fn(**merged)
+                    except TypeError:
+                        return fn(merged)
+                return fn(input_args, **extra_kwargs)
+            fn.invoke = _inv
             return fn
         if len(args) == 1 and callable(args[0]):
             return decorator(args[0])
