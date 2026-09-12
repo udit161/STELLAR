@@ -679,7 +679,141 @@ async def upload_standalone_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload error: {str(e)}")
 
+# Chunked upload directory
+CHUNK_DIR = UPLOAD_DIR / "chunks"
+CHUNK_DIR.mkdir(parents=True, exist_ok=True)
 
+
+@app.post("/api/v1/upload/chunk")
+async def upload_file_chunk(
+    upload_id: str = Form(...),
+    chunk_number: int = Form(...),
+    total_chunks: int = Form(...),
+    filename: str = Form(...),
+    chunk: UploadFile = File(...),
+):
+    """
+    Upload a large satellite image in multiple chunks.
+
+    The client sends the file piece-by-piece using the same upload_id.
+    When the final chunk arrives, all chunks are assembled and the
+    completed file is validated using the existing geospatial pipeline.
+    """
+
+    if total_chunks <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="total_chunks must be greater than 0",
+        )
+
+    if chunk_number < 0 or chunk_number >= total_chunks:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid chunk_number",
+        )
+
+    if not filename.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="filename is required",
+        )
+
+    # Keep upload IDs and filenames filesystem-safe.
+    safe_upload_id = "".join(
+        c for c in upload_id if c.isalnum() or c in ("-", "_")
+    )
+
+    safe_filename = Path(filename).name
+
+    if not safe_upload_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid upload_id",
+        )
+
+    upload_chunk_dir = CHUNK_DIR / safe_upload_id
+    upload_chunk_dir.mkdir(parents=True, exist_ok=True)
+
+    chunk_path = upload_chunk_dir / f"chunk_{chunk_number:08d}.part"
+
+    try:
+        # Save this individual chunk.
+        with open(chunk_path, "wb") as buffer:
+            while True:
+                data = await chunk.read(1024 * 1024)
+                if not data:
+                    break
+                buffer.write(data)
+
+        # Count completed chunks.
+        completed_chunks = len(
+            list(upload_chunk_dir.glob("chunk_*.part"))
+        )
+
+        # Upload is not complete yet.
+        if completed_chunks < total_chunks:
+            return {
+                "status": "chunk_received",
+                "upload_id": safe_upload_id,
+                "filename": safe_filename,
+                "chunk_number": chunk_number,
+                "total_chunks": total_chunks,
+                "completed_chunks": completed_chunks,
+                "upload_complete": False,
+            }
+
+        # Assemble chunks in numerical order.
+        assembled_path = upload_chunk_dir / safe_filename
+
+        with open(assembled_path, "wb") as output_file:
+            for index in range(total_chunks):
+                current_chunk = (
+                    upload_chunk_dir / f"chunk_{index:08d}.part"
+                )
+
+                if not current_chunk.exists():
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Missing chunk {index}",
+                    )
+
+                with open(current_chunk, "rb") as input_file:
+                    shutil.copyfileobj(
+                        input_file,
+                        output_file,
+                        length=1024 * 1024,
+                    )
+
+        # Validate and move the completed file through the
+        # existing upload/geospatial validation pipeline.
+        with open(assembled_path, "rb") as assembled_file:
+            class AssembledUpload:
+                filename = safe_filename
+                file = assembled_file
+
+            file_info = await save_uploaded_file(AssembledUpload())
+
+        # Clean up temporary chunks.
+        shutil.rmtree(upload_chunk_dir, ignore_errors=True)
+
+        return {
+            "status": "success",
+            "message": "Large file uploaded and assembled successfully",
+            "upload_id": safe_upload_id,
+            "filename": safe_filename,
+            "total_chunks": total_chunks,
+            "upload_complete": True,
+            "file": file_info,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Chunked upload error: {str(e)}",
+        )
 @app.post("/api/v1/query-with-image")
 async def query_with_image(
     query: str = Form(...),
