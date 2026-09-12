@@ -12,7 +12,7 @@ import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Callable, Tuple, Generator, Union
 
-from agent_core.state import (
+from .state import (
     AgentState,
     AgentStateModel,
     TaskType,
@@ -41,7 +41,7 @@ from agent_core.state import (
     ConversationTurn,
     SpatialContextCache,
 )
-from agent_core.tools import (
+from .tools import (
     change_detection_tool,
     vqa_tool,
     grounding_tool,

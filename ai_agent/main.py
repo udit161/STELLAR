@@ -13,7 +13,7 @@ import asyncio
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel
-from persistence import (
+from .persistence import (
     init_persistence,
     create_query,
     update_query,
@@ -23,7 +23,7 @@ from persistence import (
     save_artifact,
     get_artifacts,
 )
-from utils.report import generate_audit_report
+from .utils.report import generate_audit_report
 try:
     from fastapi import (
         FastAPI,
@@ -82,13 +82,13 @@ except ImportError:
     def Header(default=None, **kwargs):
         return default
 
-from agent_core.orchestrator import Orchestrator
-from utils.geospatial import (
+from .agent_core.orchestrator import Orchestrator
+from .utils.geospatial import (
     inspect_raster,
     validate_image_pair_alignment,
     verify_band_configuration,
 )
-from agent_core.state import (
+from .agent_core.state import (
     AgentStateModel,
     RequestStatus,
     ImageInput,
@@ -99,7 +99,7 @@ from agent_core.state import (
     ModalityInputs,
     GeoSpatialContext,
 )
-from auth import (
+from .auth import (
     get_db,
     User,
     UserCreate,
