@@ -58,7 +58,7 @@
   position: absolute;
   inset: 0;
   z-index: 3;
-  overflow: hidden;
+  overflow: visible;
   background: radial-gradient(circle at 35% 35%, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.98));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -66,7 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: abstractBlobMorph 9s ease-in-out infinite;
+  animation: abstractBlobMorph 9s ease-in-out infinite, satqueryGlowPulse 4s ease-in-out infinite alternate;
   box-shadow: 
     0 0 20px rgba(234, 179, 8, 0.25),
     inset 0 0 12px rgba(234, 179, 8, 0.15);
@@ -90,6 +90,12 @@
 }
 
 @keyframes abstractHaloPulse {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50%       { opacity: 0.65; transform: scale(1.06); }
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.85; transform: scale(1.08); }
 }
+
+@keyframes satqueryGlowPulse {
+  0% { box-shadow: 0 0 18px rgba(234, 179, 8, 0.25), inset 0 0 10px rgba(234, 179, 8, 0.15); }
+  100% { box-shadow: 0 0 28px rgba(56, 189, 248, 0.45), inset 0 0 16px rgba(56, 189, 248, 0.25); }
+}
+

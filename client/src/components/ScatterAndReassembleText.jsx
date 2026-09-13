@@ -131,7 +131,7 @@ function ChandrayaanSatellite() {
   );
 }
 
-export default function ScatterAndReassembleText({ showMultilingual = true, singleLine = false, animated = false }) {
+export default function ScatterAndReassembleText({ showMultilingual = true, singleLine = false, animated = true }) {
   const letters = useMemo(() => TEXT.split(""), []);
   const scatterOffsets = useMemo(() => letters.map((_, i) => getScatterOffset(i)), [letters]);
   const floatParams    = useMemo(() => letters.map((_, i) => getFloatParams(i)),   [letters]);
@@ -144,18 +144,23 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
       return;
     }
     let t1, t2, t3;
+    let isMounted = true;
 
     function runCycle() {
+      if (!isMounted) return;
       // 1. Float cleanly
       t1 = setTimeout(() => {
+        if (!isMounted) return;
         setPhase("scattered");
 
         // 2. Pause scattered
         t2 = setTimeout(() => {
+          if (!isMounted) return;
           setPhase("reassembling");
 
           // 3. Spring reassemble
           t3 = setTimeout(() => {
+            if (!isMounted) return;
             setPhase("reassembled");
             runCycle();
           }, REASSEMBLE_SETTLE_MS);
@@ -166,6 +171,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
     runCycle();
 
     return () => {
+      isMounted = false;
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
@@ -383,7 +389,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
 
           return (
             <motion.span
-              key={`${char}-${i}`}
+              key={`${char}-${i}-${phase}`}
               style={{
                 display: "inline-block",
                 fontSize: singleLine ? "clamp(2.5rem, 5.5vw, 5rem)" : "clamp(3rem, 8vw, 9rem)",

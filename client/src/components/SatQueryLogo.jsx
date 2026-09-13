@@ -2,7 +2,7 @@ import React from 'react';
 import ScatterAndReassembleText from './ScatterAndReassembleText';
 import './SatQueryLogo.css';
 
-export function SatQueryLogo({ onClick, size = 'normal', animated = false }) {
+export function SatQueryLogo({ onClick, size = 'normal', animated = true }) {
   return (
     <div 
       className={`satquery-logo-wrapper ${size}`}
@@ -24,3 +24,4 @@ export function SatQueryLogo({ onClick, size = 'normal', animated = false }) {
 }
 
 export default SatQueryLogo;
+
