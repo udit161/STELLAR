@@ -183,20 +183,38 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     setIsLoading(true);
     setError(null);
 
+    /** Helper: parse FastAPI error detail (string or validation array) */
+    const parseApiError = (errBody, fallback) => {
+      if (!errBody) return fallback;
+      const d = errBody.detail;
+      if (!d) return fallback;
+      if (typeof d === 'string') return d;
+      if (Array.isArray(d)) {
+        // FastAPI 422 validation errors: [{loc, msg, type}, ...]
+        return d.map(e => {
+          const loc = Array.isArray(e.loc) ? e.loc.join(' → ') : '';
+          return loc ? `${loc}: ${e.msg}` : e.msg;
+        }).join('; ');
+      }
+      return JSON.stringify(d);
+    };
+
     try {
       let data;
-      if (files.length > 0) {
+      // Only use multipart endpoint if there are real File objects attached
+      const realFiles = files.filter(f => (f.fileObj instanceof File) || (f instanceof File));
+      if (realFiles.length > 0) {
         // Synchronous multipart endpoint
         const formData = new FormData();
         formData.append('query', query);
-        files.forEach(f => formData.append('files', f.fileObj || f));
+        realFiles.forEach(f => formData.append('files', f.fileObj || f));
         const res = await fetch(`${AI_BASE_URL}/api/v1/query-with-image`, {
           method: 'POST',
           body: formData,
         });
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
-          throw new Error(err.detail || `API error ${res.status}`);
+          const errBody = await res.json().catch(() => null);
+          throw new Error(parseApiError(errBody, `HTTP ${res.status}`));
         }
         data = await res.json();
         setAgentResult(data);
@@ -214,8 +232,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           }),
         });
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
-          throw new Error(err.detail || `API error ${res.status}`);
+          const errBody = await res.json().catch(() => null);
+          throw new Error(parseApiError(errBody, `HTTP ${res.status}`));
         }
         const job = await res.json();
         return await new Promise((resolve) => {
