@@ -156,8 +156,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const [agentResult, setAgentResult] = useState(null);
   const [tleData, setTleData] = useState(null);
   const [tleLoading, setTleLoading] = useState(false);
-  // image preview URLs for initial attachments
   const [initImagePreviews, setInitImagePreviews] = useState([]);
+  // incrementing this counter re-triggers the query useEffect (Regenerate)
+  const [regenCounter, setRegenCounter] = useState(0);
 
   const outputBodyRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -243,12 +244,18 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     }
   }, [messages, isLoading]);
 
-  // Call the real AI backend on initial query load
+  // Call the real AI backend on initial query load OR when Regenerate is pressed
   useEffect(() => {
     if (!queryText) return;
+    // Cancel any in-flight poll before starting fresh
+    if (pollRef.current) clearInterval(pollRef.current);
+    setMessages([]);
+    setError(null);
+    setAgentResult(null);
+    setIsLoading(false);
     runInitialQuery(queryText, attachments);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryText]);
+  }, [queryText, regenCounter]);
 
   // Cleanup poll interval on unmount
   useEffect(() => () => clearInterval(pollRef.current), []);
@@ -453,15 +460,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
   const handleRegenerate = useCallback(() => {
     if (isLoading) return;
-    // Cancel any in-flight poll
-    if (pollRef.current) clearInterval(pollRef.current);
-    setMessages([]);
-    setError(null);
-    setAgentResult(null);
-    setIsLoading(false);
-    // Small tick to let state flush, then re-run
-    setTimeout(() => runInitialQuery(queryText, attachments), 50);
-  }, [isLoading, queryText, attachments, runInitialQuery]);
+    setRegenCounter(c => c + 1); // triggers the useEffect cleanly
+  }, [isLoading]);
 
   // Build confidence/metrics from last real agent result
   const conf = agentResult ? extractConfidence(agentResult) : null;
@@ -508,6 +508,53 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <div className="output-body" ref={outputBodyRef}>
             {activeTab === 'report' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                {/* ── Image Preview Strip ── */}
+                {initImagePreviews.length > 0 && (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: 'rgba(0,242,254,0.06)',
+                    borderRadius: '14px',
+                    border: '1px solid rgba(0,242,254,0.2)',
+                  }}>
+                    <div style={{ fontSize: '0.75rem', color: '#00F2FE', fontWeight: 600, marginBottom: '10px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      🛰️ Attached Imagery ({initImagePreviews.length})
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      {initImagePreviews.map((img, i) => (
+                        <div key={i} style={{ position: 'relative' }}>
+                          <img
+                            src={img.url}
+                            alt={img.name}
+                            title={img.name}
+                            style={{
+                              maxWidth: '220px',
+                              maxHeight: '160px',
+                              minWidth: '80px',
+                              borderRadius: '10px',
+                              border: '1px solid rgba(0,242,254,0.35)',
+                              objectFit: 'cover',
+                              display: 'block',
+                              boxShadow: '0 4px 18px rgba(0,242,254,0.15)',
+                            }}
+                          />
+                          <span style={{
+                            display: 'block',
+                            fontSize: '0.68rem',
+                            color: '#94a3b8',
+                            marginTop: '5px',
+                            maxWidth: '220px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>{img.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Chat Messages ── */}
                 {messages.map((msg) => (
                   <div key={msg.id} className="chat-message">
                     <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar' : ''}`}>
