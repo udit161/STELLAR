@@ -350,34 +350,34 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
           const isSpace = char === " ";
 
           let animateTarget;
+          let transition;
+
           if (!animated) {
             animateTarget = { x: 0, y: 0, rotate: 0, opacity: 1 };
+            transition = { duration: 0.5 };
           } else if (phase === "scattered") {
-            animateTarget = { x, y, rotate, opacity: 0.6 };
+            animateTarget = { x, y, rotate, opacity: 0.85 };
+            transition = {
+              duration: 1.2,
+              ease: [0.16, 1, 0.3, 1],
+            };
           } else if (phase === "reassembling") {
             animateTarget = { x: 0, y: 0, rotate: 0, opacity: 1 };
-          } else {
-            animateTarget = { y: [0, -amplitude, 0], opacity: 1 };
-          }
-
-          let transition;
-          if (phase === "scattered") {
             transition = {
               duration: 1.4,
-              ease: [0.25, 0.1, 0.25, 1],
-            };
-          } else if (phase === "reassembling") {
-            transition = {
-              type: "spring",
-              stiffness: 42,
-              damping: 18,
-              mass: 0.8,
-              restDelta: 0.001,
-              restSpeed: 0.001,
+              ease: [0.34, 1.35, 0.64, 1],
             };
           } else {
+            animateTarget = { 
+              x: 0, 
+              rotate: 0, 
+              y: [0, -amplitude, 0], 
+              opacity: 1 
+            };
             transition = {
               opacity: { duration: 0.5, ease: "easeOut" },
+              x: { duration: 0.8, ease: "easeOut" },
+              rotate: { duration: 0.8, ease: "easeOut" },
               y: {
                 duration: duration * 1.1,
                 ease: [0.42, 0, 0.58, 1],
@@ -389,7 +389,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
 
           return (
             <motion.span
-              key={`${char}-${i}-${phase}`}
+              key={`${char}-${i}`}
               style={{
                 display: "inline-block",
                 fontSize: singleLine ? "clamp(2.5rem, 5.5vw, 5rem)" : "clamp(3rem, 8vw, 9rem)",
