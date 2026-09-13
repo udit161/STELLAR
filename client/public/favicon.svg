@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#030712" />
+    </radialGradient>
+
+    <!-- Cyan Glow Gradient -->
+    <linearGradient id="cyanNeon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="100%" stop-color="#4FACFE" />
+    </linearGradient>
+
+    <!-- Purple Orbit Gradient -->
+    <linearGradient id="purpleNeon" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a78bfa" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Glass Boundary -->
+  <circle cx="32" cy="32" r="30" fill="url(#bgGrad)" stroke="url(#cyanNeon)" stroke-width="2.5" />
+
+  <!-- Orbit Ring 1 -->
+  <ellipse cx="32" cy="32" rx="24" ry="10" fill="none" stroke="url(#cyanNeon)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.8" transform="rotate(-25 32 32)" />
+
+  <!-- Orbit Ring 2 -->
+  <ellipse cx="32" cy="32" rx="22" ry="8" fill="none" stroke="url(#purpleNeon)" stroke-width="1.2" opacity="0.6" transform="rotate(35 32 32)" />
+
+  <!-- Central Satellite Dish / Body -->
+  <g transform="translate(16, 16) scale(0.667)">
+    <!-- Solar Panel Left -->
+    <rect x="2" y="21" width="12" height="6" rx="1.5" fill="url(#cyanNeon)" opacity="0.9" />
+    <line x1="8" y1="21" x2="8" y2="27" stroke="#030712" stroke-width="1" />
+
+    <!-- Solar Panel Right -->
+    <rect x="34" y="21" width="12" height="6" rx="1.5" fill="url(#cyanNeon)" opacity="0.9" />
+    <line x1="40" y1="21" x2="40" y2="27" stroke="#030712" stroke-width="1" />
+
+    <!-- Panel Connectors -->
+    <line x1="14" y1="24" x2="18" y2="24" stroke="url(#cyanNeon)" stroke-width="2" />
+    <line x1="30" y1="24" x2="34" y2="24" stroke="url(#cyanNeon)" stroke-width="2" />
+
+    <!-- Satellite Core Chassis -->
+    <rect x="18" y="17" width="12" height="14" rx="3" fill="#0f172a" stroke="url(#cyanNeon)" stroke-width="2" />
+    
+    <!-- Central AI Core Light -->
+    <circle cx="24" cy="24" r="3.5" fill="#00F2FE" />
+    <circle cx="24" cy="24" r="1.5" fill="#ffffff" />
+
+    <!-- Dish Antenna Array -->
+    <path d="M 24 17 L 24 10 M 18 10 A 6 6 0 0 1 30 10" fill="none" stroke="url(#cyanNeon)" stroke-width="2" stroke-linecap="round" />
+    <circle cx="24" cy="7" r="1.5" fill="#a78bfa" />
+  </g>
+</svg>

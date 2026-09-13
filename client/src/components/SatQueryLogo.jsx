@@ -2,7 +2,7 @@ import React from 'react';
 import ScatterAndReassembleText from './ScatterAndReassembleText';
 import './SatQueryLogo.css';
 
-export function SatQueryLogo({ onClick, size = 'normal' }) {
+export function SatQueryLogo({ onClick, size = 'normal', animated = false }) {
   return (
     <div 
       className={`satquery-logo-wrapper ${size}`}
@@ -15,7 +15,7 @@ export function SatQueryLogo({ onClick, size = 'normal' }) {
         <div className="satquery-logo-mask" />
         <div className="satquery-logo-card">
           <div className="satquery-logo-scaled-inner">
-            <ScatterAndReassembleText showMultilingual={false} singleLine={true} />
+            <ScatterAndReassembleText showMultilingual={false} singleLine={true} animated={animated} />
           </div>
         </div>
       </div>

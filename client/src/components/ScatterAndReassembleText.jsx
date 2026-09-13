@@ -131,7 +131,7 @@ function ChandrayaanSatellite() {
   );
 }
 
-export default function ScatterAndReassembleText({ showMultilingual = true, singleLine = false }) {
+export default function ScatterAndReassembleText({ showMultilingual = true, singleLine = false, animated = false }) {
   const letters = useMemo(() => TEXT.split(""), []);
   const scatterOffsets = useMemo(() => letters.map((_, i) => getScatterOffset(i)), [letters]);
   const floatParams    = useMemo(() => letters.map((_, i) => getFloatParams(i)),   [letters]);
@@ -139,6 +139,10 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
   const [phase, setPhase] = useState("reassembled");
 
   useEffect(() => {
+    if (!animated) {
+      setPhase("reassembled");
+      return;
+    }
     let t1, t2, t3;
 
     function runCycle() {
@@ -166,7 +170,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
       clearTimeout(t2);
       clearTimeout(t3);
     };
-  }, []);
+  }, [animated]);
 
   return (
     <div style={{ position: "relative", perspective: "1200px", transformStyle: "preserve-3d", transform: "scale(0.8)", transformOrigin: "center center" }}>
@@ -307,18 +311,20 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
       </svg>
 
       {/* Single Orbiting Chandrayaan-3 Satellite */}
-      <div style={{
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transformStyle: "preserve-3d",
-        animation: "orbitChandrayaan 28s cubic-bezier(0.37, 0, 0.63, 1) infinite",
-        willChange: "transform, opacity, filter",
-        backfaceVisibility: "hidden",
-        pointerEvents: "none",
-      }}>
-        <ChandrayaanSatellite />
-      </div>
+      {animated && (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transformStyle: "preserve-3d",
+          animation: "orbitChandrayaan 28s cubic-bezier(0.37, 0, 0.63, 1) infinite",
+          willChange: "transform, opacity, filter",
+          backfaceVisibility: "hidden",
+          pointerEvents: "none",
+        }}>
+          <ChandrayaanSatellite />
+        </div>
+      )}
 
       {/* Main Text Content */}
       <div
@@ -338,7 +344,9 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
           const isSpace = char === " ";
 
           let animateTarget;
-          if (phase === "scattered") {
+          if (!animated) {
+            animateTarget = { x: 0, y: 0, rotate: 0, opacity: 1 };
+          } else if (phase === "scattered") {
             animateTarget = { x, y, rotate, opacity: 0.6 };
           } else if (phase === "reassembling") {
             animateTarget = { x: 0, y: 0, rotate: 0, opacity: 1 };

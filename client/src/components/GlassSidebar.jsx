@@ -45,7 +45,6 @@ const INITIAL_NOTES = [
     content: 'Inclination: 97.5° SSO. Operating altitude ~509 km. High-resolution panchromatic & multispectral sensors active with Doppler frequency correction.',
     tag: 'Telemetry',
     color: '#a78bfa',
-    image: '/sat_orbit.jpg',
     date: 'Sep 10, 2026'
   },
   {
@@ -54,7 +53,6 @@ const INITIAL_NOTES = [
     content: 'Multispectral false-color infrared highlights active coral reef ecosystems and coastal erosion patterns along Australian shoreline.',
     tag: 'Earth Scan',
     color: '#38bdf8',
-    image: '/earth_scan.jpg',
     date: 'Sep 09, 2026'
   }
 ];
@@ -68,7 +66,15 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
   const [notesList, setNotesList] = useState(() => {
     try {
       const saved = localStorage.getItem('satquery_orbit_notes');
-      return saved ? JSON.parse(saved) : INITIAL_NOTES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Strip image property from any previously saved notes
+        return parsed.map(n => {
+          const { image, ...rest } = n;
+          return rest;
+        });
+      }
+      return INITIAL_NOTES;
     } catch {
       return INITIAL_NOTES;
     }
@@ -83,7 +89,6 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteTag, setNoteTag] = useState('Telemetry');
-  const [noteImage, setNoteImage] = useState('/sat_orbit.jpg');
   const [noteDocument, setNoteDocument] = useState(null); // { name, size, data }
 
   const sidebarRef = useRef(null);
@@ -123,7 +128,6 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
         title: noteTitle.trim(),
         content: noteContent.trim(),
         tag: noteTag,
-        image: noteImage,
         document: noteDocument
       } : n));
       setEditingNoteId(null);
@@ -134,7 +138,6 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
         content: noteContent.trim(),
         tag: noteTag,
         color: noteTag === 'Telemetry' ? '#a78bfa' : noteTag === 'Earth Scan' ? '#38bdf8' : noteTag === 'Debris Risk' ? '#f87171' : '#fbbf24',
-        image: noteImage,
         document: noteDocument,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       };
@@ -152,7 +155,6 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     setNoteTitle(note.title);
     setNoteContent(note.content);
     setNoteTag(note.tag);
-    setNoteImage(note.image || '');
     setNoteDocument(note.document || null);
     setIsCreatingNote(true);
   };
@@ -189,25 +191,16 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        setNoteImage(uploadEvent.target.result);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // Document file (PDF, TXT, JSON, DOCX)
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        setNoteDocument({
-          name: file.name,
-          size: `${(file.size / 1024).toFixed(1)} KB`,
-          type: file.type || 'document',
-          data: uploadEvent.target.result
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setNoteDocument({
+        name: file.name,
+        size: file.size < 1024 * 1024 ? `${(file.size / 1024).toFixed(1)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        type: file.type || 'document',
+        data: uploadEvent.target.result
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const filteredHistory = historyList.filter(item => 
@@ -485,35 +478,10 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   required
                 />
 
-                {/* Preset Image Picker + File Upload */}
+                {/* Document Attachment Upload */}
                 <div className="image-picker-row">
-                  <span className="picker-label"><ImageIcon size={14} /> Attach Satellite Image:</span>
-                  <div className="preset-thumbs">
-                    <img 
-                      src="/sat_orbit.jpg" 
-                      alt="Orbit" 
-                      className={`thumb-item ${noteImage === '/sat_orbit.jpg' ? 'selected' : ''}`}
-                      onClick={() => setNoteImage('/sat_orbit.jpg')}
-                    />
-                    <img 
-                      src="/earth_scan.jpg" 
-                      alt="Earth Scan" 
-                      className={`thumb-item ${noteImage === '/earth_scan.jpg' ? 'selected' : ''}`}
-                      onClick={() => setNoteImage('/earth_scan.jpg')}
-                    />
-                    <img 
-                      src="/deep_space.jpg" 
-                      alt="Deep Space" 
-                      className={`thumb-item ${noteImage === '/deep_space.jpg' ? 'selected' : ''}`}
-                      onClick={() => setNoteImage('/deep_space.jpg')}
-                    />
-                  </div>
-                  <label className="upload-custom-lbl">
-                    <ImageIcon size={12} /> Image
-                    <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-                  </label>
                   <label className="upload-custom-lbl doc-upload">
-                    <Paperclip size={12} /> Document
+                    <Paperclip size={14} /> Attach Document File (.pdf, .txt, .json, .csv, .docx)
                     <input type="file" accept=".pdf,.txt,.json,.csv,.doc,.docx" onChange={handleFileUpload} style={{ display: 'none' }} />
                   </label>
                 </div>
@@ -528,9 +496,24 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   </div>
                 )}
 
-                <button type="submit" className="save-note-submit-btn">
-                  <Save size={15} /> {editingNoteId ? 'Update Note' : 'Save Note'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px' }}>
+                  <button 
+                    type="button"
+                    className="history-clear-btn"
+                    onClick={() => {
+                      setIsCreatingNote(false);
+                      setEditingNoteId(null);
+                      setNoteTitle('');
+                      setNoteContent('');
+                      setNoteDocument(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="save-note-submit-btn">
+                    <Save size={15} /> {editingNoteId ? 'Update Note' : 'Save Note'}
+                  </button>
+                </div>
               </form>
             ) : (
               <>
@@ -572,15 +555,12 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                 {filteredNotes.length > 0 ? (
                   filteredNotes.map((note) => (
                     <div key={note.id} className="note-card-item">
-                      {note.image && (
-                        <div className="note-img-preview-box">
-                          <img src={note.image} alt={note.title} className="note-card-img" />
-                          <span className="note-purple-tag">#{note.tag}</span>
-                        </div>
-                      )}
                       <div className="note-card-body">
                         <div className="note-card-top">
-                          <h3 className="note-card-title">{note.title}</h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <h3 className="note-card-title">{note.title}</h3>
+                            <span className="note-purple-tag">#{note.tag}</span>
+                          </div>
                           <div className="note-card-actions">
                             <button 
                               className="note-action-icon" 
