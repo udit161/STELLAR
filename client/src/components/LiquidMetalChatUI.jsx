@@ -75,6 +75,16 @@ function extractConfidence(result) {
   if (!result) return 94;
   const r = result?.result || result;
 
+  // Check if clarification is required or input is invalid
+  if (r?.requires_clarification || r?.is_valid === false) {
+    let raw = r?.confidence_score ?? r?.confidence;
+    if (raw != null) {
+      const val = Number(raw);
+      return val <= 1 ? Math.round(val * 100) : Math.round(val);
+    }
+    return 15;
+  }
+
   // 1. Direct score candidates
   let raw = r?.confidence_score ?? r?.confidence ?? r?.overall_confidence;
   if (raw == null && r?.confidence_scores) {
@@ -107,7 +117,7 @@ function extractConfidence(result) {
   }
 
   const val = Number(raw);
-  if (isNaN(val) || val <= 0) return 94;
+  if (isNaN(val) || val < 0) return 0;
   return val <= 1 ? Math.round(val * 100) : Math.round(val);
 }
 
@@ -115,6 +125,10 @@ function extractConfidence(result) {
 function extractTask(result) {
   if (!result) return 'Satellite VQA';
   const r = result?.result || result;
+
+  if (r?.requires_clarification || r?.is_valid === false) {
+    return 'Unclear Query';
+  }
 
   let task = r?.classified_task || r?.task_type || r?.classified_task_type;
   if (!task && r?.auditable_trace) {
@@ -791,8 +805,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                   <div className="metric-row">
                     <div className="metric-header">
                       <span>Pipeline Status</span>
-                      <span className="metric-val" style={{ color: isLoading ? '#facc15' : error ? '#f87171' : agentResult ? '#34d399' : '#94a3b8' }}>
-                        {isLoading ? 'Processing…' : error ? 'Error' : agentResult ? 'Completed ✓' : 'Idle'}
+                      <span className="metric-val" style={{ color: isLoading ? '#facc15' : error ? '#f87171' : (agentResult?.requires_clarification || agentResult?.result?.requires_clarification || agentResult?.is_valid === false) ? '#fbbf24' : agentResult ? '#34d399' : '#94a3b8' }}>
+                        {isLoading ? 'Processing…' : error ? 'Error' : (agentResult?.requires_clarification || agentResult?.result?.requires_clarification || agentResult?.is_valid === false) ? 'Clarification Needed ⚠️' : agentResult ? 'Completed ✓' : 'Idle'}
                       </span>
                     </div>
                   </div>

@@ -70,6 +70,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
+from agent_core.query_validator import is_meaningful_query
+
 # Ensure UTF-8 output encoding for terminals
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -755,15 +757,18 @@ class VisionVQAModel:
         """
         start_t = time.perf_counter()
 
-        # Guard: empty query
-        if not text_query or not str(text_query).strip():
+        # Guard: empty or invalid query check
+        is_ok, reason = is_meaningful_query(text_query)
+        if not is_ok:
             return {
-                "answer": "No query provided. Please supply a non-empty text_query.",
+                "answer": reason,
                 "bounding_boxes": [],
-                "confidence": 0.0,
-                "task_type": "unknown",
-                "status": "error",
-                "error": "Empty or missing text_query.",
+                "confidence": 0.15,
+                "task_type": "Unclear Query",
+                "status": "warning",
+                "error": reason,
+                "requires_clarification": True,
+                "is_valid": False,
                 "image_path": image_path,
                 "image_format": "unknown",
                 "quantization": f"{self.quantization.upper()} NF4",

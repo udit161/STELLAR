@@ -51,6 +51,8 @@ from .tools import (
     StandardToolOutput,
     update_state_tracker_from_tool_output,
 )
+from .query_validator import is_meaningful_query
+
 
 try:
     from langgraph.graph import StateGraph, START, END
@@ -477,9 +479,10 @@ class Orchestrator:
         errors: List[str] = []
         warnings: List[str] = []
 
-        # 1. Query check
-        if not raw_query.strip():
-            errors.append("User query cannot be empty.")
+        # 1. Query check (empty, gibberish, keyboard mash, or unrecognized)
+        is_query_ok, query_msg = is_meaningful_query(raw_query)
+        if not is_query_ok:
+            errors.append(query_msg)
 
         # 2. Image existence
         has_images = img_count > 0
@@ -517,7 +520,7 @@ class Orchestrator:
             "agent_name": "InputValidator",
             "thought": f"Validated user request. Query: '{raw_query[:50]}...'. Images attached: {img_count}. Status: {'VALID' if is_valid else 'INVALID'}.",
             "action_taken": "input_validation_check",
-            "confidence": 1.0 if is_valid else 0.0,
+            "confidence": 1.0 if is_valid else 0.15,
             "timestamp": datetime.utcnow().isoformat(),
         }
 
@@ -527,6 +530,7 @@ class Orchestrator:
             "validation_errors": errors,
             "validation_warnings": warnings,
             "requires_clarification": requires_clarification,
+            "confidence_score": 1.0 if is_valid else 0.15,
             "thought_trace": [reasoning],
             "routing_history": ["input_validator"],
             "status": RequestStatus.VALIDATING.value if is_valid else RequestStatus.FAILED.value,
@@ -2238,6 +2242,50 @@ class Orchestrator:
             "routing_history": ["fallback_reasoning"],
             "status": RequestStatus.REQUIRES_USER_INPUT.value,
             "requires_clarification": True,
+        }
+
+    # -----------------------------------------------------------------------
+    # Node 9c: Human Clarification Node
+    # -----------------------------------------------------------------------
+    def human_clarification_node(self, state: AgentState) -> Dict[str, Any]:
+        """
+        Human Clarification Node: Formulates clear guidance and specific suggestions
+        when a query is invalid, empty, gibberish, or ambiguous.
+        """
+        errors = state.get("validation_errors") or []
+        warnings = state.get("validation_warnings") or []
+        raw_query = state.get("raw_query") or state.get("query") or ""
+
+        if errors:
+            clarification_text = f"⚠️ Query Guidance: {'; '.join(errors)}"
+        elif warnings:
+            clarification_text = f"⚠️ Query Guidance: {'; '.join(warnings)}"
+        else:
+            clarification_text = (
+                f"⚠️ Unrecognized or ambiguous query: '{raw_query}'. "
+                "SatQuery AI specializes in Earth Observation and satellite imagery analysis. "
+                "Please submit a valid query such as asking about land cover types, vegetation health (NDVI), water body identification, or change detection."
+            )
+
+        reasoning = {
+            "step_number": len(state.get("thought_trace") or []) + 1,
+            "agent_name": "HumanClarification",
+            "thought": f"Query requires clarification or is invalid: {clarification_text}",
+            "action_taken": "human_clarification_requested",
+            "confidence": 0.15,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return {
+            "final_response": clarification_text,
+            "executive_summary": "Query validation failed or requires user clarification.",
+            "classified_task": "Unclear / Invalid Query",
+            "confidence_score": 0.15,
+            "thought_trace": [reasoning],
+            "routing_history": ["human_clarification"],
+            "status": RequestStatus.REQUIRES_USER_INPUT.value,
+            "requires_clarification": True,
+            "is_valid": False,
         }
 
     # -----------------------------------------------------------------------
