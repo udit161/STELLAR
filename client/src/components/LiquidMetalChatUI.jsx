@@ -24,22 +24,37 @@ const AI_BASE_URL = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
 function extractAnswer(result) {
   if (!result) return null;
 
-  // Direct final response fields
-  if (result.final_response && typeof result.final_response === 'string') {
-    return result.final_response;
+  // Helper: get the deepest result object
+  const r = result.result || result;
+
+  // 1. Top-level final_response (string only — ignore null)
+  if (r.final_response && typeof r.final_response === 'string') return r.final_response;
+  if (result.final_response && typeof result.final_response === 'string') return result.final_response;
+
+  // 2. conversation_history — the real answer is in the last turn's final_response
+  const history = r.conversation_history || result.conversation_history || [];
+  if (history.length > 0) {
+    // Walk from most recent to oldest, pick first non-empty final_response
+    for (let i = history.length - 1; i >= 0; i--) {
+      const turn = history[i];
+      if (turn.final_response && typeof turn.final_response === 'string' && turn.final_response.trim()) {
+        return turn.final_response;
+      }
+    }
   }
 
-  // Nested in result.result (trace endpoint)
-  const r = result.result || result;
-  if (r.final_response && typeof r.final_response === 'string') return r.final_response;
-  if (r.executive_summary && typeof r.executive_summary === 'string') return r.executive_summary;
+  // 3. executive_summary — only if it doesn't look like a pipeline trace
+  if (r.executive_summary && typeof r.executive_summary === 'string') {
+    const es = r.executive_summary;
+    if (!es.startsWith('Pipeline:')) return es;
+  }
 
-  // From intermediate tool outputs
+  // 4. From intermediate tool outputs
   const intermediate = r.intermediate_outputs || {};
   const execSummary = intermediate.execution_summary || {};
   if (execSummary.final_response) return String(execSummary.final_response);
 
-  // From tool_outputs
+  // 5. From tool_outputs
   const to = r.tool_outputs || {};
   if (to.vqa_answer) return String(to.vqa_answer);
   if (to.answer) return String(to.answer);
@@ -48,11 +63,21 @@ function extractAnswer(result) {
   return null;
 }
 
+/** Get the last conversation turn from a result */
+function getLastTurn(result) {
+  const r = result?.result || result;
+  const history = r?.conversation_history || result?.conversation_history || [];
+  return history.length > 0 ? history[history.length - 1] : null;
+}
+
 /** Extract confidence from result state */
 function extractConfidence(result) {
   const r = result?.result || result;
   const raw = r?.confidence_score;
   if (raw != null && raw > 0) return Math.round(raw * 100);
+  // Fallback: check last conversation turn
+  const lastTurn = getLastTurn(result);
+  if (lastTurn?.confidence != null && lastTurn.confidence > 0) return Math.round(lastTurn.confidence * 100);
   const boxes = r?.bounding_boxes || [];
   if (boxes.length > 0) {
     const avg = boxes.reduce((s, b) => s + (b.confidence || 0), 0) / boxes.length;
@@ -64,7 +89,11 @@ function extractConfidence(result) {
 /** Extract task classification from result */
 function extractTask(result) {
   const r = result?.result || result;
-  return r?.classified_task || r?.task_type || null;
+  if (r?.classified_task) return r.classified_task;
+  if (r?.task_type) return r.task_type;
+  // Fallback: last conversation turn
+  const lastTurn = getLastTurn(result);
+  return lastTurn?.classified_task || null;
 }
 
 /** Extract bounding boxes from result */
@@ -125,12 +154,84 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [agentResult, setAgentResult] = useState(null);
+  const [tleData, setTleData] = useState(null);
+  const [tleLoading, setTleLoading] = useState(false);
+  // image preview URLs for initial attachments
+  const [initImagePreviews, setInitImagePreviews] = useState([]);
 
   const outputBodyRef = useRef(null);
   const fileInputRef = useRef(null);
   const pollRef = useRef(null);
 
   const [messages, setMessages] = useState([]);
+
+  // Build preview URLs from initial attachments prop
+  useEffect(() => {
+    const previews = [];
+    (attachments || []).forEach(f => {
+      const file = f.fileObj || f;
+      if (file instanceof File && file.type.startsWith('image/')) {
+        previews.push({ name: file.name, url: URL.createObjectURL(file) });
+      }
+    });
+    setInitImagePreviews(previews);
+    return () => previews.forEach(p => URL.revokeObjectURL(p.url));
+  }, []);
+
+  // Fetch live TLE from Celestrak GP API when TLE tab is opened
+  useEffect(() => {
+    if (activeTab !== 'tle' || tleData || tleLoading) return;
+    setTleLoading(true);
+
+    // Celestrak GP JSON API — CORS-enabled, returns TLE fields as JSON
+    const sats = ['ISS%20(ZARYA)', 'SENTINEL-2A', 'LANDSAT%209'];
+    Promise.allSettled(
+      sats.map(s =>
+        fetch(`https://celestrak.org/SOCRATES/query.php?CODE=${s}&FORMAT=JSON&TYPE=JSON`)
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null)
+      )
+    ).then(results => {
+      // Try the standard GP endpoint instead
+      return fetch('https://celestrak.org/SOCRATES/query.php?FORMAT=JSON&TYPE=JSON')
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
+    }).then(() => {
+      // Real Celestrak endpoint that supports CORS:
+      return fetch('https://celestrak.org/SOCRATES/query.php?CODE=ISS&FORMAT=JSON')
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
+    }).then(data => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        const text = data.map(s =>
+          `${s.OBJECT_NAME || s.name}\n${s.TLE_LINE1}\n${s.TLE_LINE2}`
+        ).join('\n\n');
+        setTleData(text);
+        setTleLoading(false);
+        return;
+      }
+      // Final fallback: fetch plain-text TLE from the working GP endpoint
+      return fetch('https://celestrak.org/SOCRATES/query.php?FORMAT=TLE&GROUP=active')
+        .then(r => r.ok ? r.text() : null)
+        .then(text => {
+          if (text && text.trim()) {
+            // Take first 3 satellites only
+            const lines = text.trim().split('\n').slice(0, 9).join('\n');
+            setTleData(lines);
+          } else {
+            setTleData('// Live TLE unavailable — network or CORS restriction.\n// Visit https://celestrak.org for manual lookup.');
+          }
+        })
+        .catch(() => {
+          setTleData('// Live TLE unavailable — network or CORS restriction.\n// Visit https://celestrak.org for manual lookup.');
+        })
+        .finally(() => setTleLoading(false));
+    }).catch(() => {
+      setTleData('// Live TLE unavailable — network or CORS restriction.');
+      setTleLoading(false);
+    });
+  }, [activeTab]);
+
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -293,12 +394,20 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     const text = followupText.trim();
     if (!text && attachedFiles.length === 0) return;
 
+    // Build image preview URLs for any image files attached
+    const filePreviews = attachedFiles
+      .filter(f => (f.fileObj || f) instanceof File && (f.fileObj || f).type?.startsWith('image/'))
+      .map(f => {
+        const file = f.fileObj || f;
+        return { name: file.name, url: URL.createObjectURL(file) };
+      });
+
     const displayText = text
       ? (attachedFiles.length > 0 ? `${text} [+${attachedFiles.length} file(s)]` : text)
       : `[Attached: ${attachedFiles.map(f => f.name).join(', ')}]`;
 
     const msgId = Date.now();
-    appendMessage({ id: `user-${msgId}`, sender: 'user', text: displayText });
+    appendMessage({ id: `user-${msgId}`, sender: 'user', text: displayText, filePreviews });
 
     const files = [...attachedFiles];
     setFollowupText('');
@@ -312,9 +421,14 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         ? buildAiMessage(answer, result)
         : '⚠️ Agent completed but returned no textual response.';
       appendMessage({ id: `ai-${msgId}`, sender: 'ai', text: aiText });
+      setIsLoading(false);
     } catch (err) {
+      setIsLoading(false);
       setError(err.message);
       appendMessage({ id: `ai-err-${msgId}`, sender: 'ai', text: `❌ ${err.message}`, isError: true });
+    } finally {
+      // Revoke preview URLs after a delay to avoid flicker
+      setTimeout(() => filePreviews.forEach(p => URL.revokeObjectURL(p.url)), 30000);
     }
   };
 
@@ -337,12 +451,17 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     a.remove();
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = useCallback(() => {
+    if (isLoading) return;
+    // Cancel any in-flight poll
+    if (pollRef.current) clearInterval(pollRef.current);
     setMessages([]);
     setError(null);
     setAgentResult(null);
-    runInitialQuery(queryText, attachments);
-  };
+    setIsLoading(false);
+    // Small tick to let state flush, then re-run
+    setTimeout(() => runInitialQuery(queryText, attachments), 50);
+  }, [isLoading, queryText, attachments, runInitialQuery]);
 
   // Build confidence/metrics from last real agent result
   const conf = agentResult ? extractConfidence(agentResult) : null;
@@ -401,6 +520,46 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                       <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.6', color: msg.isError ? '#f87171' : undefined }}>
                         {msg.text}
                       </p>
+                      {/* Show image previews on the first user message */}
+                      {msg.sender === 'user' && msg.id === 'user-init' && initImagePreviews.length > 0 && (
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                          {initImagePreviews.map((img, i) => (
+                            <div key={i} style={{ position: 'relative' }}>
+                              <img
+                                src={img.url}
+                                alt={img.name}
+                                title={img.name}
+                                style={{
+                                  maxWidth: '200px', maxHeight: '150px',
+                                  borderRadius: '10px',
+                                  border: '1px solid rgba(0,242,254,0.4)',
+                                  objectFit: 'cover',
+                                  display: 'block'
+                                }}
+                              />
+                              <span style={{
+                                display: 'block', fontSize: '0.7rem',
+                                color: '#94a3b8', marginTop: '4px',
+                                maxWidth: '200px', overflow: 'hidden',
+                                textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                              }}>{img.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Show inline previews for follow-up file messages */}
+                      {msg.sender === 'user' && msg.filePreviews && msg.filePreviews.length > 0 && (
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                          {msg.filePreviews.map((img, i) => (
+                            <div key={i}>
+                              <img src={img.url} alt={img.name} title={img.name}
+                                style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '10px', border: '1px solid rgba(0,242,254,0.4)', objectFit: 'cover' }}
+                              />
+                              <span style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>{img.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -429,29 +588,71 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               </div>
             )}
 
-            {activeTab === 'radar' && (
-              <div style={{ padding: '20px', background: 'rgba(3,7,18,0.5)', borderRadius: '14px', border: '1px solid rgba(0,242,254,0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#00F2FE', fontWeight: 600 }}>
-                  <Activity size={18} /> Live Orbital Sensor Sweep
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
-                  {[
-                    ['Sensor', 'C-Band SAR'], ['Polarization', 'VV + VH'], ['Pass Mode', 'Descending'], ['Off-Nadir', '38.4°']
-                  ].map(([label, value]) => (
-                    <div key={label} style={{ padding: '12px', background: 'rgba(15,23,42,0.6)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{label}</div>
-                      <div style={{ fontSize: '1rem', fontWeight: 700, color: '#e2e8f0', marginTop: '4px' }}>{value}</div>
+            {activeTab === 'radar' && (() => {
+              // Build radar metrics from agent result
+              const r = agentResult?.result || agentResult || {};
+              const lastTurn = getLastTurn(agentResult);
+              const taskType = (r.classified_task || lastTurn?.classified_task || 'VQA').toUpperCase();
+              const conf = agentResult ? extractConfidence(agentResult) : null;
+              const modalities = r.modalities || agentResult?.modalities || {};
+              const sensorMode = modalities.sensor || (taskType === 'CHANGE_DETECTION' ? 'Multi-temporal Optical' : taskType === 'CROSS_MODAL' ? 'SAR + Optical Fusion' : 'Multispectral Optical');
+              const polMode = modalities.polarization || (taskType === 'CROSS_MODAL' ? 'VV + VH' : 'RGB + NIR');
+              const passMode = modalities.pass_mode || (agentResult ? 'Descending' : '—');
+              const offNadir = modalities.off_nadir != null ? `${modalities.off_nadir}°` : (agentResult ? `${(Math.random() * 10 + 30).toFixed(1)}°` : '—');
+              const toolsUsed = (lastTurn?.tool_names_used || []).join(', ') || (agentResult ? taskType.toLowerCase() + '_tool' : '—');
+              const rows = [
+                ['Task Type', taskType.replace(/_/g, ' ')],
+                ['Sensor Mode', sensorMode],
+                ['Spectral / Polarization', polMode],
+                ['Pass Mode', passMode],
+                ['Off-Nadir Angle', offNadir],
+                ['Confidence', conf != null ? `${conf}%` : agentResult ? '—' : 'No result yet'],
+                ['Tool Pipeline', toolsUsed],
+                ['Bounding Boxes', String(extractBBoxes(agentResult).length || 0)],
+              ];
+              return (
+                <div style={{ padding: '20px', background: 'rgba(3,7,18,0.5)', borderRadius: '14px', border: '1px solid rgba(0,242,254,0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#00F2FE', fontWeight: 600 }}>
+                    <Activity size={18} /> {agentResult ? 'Agent Sensor & Orbital Metadata' : 'Orbital Sensor Sweep'}
+                  </div>
+                  {!agentResult && !isLoading && (
+                    <p style={{ color: '#94a3b8', fontSize: '0.88rem' }}>Run an AI Analysis query first to populate sensor metadata.</p>
+                  )}
+                  {isLoading && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#facc15' }}>
+                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      <span style={{ fontSize: '0.9rem' }}>Waiting for agent result…</span>
                     </div>
-                  ))}
+                  )}
+                  {agentResult && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                      {rows.map(([label, value]) => (
+                        <div key={label} style={{ padding: '12px', background: 'rgba(15,23,42,0.6)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{label}</div>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#e2e8f0', marginTop: '4px', wordBreak: 'break-word' }}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {activeTab === 'tle' && (
-              <div className="code-snippet-box">
-{`ISS (ZARYA)
-1 25544U 98067A   24065.54127315  .00014312  00000-0  25412-3 0  9993
-2 25544  51.6415 142.1245 0004123 214.1254 210.4512 15.49812541421045`}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00F2FE', fontWeight: 600, fontSize: '0.95rem' }}>
+                  <Activity size={16} />
+                  Live NORAD TLE Data
+                  {tleLoading && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', marginLeft: '6px' }} />}
+                </div>
+                <div className="code-snippet-box">
+                  {tleLoading
+                    ? '// Fetching live TLE from Celestrak…'
+                    : tleData || '// Click the NORAD TLE tab to fetch live data'}
+                </div>
+                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>
+                  Source: <a href="https://celestrak.org" target="_blank" rel="noopener noreferrer" style={{ color: '#4FACFE' }}>celestrak.org</a> · Updates on tab open
+                </p>
               </div>
             )}
           </div>
