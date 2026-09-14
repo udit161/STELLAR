@@ -4,10 +4,10 @@
   "description": "SatQuery AI - Satellite Intelligence Multi-Agent Platform",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n \"CLIENT,SERVER,AI_AGENT\" -c \"cyan.bold,green.bold,yellow.bold\" \"npm run dev --prefix client\" \"npm run dev --prefix server\" \"python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai_agent\"",
+    "dev": "concurrently -n \"CLIENT,SERVER,AI_AGENT\" -c \"cyan.bold,green.bold,yellow.bold\" \"npm run dev --prefix client\" \"npm run dev --prefix server\" \"python -m uvicorn ai_agent.main:app --host 127.0.0.1 --port 8000 --reload\"",
     "dev:client": "npm run dev --prefix client",
     "dev:server": "npm run dev --prefix server",
-    "dev:agent": "python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai_agent",
+    "dev:agent": "python -m uvicorn ai_agent.main:app --host 127.0.0.1 --port 8000 --reload",
     "install:all": "npm install --prefix client && npm install --prefix server && npm install"
   },
   "devDependencies": {
