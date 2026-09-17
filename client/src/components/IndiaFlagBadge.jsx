@@ -1,6 +1,8 @@
-﻿import React from "react";
+import React from "react";
+import { useT } from "../context/LanguageContext";
 
 export default function IndiaFlagBadge() {
+  const t = useT();
   const spokes = Array.from({ length: 24 }).map((_, i) => {
     const angle = (i * 360) / 24;
     const rad = (angle * Math.PI) / 180;
@@ -180,7 +182,7 @@ export default function IndiaFlagBadge() {
             textShadow: "0 0 8px rgba(255,153,51,0.4)",
           }}
         >
-          INDIA
+          {t.indiaBadge}
         </span>
       </div>
     </>

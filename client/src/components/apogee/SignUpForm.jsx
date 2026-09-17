@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useT } from '../../context/LanguageContext';
 
 export function SignUpForm({ isActive, onSuccess }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +24,13 @@ export function SignUpForm({ isActive, onSuccess }) {
 
   const score = getScore(password);
   const colors = ['rgba(152, 161, 199, 0.2)', '#ef4444', '#f59e0b', '#10b981', '#3fe7c8'];
-  const labels = ['Weak', 'Weak', 'Fair', 'Strong', 'Celestial'];
+  const labels = [
+    t.strengthWeak,
+    t.strengthWeak,
+    t.strengthFair,
+    t.strengthStrong,
+    t.strengthCelestial,
+  ];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -49,7 +57,7 @@ export function SignUpForm({ isActive, onSuccess }) {
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         <div className="form-group">
-          <label className="form-label" htmlFor="signupName">Commander Name</label>
+          <label className="form-label" htmlFor="signupName">{t.commanderName}</label>
           <div className="input-wrapper">
             <input
               type="text"
@@ -69,7 +77,7 @@ export function SignUpForm({ isActive, onSuccess }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label" htmlFor="signupEmail">Orbital Email</label>
+          <label className="form-label" htmlFor="signupEmail">{t.orbitalEmail}</label>
           <div className="input-wrapper">
             <input
               type="email"
@@ -89,13 +97,13 @@ export function SignUpForm({ isActive, onSuccess }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label" htmlFor="signupPassword">Create Security Key</label>
+          <label className="form-label" htmlFor="signupPassword">{t.createSecurityKey}</label>
           <div className="input-wrapper">
             <input
               type={showPassword ? 'text' : 'password'}
               id="signupPassword"
               className="form-input"
-              placeholder="At least 8 characters"
+              placeholder={t.atLeast8Chars}
               required
               minLength={8}
               value={password}
@@ -135,7 +143,7 @@ export function SignUpForm({ isActive, onSuccess }) {
               <div className="strength-bar-step" style={{ backgroundColor: score >= 4 ? colors[score] : colors[0] }} />
             </div>
             <span className="strength-text" style={{ color: score > 0 ? colors[score] : 'var(--color-muted)' }}>
-              {password ? labels[score] : 'Weak'}
+              {password ? labels[score] : t.strengthWeak}
             </span>
           </div>
         </div>
@@ -155,7 +163,7 @@ export function SignUpForm({ isActive, onSuccess }) {
               </svg>
             </span>
             <span style={{ fontSize: '0.82rem' }}>
-              I agree to the <a href="#terms" className="forgot-link" onClick={(e) => e.preventDefault()}>Orbital Charter</a> &amp; Privacy Protocol
+              {t.agreeTerms} <a href="#terms" className="forgot-link" onClick={(e) => e.preventDefault()}>{t.orbitalCharter}</a> {t.privacyProtocol}
             </span>
           </label>
         </div>
@@ -167,7 +175,7 @@ export function SignUpForm({ isActive, onSuccess }) {
         >
           <span className="btn-spinner" aria-hidden="true" />
           <span className="btn-text">
-            {success ? '✓ Account Created' : loading ? 'Provisioning...' : 'Create Explorer Account'}
+            {success ? t.accountCreated : loading ? t.provisioning : t.createExplorerAccount}
           </span>
         </button>
       </form>

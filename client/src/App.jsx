@@ -7,6 +7,7 @@ import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
 import LiquidMetalChatUI from './components/LiquidMetalChatUI';
 import ISROBadge from './components/ISROBadge';
 import IndiaFlagBadge from './components/IndiaFlagBadge';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 import Scene from './pages/Scene';
 import { isAuthenticated, getUser, logout } from './services/authService';
@@ -54,6 +55,14 @@ function App() {
     <>
       <TopologyBackground />
       <TwinklingStars />
+
+      {/* Floating Language Switcher button in top-right when on home stage */}
+      {!querySubmitted && (
+        <div style={{ position: 'fixed', top: '22px', right: '26px', zIndex: 120 }}>
+          <LanguageSwitcher />
+        </div>
+      )}
+
       <div className="app-container">
 
         {/* Glassmorphic Liquid Metal Sidebar with History Flyout */}
@@ -94,7 +103,6 @@ function App() {
           <IndiaFlagBadge />
         </>
       )}
-
     </>
   );
 }

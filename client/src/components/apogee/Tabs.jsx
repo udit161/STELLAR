@@ -1,7 +1,9 @@
 import React from 'react';
+import { useT } from '../../context/LanguageContext';
 
 export function Tabs({ mode, setMode }) {
   const isSignup = mode === 'signup';
+  const t = useT();
 
   return (
     <div className="auth-tab-nav" role="tablist" aria-label="Authentication Mode Selection">
@@ -19,7 +21,7 @@ export function Tabs({ mode, setMode }) {
         tabIndex={!isSignup ? 0 : -1}
         onClick={() => setMode('signin')}
       >
-        Sign In
+        {t.signInTab}
       </button>
 
       <button
@@ -31,7 +33,7 @@ export function Tabs({ mode, setMode }) {
         tabIndex={isSignup ? 0 : -1}
         onClick={() => setMode('signup')}
       >
-        Create Account
+        {t.createAccountTab}
       </button>
     </div>
   );

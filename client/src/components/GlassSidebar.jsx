@@ -21,13 +21,14 @@ import {
   FileCheck
 } from 'lucide-react';
 import './GlassSidebar.css';
+import { useT } from '../context/LanguageContext';
 
 const NAV_ITEMS = [
-  { id: 'search',    icon: Search,   label: 'Search' },
-  { id: 'history',   icon: Clock,    label: 'History' },
-  { id: 'documents', icon: FileText,  label: 'Notes & Docs', title: 'Orbit Notes & Documents' },
-  { id: 'settings',  icon: Settings,  label: 'Settings' },
-  { id: 'profile',   icon: User,      label: 'Profile' },
+  { id: 'search',    icon: Search,   labelKey: 'navSearch' },
+  { id: 'history',   icon: Clock,    labelKey: 'navHistory' },
+  { id: 'documents', icon: FileText,  labelKey: 'navNotesDocs', title: 'Orbit Notes & Documents' },
+  { id: 'settings',  icon: Settings,  labelKey: 'navSettings' },
+  { id: 'profile',   icon: User,      labelKey: 'navProfile' },
 ];
 
 const INITIAL_HISTORY = [
@@ -58,6 +59,7 @@ const INITIAL_NOTES = [
 ];
 
 function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLogout }) {
+  const t = useT();
   const [active, setActive] = useState(activeNav || null);
   const [historyList, setHistoryList] = useState(INITIAL_HISTORY);
   const [historyFilter, setHistoryFilter] = useState('');
@@ -251,14 +253,14 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     className={`glass-nav-pill ${isActive ? 'active' : ''}`}
                     data-item={item.id}
                     onClick={(e) => handleSelect(item.id, e)}
-                    title={item.label}
-                    aria-label={item.label}
+                    title={t[item.labelKey]}
+                    aria-label={t[item.labelKey]}
                   >
                     <span className="glass-nav-pill-icon">
                       <Icon size={18} />
                     </span>
                     <span className="glass-nav-pill-label">
-                      {item.label}
+                      {t[item.labelKey]}
                     </span>
                   </button>
 
@@ -267,18 +269,18 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     <div className="sidebar-flyout-panel settings-flyout" onClick={(e) => e.stopPropagation()}>
                       <div className="flyout-header">
                         <span className="flyout-title">
-                          <Settings size={15} /> System Preferences
+                          <Settings size={15} /> {t.systemPreferences}
                         </span>
                         <button className="flyout-icon-btn" onClick={() => setActive(null)}>
                           <X size={14} />
                         </button>
                       </div>
                       <div className="setting-toggle-row">
-                        <span>Real-time Doppler Sync</span>
+                        <span>{t.dopplerSync}</span>
                         <input type="checkbox" defaultChecked />
                       </div>
                       <div className="setting-toggle-row">
-                        <span>High Precision TLE Calculation</span>
+                        <span>{t.highPrecisionTLE}</span>
                         <input type="checkbox" defaultChecked />
                       </div>
                     </div>
@@ -289,7 +291,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     <div className="sidebar-flyout-panel profile-flyout" onClick={(e) => e.stopPropagation()}>
                       <div className="flyout-header">
                         <span className="flyout-title">
-                          <User size={15} /> Mission Operator
+                          <User size={15} /> {t.missionOperator}
                         </span>
                         <button className="flyout-icon-btn" onClick={() => setActive(null)}>
                           <X size={14} />
@@ -301,16 +303,16 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                         </div>
                         <div className="profile-meta">
                           <span className="profile-name">{currentUser?.username || 'ISRO Command Center'}</span>
-                          <span className="profile-desc">Orbital Flight Dynamics</span>
+                          <span className="profile-desc">{t.orbitalFlightDynamics}</span>
                         </div>
                       </div>
                       {onLogout && (
                         <button 
                           className="profile-signout-btn" 
                           onClick={() => { onLogout(); setActive(null); }}
-                          title="Sign Out"
+                          title={t.signOut}
                         >
-                          <LogOut size={14} /> Sign Out
+                          <LogOut size={14} /> {t.signOut}
                         </button>
                       )}
                     </div>
@@ -332,15 +334,15 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   <Clock size={20} />
                 </div>
                 <div>
-                  <h2 className="history-main-heading">Recent Query History</h2>
-                  <p className="history-sub-heading">Select any past query to re-launch satellite intelligence</p>
+                  <h2 className="history-main-heading">{t.recentQueryHistory}</h2>
+                  <p className="history-sub-heading">{t.historySubheading}</p>
                 </div>
               </div>
 
               <div className="history-header-actions">
                 {historyList.length > 0 && (
-                  <button className="history-clear-btn" onClick={clearHistory} title="Clear All History">
-                    <Trash2 size={15} /> Clear History
+                  <button className="history-clear-btn" onClick={clearHistory} title={t.clearHistory}>
+                    <Trash2 size={15} /> {t.clearHistory}
                   </button>
                 )}
                 <button className="history-close-btn" onClick={() => setActive(null)} title="Close">
@@ -355,7 +357,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
               <input 
                 type="text" 
                 className="history-filter-input"
-                placeholder="Search history by query keyword, NORAD ID, or mission tag..."
+                placeholder={t.searchHistoryPlaceholder}
                 value={historyFilter}
                 onChange={(e) => setHistoryFilter(e.target.value)}
                 autoFocus
@@ -386,7 +388,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                         <Clock size={12} /> {item.time}
                       </span>
                       <span className="history-launch-prompt">
-                        Launch Query <ChevronRight size={14} />
+                        {t.launchQuery} <ChevronRight size={14} />
                       </span>
                     </div>
                   </div>
@@ -394,8 +396,8 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
               ) : (
                 <div className="history-empty-box">
                   <Clock size={36} style={{ color: 'rgba(251, 191, 36, 0.4)', marginBottom: '10px' }} />
-                  <p style={{ margin: 0, fontWeight: 600 }}>No history entries found</p>
-                  <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Try clearing your search filter or launch a new query!</span>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{t.noHistoryFound}</p>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{t.clearSearchFilter}</span>
                 </div>
               )}
             </div>
@@ -414,15 +416,15 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   <FileText size={20} />
                 </div>
                 <div>
-                  <h2 className="docs-main-heading">Orbit Notes & Documents</h2>
-                  <p className="docs-sub-heading">Create custom research notes & save satellite imagery from AI queries</p>
+                  <h2 className="docs-main-heading">{t.orbitNotesDocs}</h2>
+                  <p className="docs-sub-heading">{t.notesSubheading}</p>
                 </div>
               </div>
 
               <div className="docs-header-actions">
                 {notesList.length > 0 && (
-                  <button className="docs-export-btn" onClick={handleExportNotes} title="Export All Notes">
-                    <Download size={14} /> Export
+                  <button className="docs-export-btn" onClick={handleExportNotes} title={t.exportNotes}>
+                    <Download size={14} /> {t.exportNotes}
                   </button>
                 )}
                 <button 
@@ -435,7 +437,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     setNoteDocument(null);
                   }}
                 >
-                  <Plus size={15} /> {isCreatingNote ? 'Cancel' : 'New Note'}
+                  <Plus size={15} /> {isCreatingNote ? t.cancel : t.newNote}
                 </button>
                 <button className="history-close-btn" onClick={() => setActive(null)} title="Close">
                   <X size={18} />
@@ -450,7 +452,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   <input 
                     type="text"
                     className="note-title-input"
-                    placeholder="Note Title (e.g. Cartosat-3 Solar Array Inspection)..."
+                  placeholder={t.noteTitlePlaceholder}
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
                     required
@@ -508,10 +510,10 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                       setNoteDocument(null);
                     }}
                   >
-                    Cancel
+                    {t.cancel}
                   </button>
                   <button type="submit" className="save-note-submit-btn">
-                    <Save size={15} /> {editingNoteId ? 'Update Note' : 'Save Note'}
+                    <Save size={15} /> {editingNoteId ? t.updateNote : t.saveNote2}
                   </button>
                 </div>
               </form>
@@ -523,7 +525,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   <input 
                     type="text" 
                     className="history-filter-input"
-                    placeholder="Search saved notes by title, tag, document, or content..."
+                  placeholder={t.searchNotesPlaceholder}
                     value={noteFilter}
                     onChange={(e) => setNoteFilter(e.target.value)}
                   />
@@ -542,7 +544,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                       className={`notes-tag-pill ${activeTagFilter === tag ? 'active' : ''}`}
                       onClick={() => setActiveTagFilter(tag)}
                     >
-                      {tag === 'All' ? 'All Notes' : `#${tag}`}
+                      {tag === 'All' ? t.allNotes : `#${tag}`}
                     </button>
                   ))}
                 </div>
@@ -594,8 +596,8 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                 ) : (
                   <div className="history-empty-box">
                     <FileText size={36} style={{ color: 'rgba(167, 139, 250, 0.4)', marginBottom: '10px' }} />
-                    <p style={{ margin: 0, fontWeight: 600 }}>No notes created yet</p>
-                    <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>Click "+ New Note" to save satellite intelligence, telemetry, & documents!</span>
+                    <p style={{ margin: 0, fontWeight: 600 }}>{t.noNotesYet}</p>
+                    <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{t.noNotesHint}</span>
                   </div>
                 )}
               </div>
