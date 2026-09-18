@@ -114,7 +114,8 @@ const INITIAL_NOTES = [
     content_hi: 'झुकाव: 97.5° SSO। परिचालन ऊंचाई ~509 किमी। डॉपलर आवृत्ति सुधार के साथ उच्च-रिज़ॉल्यूशन पैनक्रोमैटिक और मल्टीस्पेक्ट्रल सेंसर सक्रिय।',
     tag: 'Telemetry',
     tag_hi: 'टेलीमेट्री',
-    color: '#a78bfa',
+    color: '#D8D365',
+    image: '/sat_orbit.jpg',
     date: 'Sep 10, 2026',
     date_hi: '10 सित, 2026'
   },
@@ -127,6 +128,7 @@ const INITIAL_NOTES = [
     tag: 'Earth Scan',
     tag_hi: 'पृथ्वी स्कैन',
     color: '#38bdf8',
+    image: '/earth_scan.jpg',
     date: 'Sep 09, 2026',
     date_hi: '09 सित, 2026'
   }
@@ -144,12 +146,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     try {
       const saved = localStorage.getItem('satquery_orbit_notes');
       if (saved) {
-        const parsed = JSON.parse(saved);
-        // Strip image property from any previously saved notes
-        return parsed.map(n => {
-          const { image, ...rest } = n;
-          return rest;
-        });
+        return JSON.parse(saved);
       }
       return INITIAL_NOTES;
     } catch {
@@ -168,6 +165,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
   const [noteContent, setNoteContent] = useState(() => notesList[0]?.content || '');
   const [noteTag, setNoteTag] = useState(() => notesList[0]?.tag || 'Telemetry');
   const [noteDocument, setNoteDocument] = useState(() => notesList[0]?.document || null); // { name, size, data }
+  const [noteImage, setNoteImage] = useState(() => notesList[0]?.image || null); // base64 or URL
 
   const sidebarRef = useRef(null);
 
@@ -180,6 +178,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
         setNoteContent(activeNote.content || '');
         setNoteTag(activeNote.tag || 'Telemetry');
         setNoteDocument(activeNote.document || null);
+        setNoteImage(activeNote.image || null);
         setEditingNoteId(activeNote.id);
       }
     }
@@ -218,6 +217,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     setNoteContent('');
     setNoteTag('Telemetry');
     setNoteDocument(null);
+    setNoteImage(null);
   };
 
   const handleSelectNote = (note) => {
@@ -228,6 +228,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     setNoteContent(note.content || '');
     setNoteTag(note.tag || 'Telemetry');
     setNoteDocument(note.document || null);
+    setNoteImage(note.image || null);
   };
 
   const handleSaveNote = (e) => {
@@ -245,7 +246,8 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
         content: noteContent.trim(),
         tag: noteTag,
         tag_hi: tagHi,
-        document: noteDocument
+        document: noteDocument,
+        image: noteImage
       } : n));
       setSelectedNoteId(editingNoteId);
       setIsCreatingNote(false);
@@ -259,6 +261,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
         tag_hi: tagHi,
         color: '#D8D365',
         document: noteDocument,
+        image: noteImage,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         date_hi: new Date().toLocaleDateString('hi-IN', { month: 'short', day: 'numeric', year: 'numeric' })
       };
@@ -267,6 +270,17 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
       setEditingNoteId(newId);
       setIsCreatingNote(false);
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setNoteImage(uploadEvent.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleEditNote = (note) => {
@@ -286,11 +300,13 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
           setNoteContent(nextNote.content || '');
           setNoteTag(nextNote.tag || 'Telemetry');
           setNoteDocument(nextNote.document || null);
+          setNoteImage(nextNote.image || null);
           setEditingNoteId(nextNote.id);
         } else {
           setNoteTitle('');
           setNoteContent('');
           setNoteDocument(null);
+          setNoteImage(null);
           setEditingNoteId(null);
         }
       }
@@ -665,11 +681,18 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                           <p className="notes-item-row-snippet">{displayContent}</p>
                           <div className="notes-item-row-footer">
                             <span className="notes-item-row-date">{displayDate}</span>
-                            {note.document && (
-                              <span className="notes-item-doc-indicator" title={note.document.name}>
-                                <Paperclip size={11} /> {note.document.name}
-                              </span>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {note.image && (
+                                <span className="notes-item-doc-indicator" title="Has Image Attachment">
+                                  <ImageIcon size={11} /> Photo
+                                </span>
+                              )}
+                              {note.document && (
+                                <span className="notes-item-doc-indicator" title={note.document.name}>
+                                  <Paperclip size={11} /> {note.document.name}
+                                </span>
+                              )}
+                            </div>
                             <div className="notes-item-actions-hover">
                               <button 
                                 className="note-action-icon" 
@@ -702,7 +725,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                 </div>
               </div>
 
-              {/* Right Column: Note Editor / Detail View (~62%) */}
+              {/* Right Column: Note Editor / Detail View (Dominant Area ~74%) */}
               <div className="notes-app-editor-pane">
                 {(isCreatingNote || selectedNoteId) ? (
                   <form className="notes-editor-form" onSubmit={handleSaveNote}>
@@ -735,9 +758,26 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                       </div>
                     </div>
 
-                    {/* Attached Document Banner */}
-                    <div className="notes-editor-doc-row">
-                      {noteDocument ? (
+                    {/* Attachments Section: Image Preview & Doc Badges */}
+                    <div className="notes-editor-attachments-row">
+                      {/* Attached Image Preview */}
+                      {noteImage && (
+                        <div className="attached-image-badge">
+                          <img src={noteImage} alt="Satellite Attachment" className="attached-image-thumb" />
+                          <span className="attached-image-label">{isHindi ? 'उपग्रह छवि' : 'Attached Photo'}</span>
+                          <button 
+                            type="button" 
+                            className="doc-remove-btn" 
+                            onClick={() => setNoteImage(null)}
+                            title="Remove Image"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Attached Document Badge */}
+                      {noteDocument && (
                         <div className="attached-doc-badge">
                           <FileCheck size={14} />
                           <span className="doc-name">{noteDocument.name} ({noteDocument.size})</span>
@@ -745,12 +785,22 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                             <X size={12} />
                           </button>
                         </div>
-                      ) : (
-                        <label className="upload-custom-lbl doc-upload">
-                          <Paperclip size={13} /> {t.attachDocument}
-                          <input type="file" accept=".pdf,.txt,.json,.csv,.doc,.docx" onChange={handleFileUpload} style={{ display: 'none' }} />
-                        </label>
                       )}
+
+                      {/* Attachment Buttons */}
+                      <div className="notes-attach-btn-group">
+                        <label className="upload-custom-lbl doc-upload" title={t.attachImage}>
+                          <ImageIcon size={13} /> {t.attachImage}
+                          <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                        </label>
+
+                        {!noteDocument && (
+                          <label className="upload-custom-lbl doc-upload" title={t.attachDocument}>
+                            <Paperclip size={13} /> {t.attachDocument}
+                            <input type="file" accept=".pdf,.txt,.json,.csv,.doc,.docx" onChange={handleFileUpload} style={{ display: 'none' }} />
+                          </label>
+                        )}
+                      </div>
                     </div>
 
                     {/* Editor Main Content Textarea */}
