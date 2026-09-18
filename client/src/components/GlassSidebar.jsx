@@ -456,7 +456,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
 
             {/* Amber Filter Input Bar */}
             <div className="history-search-bar-amber">
-              <Search size={16} style={{ color: '#fbbf24' }} />
+              <Search size={16} style={{ color: '#eab308' }} />
               <input 
                 type="text" 
                 className="history-filter-input"
@@ -629,7 +629,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
               <>
                 {/* Search Filter Bar Purple */}
                 <div className="docs-search-bar-purple">
-                  <Search size={16} style={{ color: '#a78bfa' }} />
+                  <Search size={16} style={{ color: '#eab308' }} />
                   <input 
                     type="text" 
                     className="history-filter-input"
