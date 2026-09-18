@@ -161,14 +161,29 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [selectedNoteId, setSelectedNoteId] = useState(() => notesList[0]?.id || null);
   
   // New Note Form State
-  const [noteTitle, setNoteTitle] = useState('');
-  const [noteContent, setNoteContent] = useState('');
-  const [noteTag, setNoteTag] = useState('Telemetry');
-  const [noteDocument, setNoteDocument] = useState(null); // { name, size, data }
+  const [noteTitle, setNoteTitle] = useState(() => notesList[0]?.title || '');
+  const [noteContent, setNoteContent] = useState(() => notesList[0]?.content || '');
+  const [noteTag, setNoteTag] = useState(() => notesList[0]?.tag || 'Telemetry');
+  const [noteDocument, setNoteDocument] = useState(() => notesList[0]?.document || null); // { name, size, data }
 
   const sidebarRef = useRef(null);
+
+  // Sync editor fields with active note when switching notes
+  useEffect(() => {
+    if (selectedNoteId && !isCreatingNote) {
+      const activeNote = notesList.find(n => n.id === selectedNoteId);
+      if (activeNote) {
+        setNoteTitle(activeNote.title || '');
+        setNoteContent(activeNote.content || '');
+        setNoteTag(activeNote.tag || 'Telemetry');
+        setNoteDocument(activeNote.document || null);
+        setEditingNoteId(activeNote.id);
+      }
+    }
+  }, [selectedNoteId, isCreatingNote]);
 
   useEffect(() => {
     try {
@@ -195,56 +210,92 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
   };
 
   // Note Taking Actions
+  const handleStartNewNote = () => {
+    setIsCreatingNote(true);
+    setEditingNoteId(null);
+    setSelectedNoteId(null);
+    setNoteTitle('');
+    setNoteContent('');
+    setNoteTag('Telemetry');
+    setNoteDocument(null);
+  };
+
+  const handleSelectNote = (note) => {
+    setIsCreatingNote(false);
+    setSelectedNoteId(note.id);
+    setEditingNoteId(note.id);
+    setNoteTitle(note.title || '');
+    setNoteContent(note.content || '');
+    setNoteTag(note.tag || 'Telemetry');
+    setNoteDocument(note.document || null);
+  };
+
   const handleSaveNote = (e) => {
     e?.preventDefault();
-    if (!noteTitle.trim() || !noteContent.trim()) return;
+    if (!noteTitle.trim() && !noteContent.trim()) return;
 
     const currentTagObj = NOTE_TAGS.find(nt => nt.id === noteTag);
     const tagHi = translations.hi[currentTagObj?.labelKey] || noteTag;
+    const finalTitle = noteTitle.trim() || (isHindi ? 'शीर्षकहीन नोट' : 'Untitled Note');
 
     if (editingNoteId) {
       setNotesList(prev => prev.map(n => n.id === editingNoteId ? {
         ...n,
-        title: noteTitle.trim(),
+        title: finalTitle,
         content: noteContent.trim(),
         tag: noteTag,
         tag_hi: tagHi,
         document: noteDocument
       } : n));
-      setEditingNoteId(null);
+      setSelectedNoteId(editingNoteId);
+      setIsCreatingNote(false);
     } else {
+      const newId = Date.now();
       const newNote = {
-        id: Date.now(),
-        title: noteTitle.trim(),
+        id: newId,
+        title: finalTitle,
         content: noteContent.trim(),
         tag: noteTag,
         tag_hi: tagHi,
-        color: noteTag === 'Telemetry' ? '#a78bfa' : noteTag === 'Earth Scan' ? '#38bdf8' : noteTag === 'Debris Risk' ? '#f87171' : '#fbbf24',
+        color: '#D8D365',
         document: noteDocument,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         date_hi: new Date().toLocaleDateString('hi-IN', { month: 'short', day: 'numeric', year: 'numeric' })
       };
       setNotesList(prev => [newNote, ...prev]);
+      setSelectedNoteId(newId);
+      setEditingNoteId(newId);
+      setIsCreatingNote(false);
     }
-
-    setNoteTitle('');
-    setNoteContent('');
-    setNoteDocument(null);
-    setIsCreatingNote(false);
   };
 
   const handleEditNote = (note) => {
-    setEditingNoteId(note.id);
-    setNoteTitle(note.title);
-    setNoteContent(note.content);
-    setNoteTag(note.tag);
-    setNoteDocument(note.document || null);
-    setIsCreatingNote(true);
+    handleSelectNote(note);
   };
 
   const handleDeleteNote = (id, e) => {
     e?.stopPropagation();
-    setNotesList(prev => prev.filter(n => n.id !== id));
+    setNotesList(prev => {
+      const remaining = prev.filter(n => n.id !== id);
+      if (selectedNoteId === id) {
+        const next = remaining[0]?.id || null;
+        setSelectedNoteId(next);
+        if (next) {
+          const nextNote = remaining[0];
+          setNoteTitle(nextNote.title || '');
+          setNoteContent(nextNote.content || '');
+          setNoteTag(nextNote.tag || 'Telemetry');
+          setNoteDocument(nextNote.document || null);
+          setEditingNoteId(nextNote.id);
+        } else {
+          setNoteTitle('');
+          setNoteContent('');
+          setNoteDocument(null);
+          setEditingNoteId(null);
+        }
+      }
+      return remaining;
+    });
   };
 
   const handleCopyNote = (note, e) => {
@@ -478,7 +529,6 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                 filteredHistory.map((item) => {
                   const displayQuery = isHindi ? (item.query_hi || item.query) : item.query;
                   const displayTag   = isHindi ? (item.tag_hi || item.tag) : item.tag;
-                  const displayDesc  = isHindi ? (item.desc_hi || item.desc) : item.desc;
                   const displayTime  = isHindi ? (item.time_hi || item.time) : item.time;
                   return (
                     <div 
@@ -514,126 +564,55 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
         </div>
       )}
 
-      {/* ── Center Transparent Big Documents & Notes Center Modal (Purple Theme) ── */}
+      {/* ── Orbit Notes App (Split 2-Pane Side Panel Covering Half the Page) ── */}
       {active === 'documents' && (
-        <div className="history-modal-backdrop" onClick={() => setActive(null)}>
-          <div className="docs-center-card" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="docs-card-header">
-              <div className="docs-title-purple">
-                <div className="docs-purple-icon-badge">
-                  <FileText size={20} />
+        <div className="notes-app-backdrop" onClick={() => setActive(null)}>
+          <div className="notes-app-container" onClick={(e) => e.stopPropagation()}>
+            {/* Top Bar */}
+            <div className="notes-app-topbar">
+              <div className="notes-app-brand">
+                <div className="notes-app-icon-badge">
+                  <FileText size={18} />
                 </div>
                 <div>
-                  <h2 className="docs-main-heading">{t.orbitNotesDocs}</h2>
-                  <p className="docs-sub-heading">{t.notesSubheading}</p>
+                  <div className="notes-app-title-row">
+                    <h2 className="notes-app-heading">{t.orbitNotesDocs}</h2>
+                    <span className="notes-app-count-badge">{filteredNotes.length}</span>
+                  </div>
+                  <p className="notes-app-subheading">{t.notesSubheading}</p>
                 </div>
               </div>
 
-              <div className="docs-header-actions">
+              <div className="notes-app-top-actions">
+                <button 
+                  className="notes-app-new-btn" 
+                  onClick={handleStartNewNote}
+                  title={t.newNote}
+                >
+                  <Plus size={15} /> {t.newNote}
+                </button>
                 {notesList.length > 0 && (
-                  <button className="docs-export-btn" onClick={handleExportNotes} title={t.exportNotes}>
+                  <button className="notes-app-export-btn" onClick={handleExportNotes} title={t.exportNotes}>
                     <Download size={14} /> {t.exportNotes}
                   </button>
                 )}
-                <button 
-                  className="docs-create-note-btn" 
-                  onClick={() => {
-                    setIsCreatingNote(!isCreatingNote);
-                    setEditingNoteId(null);
-                    setNoteTitle('');
-                    setNoteContent('');
-                    setNoteDocument(null);
-                  }}
-                >
-                  <Plus size={15} /> {isCreatingNote ? t.cancel : t.newNote}
-                </button>
                 <button className="history-close-btn" onClick={() => setActive(null)} title="Close">
                   <X size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Note Creation / Editing Editor */}
-            {isCreatingNote ? (
-              <form className="note-editor-form" onSubmit={handleSaveNote}>
-                <div className="editor-row">
-                  <input 
-                    type="text"
-                    className="note-title-input"
-                  placeholder={t.noteTitlePlaceholder}
-                    value={noteTitle}
-                    onChange={(e) => setNoteTitle(e.target.value)}
-                    required
-                  />
-                  <select 
-                    className="note-tag-select"
-                    value={noteTag}
-                    onChange={(e) => setNoteTag(e.target.value)}
-                  >
-                    {NOTE_TAGS.map(({ id, labelKey }) => (
-                      <option key={id} value={id}>
-                        #{t[labelKey] || id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <textarea 
-                  className="note-content-textarea"
-                  placeholder={t.noteContentPlaceholder}
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
-                  rows={4}
-                  required
-                />
-
-                {/* Document Attachment Upload */}
-                <div className="image-picker-row">
-                  <label className="upload-custom-lbl doc-upload">
-                    <Paperclip size={14} /> {t.attachDocument}
-                    <input type="file" accept=".pdf,.txt,.json,.csv,.doc,.docx" onChange={handleFileUpload} style={{ display: 'none' }} />
-                  </label>
-                </div>
-
-                {noteDocument && (
-                  <div className="attached-doc-badge">
-                    <FileCheck size={14} />
-                    <span className="doc-name">{noteDocument.name} ({noteDocument.size})</span>
-                    <button type="button" className="doc-remove-btn" onClick={() => setNoteDocument(null)}>
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px' }}>
-                  <button 
-                    type="button"
-                    className="history-clear-btn"
-                    onClick={() => {
-                      setIsCreatingNote(false);
-                      setEditingNoteId(null);
-                      setNoteTitle('');
-                      setNoteContent('');
-                      setNoteDocument(null);
-                    }}
-                  >
-                    {t.cancel}
-                  </button>
-                  <button type="submit" className="save-note-submit-btn">
-                    <Save size={15} /> {editingNoteId ? t.updateNote : t.saveNote2}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-                {/* Search Filter Bar Purple */}
-                <div className="docs-search-bar-purple">
-                  <Search size={16} style={{ color: '#eab308' }} />
+            {/* Split 2-Pane Body */}
+            <div className="notes-app-body">
+              {/* Left Column: Notes List & Filter (~38%) */}
+              <div className="notes-app-list-pane">
+                {/* Search Bar */}
+                <div className="notes-search-bar">
+                  <Search size={15} style={{ color: '#D8D365' }} />
                   <input 
                     type="text" 
-                    className="history-filter-input"
-                  placeholder={t.searchNotesPlaceholder}
+                    className="notes-search-input"
+                    placeholder={t.searchNotesPlaceholder}
                     value={noteFilter}
                     onChange={(e) => setNoteFilter(e.target.value)}
                   />
@@ -644,7 +623,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   )}
                 </div>
 
-                {/* Quick Tag Filter Pills */}
+                {/* Tag Filter Pills */}
                 <div className="notes-tag-pills">
                   <button
                     className={`notes-tag-pill ${activeTagFilter === 'All' ? 'active' : ''}`}
@@ -662,66 +641,186 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     </button>
                   ))}
                 </div>
-              </>
-            )}
 
-            {/* Saved Notes Grid */}
-            {!isCreatingNote && (
-              <div className="notes-grid-list">
-                {filteredNotes.length > 0 ? (
-                  filteredNotes.map((note) => {
-                    const displayTitle = isHindi ? (note.title_hi || note.title) : note.title;
-                    const displayTag = getTagDisplay(note.tag, t, isHindi);
-                    const displayContent = isHindi ? (note.content_hi || note.content) : note.content;
-                    const displayDate = isHindi ? (note.date_hi || note.date) : note.date;
-                    return (
-                      <div key={note.id} className="note-card-item">
-                        <div className="note-card-body">
-                          <div className="note-card-top">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              <h3 className="note-card-title">{displayTitle}</h3>
-                              <span className="note-purple-tag">#{displayTag}</span>
-                            </div>
-                            <div className="note-card-actions">
+                {/* Notes List Scrollable */}
+                <div className="notes-list-items">
+                  {filteredNotes.length > 0 ? (
+                    filteredNotes.map((note) => {
+                      const displayTitle = isHindi ? (note.title_hi || note.title) : note.title;
+                      const displayTag = getTagDisplay(note.tag, t, isHindi);
+                      const displayContent = isHindi ? (note.content_hi || note.content) : note.content;
+                      const displayDate = isHindi ? (note.date_hi || note.date) : note.date;
+                      const isSelected = (!isCreatingNote && selectedNoteId === note.id);
+
+                      return (
+                        <div 
+                          key={note.id} 
+                          className={`notes-item-row ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleSelectNote(note)}
+                        >
+                          <div className="notes-item-row-header">
+                            <h4 className="notes-item-row-title">{displayTitle}</h4>
+                            <span className="notes-item-tag">#{displayTag}</span>
+                          </div>
+                          <p className="notes-item-row-snippet">{displayContent}</p>
+                          <div className="notes-item-row-footer">
+                            <span className="notes-item-row-date">{displayDate}</span>
+                            {note.document && (
+                              <span className="notes-item-doc-indicator" title={note.document.name}>
+                                <Paperclip size={11} /> {note.document.name}
+                              </span>
+                            )}
+                            <div className="notes-item-actions-hover">
                               <button 
                                 className="note-action-icon" 
-                                onClick={(e) => handleCopyNote({ ...note, title: displayTitle, content: displayContent, tag: displayTag, date: displayDate }, e)} 
-                                title={t.copyNoteText || "Copy Note Text"}
+                                onClick={(e) => handleCopyNote({ ...note, title: displayTitle, content: displayContent, tag: displayTag, date: displayDate }, e)}
+                                title="Copy"
                               >
-                                {copiedId === note.id ? <Check size={14} color="#34d399" /> : <Copy size={14} />}
+                                {copiedId === note.id ? <Check size={13} color="#34d399" /> : <Copy size={13} />}
                               </button>
-                              <button className="note-action-icon" onClick={() => handleEditNote(note)} title={t.editNoteTitle || "Edit Note"}>
-                                <Edit3 size={14} />
-                              </button>
-                              <button className="note-action-icon delete" onClick={(e) => handleDeleteNote(note.id, e)} title={t.deleteNoteTitle || "Delete Note"}>
-                                <Trash2 size={14} />
+                              <button 
+                                className="note-action-icon delete" 
+                                onClick={(e) => handleDeleteNote(note.id, e)}
+                                title="Delete"
+                              >
+                                <Trash2 size={13} />
                               </button>
                             </div>
                           </div>
-                          <p className="note-card-content">{displayContent}</p>
-                          
-                          {note.document && (
-                            <div className="note-doc-pill">
-                              <Paperclip size={12} />
-                              <span>{note.document.name}</span>
-                              <span className="note-doc-size">{note.document.size}</span>
-                            </div>
-                          )}
-
-                          <span className="note-card-date">{displayDate}</span>
                         </div>
+                      );
+                    })
+                  ) : (
+                    <div className="notes-list-empty">
+                      <FileText size={28} style={{ color: 'rgba(216, 211, 101, 0.4)', marginBottom: '8px' }} />
+                      <p>{t.noNotesYet}</p>
+                      <button className="notes-create-first-btn" onClick={handleStartNewNote}>
+                        <Plus size={13} /> {t.newNote}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Note Editor / Detail View (~62%) */}
+              <div className="notes-app-editor-pane">
+                {(isCreatingNote || selectedNoteId) ? (
+                  <form className="notes-editor-form" onSubmit={handleSaveNote}>
+                    {/* Editor Header: Title & Tag Selector */}
+                    <div className="notes-editor-top">
+                      <input 
+                        type="text" 
+                        className="notes-editor-title-input" 
+                        placeholder={t.noteTitlePlaceholder}
+                        value={noteTitle}
+                        onChange={(e) => setNoteTitle(e.target.value)}
+                        required
+                        autoFocus={isCreatingNote}
+                      />
+                      <div className="notes-editor-meta-row">
+                        <select 
+                          className="notes-editor-tag-select"
+                          value={noteTag}
+                          onChange={(e) => setNoteTag(e.target.value)}
+                        >
+                          {NOTE_TAGS.map(({ id, labelKey }) => (
+                            <option key={id} value={id}>
+                              #{t[labelKey] || id}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="notes-editor-timestamp">
+                          {isCreatingNote ? (isHindi ? 'नया नोट ड्राफ्ट' : 'New Note Draft') : (isHindi ? 'सहेजा गया नोट' : 'Saved Note')}
+                        </span>
                       </div>
-                    );
-                  })
+                    </div>
+
+                    {/* Attached Document Banner */}
+                    <div className="notes-editor-doc-row">
+                      {noteDocument ? (
+                        <div className="attached-doc-badge">
+                          <FileCheck size={14} />
+                          <span className="doc-name">{noteDocument.name} ({noteDocument.size})</span>
+                          <button type="button" className="doc-remove-btn" onClick={() => setNoteDocument(null)}>
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="upload-custom-lbl doc-upload">
+                          <Paperclip size={13} /> {t.attachDocument}
+                          <input type="file" accept=".pdf,.txt,.json,.csv,.doc,.docx" onChange={handleFileUpload} style={{ display: 'none' }} />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Editor Main Content Textarea */}
+                    <textarea 
+                      className="notes-editor-textarea"
+                      placeholder={t.noteContentPlaceholder}
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      required
+                    />
+
+                    {/* Editor Bottom Actions */}
+                    <div className="notes-editor-actions-bar">
+                      <div className="notes-editor-actions-left">
+                        {editingNoteId && (
+                          <button 
+                            type="button" 
+                            className="notes-action-subtle-btn"
+                            onClick={() => {
+                              const activeNote = notesList.find(n => n.id === editingNoteId);
+                              if (activeNote) handleCopyNote(activeNote);
+                            }}
+                          >
+                            <Copy size={13} /> {isHindi ? 'कॉपी करें' : 'Copy'}
+                          </button>
+                        )}
+                        {editingNoteId && (
+                          <button 
+                            type="button" 
+                            className="notes-action-subtle-btn delete"
+                            onClick={(e) => handleDeleteNote(editingNoteId, e)}
+                          >
+                            <Trash2 size={13} /> {isHindi ? 'हटाएं' : 'Delete'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="notes-editor-actions-right">
+                        {isCreatingNote && (
+                          <button 
+                            type="button" 
+                            className="history-clear-btn"
+                            onClick={() => {
+                              setIsCreatingNote(false);
+                              if (notesList.length > 0) {
+                                handleSelectNote(notesList[0]);
+                              }
+                            }}
+                          >
+                            {t.cancel}
+                          </button>
+                        )}
+                        <button type="submit" className="save-note-submit-btn">
+                          <Save size={14} /> {isCreatingNote ? t.saveNote2 : t.updateNote}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
                 ) : (
-                  <div className="history-empty-box">
-                    <FileText size={36} style={{ color: 'rgba(167, 139, 250, 0.4)', marginBottom: '10px' }} />
-                    <p style={{ margin: 0, fontWeight: 600 }}>{t.noNotesYet}</p>
-                    <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{t.noNotesHint}</span>
+                  <div className="notes-editor-empty-state">
+                    <FileText size={42} style={{ color: 'rgba(216, 211, 101, 0.3)', marginBottom: '12px' }} />
+                    <h3>{isHindi ? 'कोई नोट चुना नहीं गया' : 'Select or Create a Note'}</h3>
+                    <p>{isHindi ? 'बाईं सूची से एक नोट चुनें या नया नोट बनाना शुरू करें।' : 'Choose a note from the left sidebar or start typing a new research observation.'}</p>
+                    <button className="notes-app-new-btn" onClick={handleStartNewNote}>
+                      <Plus size={15} /> {t.newNote}
+                    </button>
                   </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
