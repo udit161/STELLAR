@@ -937,11 +937,11 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                 <div className="topics-section">
                   <span className="section-label">{t.relatedTopics}</span>
                   <div className="tags-wrap">
-                    <span className="topic-chip">#Satellite-VQA</span>
-                    <span className="topic-chip">#ISRO-Agent</span>
-                    <span className="topic-chip">#LangGraph</span>
-                    <span className="topic-chip">#Cartosat-3</span>
-                    <span className="topic-chip">#Sentinel-2</span>
+                    <span className="topic-chip">#{t.topicSatelliteVQA || 'Satellite-VQA'}</span>
+                    <span className="topic-chip">#{t.topicISROAgent || 'ISRO-Agent'}</span>
+                    <span className="topic-chip">#{t.topicLangGraph || 'LangGraph'}</span>
+                    <span className="topic-chip">#{t.topicCartosat3 || 'Cartosat-3'}</span>
+                    <span className="topic-chip">#{t.topicSentinel2 || 'Sentinel-2'}</span>
                   </div>
                 </div>
               </>
@@ -1013,9 +1013,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               {t.aboutDescription}
             </p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-              <span className="topic-chip"><CheckCircle2 size={12} /> LangGraph Orchestrated</span>
-              <span className="topic-chip"><CheckCircle2 size={12} /> ISRO Compliant</span>
-              <span className="topic-chip"><CheckCircle2 size={12} /> Liquid Glass UI</span>
+              <span className="topic-chip"><CheckCircle2 size={12} /> {t.langGraphOrchestrated || 'LangGraph Orchestrated'}</span>
+              <span className="topic-chip"><CheckCircle2 size={12} /> {t.isroCompliant || 'ISRO Compliant'}</span>
+              <span className="topic-chip"><CheckCircle2 size={12} /> {t.liquidGlassUI || 'Liquid Glass UI'}</span>
             </div>
           </LiquidGlassCard>
         </div>

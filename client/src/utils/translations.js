@@ -126,6 +126,30 @@ export const translations = {
     noNotesYet: 'No notes created yet',
     noNotesHint: 'Click "+ New Note" to save satellite intelligence, telemetry, & documents!',
 
+    // ── Notes Tags ──
+    tagTelemetry: 'Telemetry',
+    tagEarthScan: 'Earth Scan',
+    tagDebrisRisk: 'Debris Risk',
+    tagMissionLog: 'Mission Log',
+    tagResearch: 'Research',
+    tagGeneral: 'General',
+
+    // ── Related Topics & Tech Chips ──
+    topicSatelliteVQA: 'Satellite-VQA',
+    topicISROAgent: 'ISRO-Agent',
+    topicLangGraph: 'LangGraph',
+    topicCartosat3: 'Cartosat-3',
+    topicSentinel2: 'Sentinel-2',
+    langGraphOrchestrated: 'LangGraph Orchestrated',
+    isroCompliant: 'ISRO Compliant',
+    liquidGlassUI: 'Liquid Glass UI',
+
+    // ── Note Actions ──
+    copyNoteText: 'Copy Note Text',
+    editNoteTitle: 'Edit Note',
+    deleteNoteTitle: 'Delete Note',
+    closeModal: 'Close',
+
     // ── Translating indicator ──
     translating: 'Translating…',
 
@@ -289,6 +313,30 @@ export const translations = {
     allNotes: 'सभी नोट्स',
     noNotesYet: 'अभी तक कोई नोट नहीं बना',
     noNotesHint: '"+ नया नोट" पर क्लिक करके उपग्रह खुफिया, टेलीमेट्री और दस्तावेज़ सेव करें!',
+
+    // ── Notes Tags ──
+    tagTelemetry: 'टेलीमेट्री',
+    tagEarthScan: 'पृथ्वी स्कैन',
+    tagDebrisRisk: 'मलबा जोखिम',
+    tagMissionLog: 'मिशन लॉग',
+    tagResearch: 'अनुसंधान',
+    tagGeneral: 'सामान्य',
+
+    // ── Related Topics & Tech Chips ──
+    topicSatelliteVQA: 'उपग्रह-VQA',
+    topicISROAgent: 'इसरो-एजेंट',
+    topicLangGraph: 'लैंगग्राफ',
+    topicCartosat3: 'कार्टोसैट-3',
+    topicSentinel2: 'सेंटिनल-2',
+    langGraphOrchestrated: 'लैंगग्राफ ऑर्केस्ट्रेटेड',
+    isroCompliant: 'इसरो अनुपालित',
+    liquidGlassUI: 'लिक्विड ग्लास UI',
+
+    // ── Note Actions ──
+    copyNoteText: 'नोट कॉपी करें',
+    editNoteTitle: 'नोट संपादित करें',
+    deleteNoteTitle: 'नोट हटाएं',
+    closeModal: 'बंद करें',
 
     // ── Translating indicator ──
     translating: 'अनुवाद हो रहा है…',

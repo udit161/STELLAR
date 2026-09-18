@@ -22,9 +22,25 @@ import {
 } from 'lucide-react';
 import './GlassSidebar.css';
 import { useT, useLanguage } from '../context/LanguageContext';
+import { translations } from '../utils/translations';
+
+const NOTE_TAGS = [
+  { id: 'Telemetry', labelKey: 'tagTelemetry' },
+  { id: 'Earth Scan', labelKey: 'tagEarthScan' },
+  { id: 'Debris Risk', labelKey: 'tagDebrisRisk' },
+  { id: 'Mission Log', labelKey: 'tagMissionLog' },
+  { id: 'Research', labelKey: 'tagResearch' },
+  { id: 'General', labelKey: 'tagGeneral' },
+];
+
+const getTagDisplay = (tagId, t, isHindi) => {
+  const item = NOTE_TAGS.find(nt => nt.id.toLowerCase() === (tagId || '').toLowerCase());
+  if (item && t[item.labelKey]) return t[item.labelKey];
+  if (isHindi && item && translations.hi[item.labelKey]) return translations.hi[item.labelKey];
+  return tagId;
+};
 
 const NAV_ITEMS = [
-  { id: 'search',    icon: Search,   labelKey: 'navSearch' },
   { id: 'history',   icon: Clock,    labelKey: 'navHistory' },
   { id: 'documents', icon: FileText,  labelKey: 'navNotesDocs', title: 'Orbit Notes & Documents' },
   { id: 'settings',  icon: Settings,  labelKey: 'navSettings' },
@@ -183,12 +199,16 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     e?.preventDefault();
     if (!noteTitle.trim() || !noteContent.trim()) return;
 
+    const currentTagObj = NOTE_TAGS.find(nt => nt.id === noteTag);
+    const tagHi = translations.hi[currentTagObj?.labelKey] || noteTag;
+
     if (editingNoteId) {
       setNotesList(prev => prev.map(n => n.id === editingNoteId ? {
         ...n,
         title: noteTitle.trim(),
         content: noteContent.trim(),
         tag: noteTag,
+        tag_hi: tagHi,
         document: noteDocument
       } : n));
       setEditingNoteId(null);
@@ -198,9 +218,11 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
         title: noteTitle.trim(),
         content: noteContent.trim(),
         tag: noteTag,
+        tag_hi: tagHi,
         color: noteTag === 'Telemetry' ? '#a78bfa' : noteTag === 'Earth Scan' ? '#38bdf8' : noteTag === 'Debris Risk' ? '#f87171' : '#fbbf24',
         document: noteDocument,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        date_hi: new Date().toLocaleDateString('hi-IN', { month: 'short', day: 'numeric', year: 'numeric' })
       };
       setNotesList(prev => [newNote, ...prev]);
     }
@@ -227,7 +249,8 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
 
   const handleCopyNote = (note, e) => {
     e?.stopPropagation();
-    const textToCopy = `[${note.tag}] ${note.title}\nDate: ${note.date}\n\n${note.content}${note.document ? `\nAttached Document: ${note.document.name}` : ''}`;
+    const tagText = getTagDisplay(note.tag, t, isHindi);
+    const textToCopy = `[${tagText}] ${note.title}\nDate: ${note.date}\n\n${note.content}${note.document ? `\nAttached Document: ${note.document.name}` : ''}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(textToCopy);
       setCopiedId(note.id);
@@ -283,8 +306,12 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     const title = isHindi ? (note.title_hi || note.title) : note.title;
     const content = isHindi ? (note.content_hi || note.content) : note.content;
     const tag = isHindi ? (note.tag_hi || note.tag) : note.tag;
+    const tagDisplay = getTagDisplay(note.tag, t, isHindi);
     const filter = noteFilter.toLowerCase();
-    const matchesTag = activeTagFilter === 'All' || note.tag.toLowerCase() === activeTagFilter.toLowerCase() || tag.toLowerCase() === activeTagFilter.toLowerCase();
+    const matchesTag = activeTagFilter === 'All' || 
+      note.tag.toLowerCase() === activeTagFilter.toLowerCase() || 
+      tag.toLowerCase() === activeTagFilter.toLowerCase() ||
+      tagDisplay.toLowerCase() === activeTagFilter.toLowerCase();
     const matchesKeyword = 
       note.title.toLowerCase().includes(filter) ||
       note.content.toLowerCase().includes(filter) ||
@@ -292,6 +319,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
       title.toLowerCase().includes(filter) ||
       content.toLowerCase().includes(filter) ||
       tag.toLowerCase().includes(filter) ||
+      tagDisplay.toLowerCase().includes(filter) ||
       (note.document && note.document.name.toLowerCase().includes(filter));
     return matchesTag && matchesKeyword;
   });
@@ -543,12 +571,11 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                     value={noteTag}
                     onChange={(e) => setNoteTag(e.target.value)}
                   >
-                    <option value="Telemetry">#Telemetry</option>
-                    <option value="Earth Scan">#Earth Scan</option>
-                    <option value="Debris Risk">#Debris Risk</option>
-                    <option value="Mission Log">#Mission Log</option>
-                    <option value="Research">#Research</option>
-                    <option value="General">#General</option>
+                    {NOTE_TAGS.map(({ id, labelKey }) => (
+                      <option key={id} value={id}>
+                        #{t[labelKey] || id}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -619,13 +646,19 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
 
                 {/* Quick Tag Filter Pills */}
                 <div className="notes-tag-pills">
-                  {['All', 'Telemetry', 'Earth Scan', 'Debris Risk', 'Mission Log', 'Research', 'General'].map(tag => (
+                  <button
+                    className={`notes-tag-pill ${activeTagFilter === 'All' ? 'active' : ''}`}
+                    onClick={() => setActiveTagFilter('All')}
+                  >
+                    {t.allNotes}
+                  </button>
+                  {NOTE_TAGS.map(({ id, labelKey }) => (
                     <button
-                      key={tag}
-                      className={`notes-tag-pill ${activeTagFilter === tag ? 'active' : ''}`}
-                      onClick={() => setActiveTagFilter(tag)}
+                      key={id}
+                      className={`notes-tag-pill ${activeTagFilter === id ? 'active' : ''}`}
+                      onClick={() => setActiveTagFilter(id)}
                     >
-                      {tag === 'All' ? t.allNotes : `#${tag}`}
+                      #{t[labelKey] || id}
                     </button>
                   ))}
                 </div>
@@ -638,7 +671,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                 {filteredNotes.length > 0 ? (
                   filteredNotes.map((note) => {
                     const displayTitle = isHindi ? (note.title_hi || note.title) : note.title;
-                    const displayTag = isHindi ? (note.tag_hi || note.tag) : note.tag;
+                    const displayTag = getTagDisplay(note.tag, t, isHindi);
                     const displayContent = isHindi ? (note.content_hi || note.content) : note.content;
                     const displayDate = isHindi ? (note.date_hi || note.date) : note.date;
                     return (
@@ -653,14 +686,14 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                               <button 
                                 className="note-action-icon" 
                                 onClick={(e) => handleCopyNote({ ...note, title: displayTitle, content: displayContent, tag: displayTag, date: displayDate }, e)} 
-                                title="Copy Note Text"
+                                title={t.copyNoteText || "Copy Note Text"}
                               >
                                 {copiedId === note.id ? <Check size={14} color="#34d399" /> : <Copy size={14} />}
                               </button>
-                              <button className="note-action-icon" onClick={() => handleEditNote(note)} title="Edit Note">
+                              <button className="note-action-icon" onClick={() => handleEditNote(note)} title={t.editNoteTitle || "Edit Note"}>
                                 <Edit3 size={14} />
                               </button>
-                              <button className="note-action-icon delete" onClick={(e) => handleDeleteNote(note.id, e)} title="Delete Note">
+                              <button className="note-action-icon delete" onClick={(e) => handleDeleteNote(note.id, e)} title={t.deleteNoteTitle || "Delete Note"}>
                                 <Trash2 size={14} />
                               </button>
                             </div>
