@@ -1,101 +1,358 @@
-/* ── SatQuery Logo Component Styles (Derived from ApogeeAuth) ── */
+/* ════════════════════════════════════════════════════════════
+   SatQuery AI — Animated Brand Intro Styles
+   ════════════════════════════════════════════════════════════ */
 
-.satquery-logo-wrapper {
+/* ── Color tokens ─────────────────────────────────────────── */
+:root {
+  --sq-lime:   #e3ea6f;
+  --sq-olive:  #6c6355;
+  --sq-rose:   #c89a9a;
+  --sq-dark:   #05090f;
+}
+
+/* ── Stage (root container) ───────────────────────────────── */
+.sq-stage {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   cursor: pointer;
-  z-index: 25;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Size variants */
+  min-width: 200px;
+  min-height: 64px;
+  /* Allow translations to overflow */
+  overflow: visible;
 }
 
-.satquery-logo-wrapper:hover {
-  transform: scale(1.04);
-}
+/* Size modifiers */
+.sq-stage.sq-size-normal { transform: scale(1); }
+.sq-stage.sq-size-large  { transform: scale(1.35); transform-origin: center; }
+.sq-stage.sq-size-small  { transform: scale(0.72); transform-origin: center; }
 
-/* Compact Container */
-.satquery-logo-container {
-  position: relative;
-  width: 170px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-}
+/* Hover lift */
+.sq-stage:hover .sq-logo { filter: drop-shadow(0 0 12px rgba(227,234,111,0.5)); }
 
-.satquery-logo-halo {
+/* ── Screen-reader only ───────────────────────────────────── */
+.sq-sr-only {
   position: absolute;
-  inset: -6px;
-  background: conic-gradient(from 0deg, rgba(234, 179, 8, 0.5), rgba(56, 189, 248, 0.5), rgba(234, 179, 8, 0.35), rgba(234, 179, 8, 0.5));
-  filter: blur(10px);
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+
+/* ── Twinkling starfield ──────────────────────────────────── */
+.sq-stars {
+  position: absolute;
+  inset: -120px;
+  pointer-events: none;
   z-index: 0;
-  border-radius: 9999px;
-  animation: abstractBlobMorph 9s ease-in-out infinite, abstractHaloPulse 3s ease-in-out infinite alternate;
 }
 
-.satquery-logo-ring {
+.sq-star {
   position: absolute;
-  inset: -2px;
-  background: linear-gradient(135deg, #eab308 0%, #38bdf8 50%, #ca8a04 100%);
-  z-index: 1;
-  border-radius: 9999px;
-  animation: abstractBlobMorph 9s ease-in-out infinite;
+  border-radius: 50%;
+  background: #fff;
+  animation: sqStarTwinkle var(--dur, 2.5s) ease-in-out var(--delay, 0s) infinite alternate;
 }
 
-.satquery-logo-mask {
+@keyframes sqStarTwinkle {
+  0%   { opacity: var(--min-op, 0.1); transform: scale(0.8); }
+  100% { opacity: var(--max-op, 0.9); transform: scale(1.2); }
+}
+
+/* ── Wireframe globe ──────────────────────────────────────── */
+.sq-globe {
   position: absolute;
-  inset: -1px;
-  background: #04060e;
-  z-index: 2;
-  border-radius: 9999px;
-  animation: abstractBlobMorph 9s ease-in-out infinite;
+  right: -180px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 280px;
+  height: 280px;
+  opacity: 0.10;
+  pointer-events: none;
+  z-index: 0;
+  stroke: #4ecdc4;
+  stroke-width: 0.8px;
+  fill: none;
+  animation: sqGlobeRotate 40s linear infinite;
 }
 
-.satquery-logo-card {
+.sq-node {
+  fill: #4ecdc4;
+  opacity: 0.6;
+}
+
+@keyframes sqGlobeRotate {
+  from { transform: translateY(-50%) rotate(0deg); }
+  to   { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* ── Wordmark ─────────────────────────────────────────────── */
+.sq-logo-wrap {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sq-logo {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sq-word-gap { width: 0.35em; }
+
+/* ── Individual letters ───────────────────────────────────── */
+.sq-letter {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  /* Stagger: --i is the letter index */
+  animation:
+    sqLetterReveal 0.72s cubic-bezier(0.34, 1.56, 0.64, 1)
+    calc(var(--i, 0) * 70ms)
+    both;
+}
+
+/* Reduced-motion: skip animation entirely */
+.sq-letter.no-anim {
+  animation: none;
+  opacity: 1;
+}
+.sq-letter.no-anim .sq-letter-outline { opacity: 0; }
+.sq-letter.no-anim .sq-letter-fill    { opacity: 1; }
+
+/* Shared text style */
+.sq-letter-outline,
+.sq-letter-fill {
+  display: block;
+  font-family: 'Inter', 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* Hollow wireframe outline (lime or olive) */
+.sq-letter-outline {
   position: absolute;
   inset: 0;
-  z-index: 3;
-  overflow: visible;
-  background: radial-gradient(circle at 35% 35%, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.98));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: abstractBlobMorph 9s ease-in-out infinite, satqueryGlowPulse 4s ease-in-out infinite alternate;
-  box-shadow: 
-    0 0 20px rgba(234, 179, 8, 0.25),
-    inset 0 0 12px rgba(234, 179, 8, 0.15);
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--sq-lime);
+  text-stroke: 1.5px var(--sq-lime);
+  animation: sqOutlineFlicker calc(70ms * var(--i, 0) + 60ms) steps(1) both;
+}
+.sq-letter.is-muted .sq-letter-outline {
+  -webkit-text-stroke-color: var(--sq-olive);
 }
 
-.satquery-logo-scaled-inner {
+/* Solid fill – slides in on top of outline */
+.sq-letter-fill {
+  color: var(--sq-lime);
+  animation: sqFillReveal 0.55s ease-out calc(var(--i, 0) * 70ms + 100ms) both;
+  text-shadow:
+    0 0 18px rgba(227,234,111,0.8),
+    0 0 40px rgba(227,234,111,0.35);
+}
+.sq-letter.is-muted .sq-letter-fill {
+  color: var(--sq-olive);
+  text-shadow: none;
+}
+
+/* ── Keyframes: letter animations ────────────────────────── */
+@keyframes sqLetterReveal {
+  0%   { opacity: 0; transform: translateY(18px) scale(0.7); }
+  60%  { opacity: 1; transform: translateY(-6px) scale(1.08); }  /* overshoot */
+  80%  { transform: translateY(3px)  scale(0.97); }              /* rebound   */
+  100% { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+@keyframes sqOutlineFlicker {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  30%  { opacity: 0.3; }
+  50%  { opacity: 0.9; }
+  70%  { opacity: 0.2; }
+  100% { opacity: 0; }
+}
+
+@keyframes sqFillReveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Bloom glow (post-settle) ─────────────────────────────── */
+.sq-phase-settling .sq-letter-fill,
+.sq-phase-translations .sq-letter-fill,
+.sq-phase-done .sq-letter-fill {
+  animation: sqFillReveal 0.55s ease-out calc(var(--i, 0) * 70ms + 100ms) both,
+             sqGlowPulse 3.5s ease-in-out calc(var(--i, 0) * 120ms + 1.8s) infinite alternate;
+}
+
+@keyframes sqGlowPulse {
+  0%   { text-shadow: 0 0 12px rgba(227,234,111,0.55), 0 0 30px rgba(227,234,111,0.2); }
+  100% { text-shadow: 0 0 24px rgba(227,234,111,0.90), 0 0 60px rgba(227,234,111,0.4); }
+}
+
+/* ── Mirrored reflection ──────────────────────────────────── */
+.sq-reflection {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: scale(0.28);
-  transform-origin: center center;
-  width: 100%;
-  height: 100%;
+  align-items: baseline;
+  gap: 0;
   white-space: nowrap;
+  font-family: 'Inter', 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--sq-lime);
+  transform: scaleY(-1) translateY(2px);
+  transform-origin: top center;
+  mask-image: linear-gradient(to bottom, rgba(255,255,255,0.22) 0%, transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(255,255,255,0.22) 0%, transparent 70%);
+  pointer-events: none;
+  user-select: none;
+  /* Fade in once settling starts */
+  opacity: 0;
+  transition: opacity 0.8s ease calc(var(--settle-delay, 0.6s));
+}
+.sq-reflection .is-muted { color: var(--sq-olive); }
+
+.sq-phase-settling   .sq-reflection,
+.sq-phase-translations .sq-reflection,
+.sq-phase-done       .sq-reflection { opacity: 1; }
+
+/* ── Multilingual scatter ─────────────────────────────────── */
+.sq-translations {
+  position: absolute;
+  inset: -120px;
+  pointer-events: none;
+  z-index: 5;
 }
 
-@keyframes abstractBlobMorph {
-  0%, 100% { border-radius: 42% 58% 60% 40% / 45% 45% 55% 55%; }
-  33%       { border-radius: 58% 42% 40% 60% / 55% 50% 50% 45%; }
-  66%       { border-radius: 45% 55% 52% 48% / 40% 58% 42% 60%; }
+.sq-translation {
+  position: absolute;
+  font-size: clamp(0.6rem, 1.1vw, 0.85rem);
+  font-weight: 600;
+  color: var(--sq-rose);
+  text-shadow: 0 0 10px rgba(200, 154, 154, 0.55);
+  white-space: nowrap;
+  opacity: 0;
+  transform: scale(0.6);
+  /* Hidden until phase === translations */
+  transition: none;
 }
 
-@keyframes abstractHaloPulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%       { opacity: 0.85; transform: scale(1.08); }
+/* Reveal translations when phase is active */
+.sq-phase-translations .sq-translation,
+.sq-phase-done .sq-translation {
+  animation: sqTranslationIn 0.7s cubic-bezier(0.34, 1.4, 0.64, 1)
+    var(--t-delay, 0ms) both,
+    sqTranslationFloat 4s ease-in-out
+    calc(var(--t-delay, 0ms) + 0.8s) infinite alternate;
 }
 
-@keyframes satqueryGlowPulse {
-  0% { box-shadow: 0 0 18px rgba(234, 179, 8, 0.25), inset 0 0 10px rgba(234, 179, 8, 0.15); }
-  100% { box-shadow: 0 0 28px rgba(56, 189, 248, 0.45), inset 0 0 16px rgba(56, 189, 248, 0.25); }
+@keyframes sqTranslationIn {
+  0%   { opacity: 0; transform: scale(0.5) translateY(8px); }
+  100% { opacity: 0.78; transform: scale(1) translateY(0); }
 }
 
+@keyframes sqTranslationFloat {
+  0%   { transform: translateY(0px);  opacity: 0.65; }
+  100% { transform: translateY(-7px); opacity: 0.90; }
+}
+
+/* ── Orbit ring ───────────────────────────────────────────── */
+.sq-orbit-ring {
+  position: absolute;
+  width: 340px;
+  height: 110px;
+  border-radius: 50%;
+  border: 1px dashed rgba(78, 205, 196, 0.22);
+  transform: rotateX(68deg) rotateZ(-12deg);
+  pointer-events: none;
+  z-index: 2;
+  animation: sqOrbitDash 28s linear infinite;
+}
+
+@keyframes sqOrbitDash {
+  from { border-color: rgba(78, 205, 196, 0.22); }
+  to   { border-color: rgba(78, 205, 196, 0.22); }
+}
+
+/* ── Orbiting Chandrayaan lander ──────────────────────────── */
+.sq-orbiter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  z-index: 12;
+  pointer-events: none;
+  animation: sqOrbit 20s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.sq-lander-svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+}
+
+.sq-orbiter-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,189,248,0.35) 0%, transparent 70%);
+  animation: sqOrbiterPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes sqOrbiterPulse {
+  0%   { opacity: 0.5; transform: scale(0.9); }
+  100% { opacity: 1.0; transform: scale(1.2); }
+}
+
+@keyframes sqOrbit {
+  0%   { transform: translate(-170px, 0)    rotateX(68deg) rotateZ(-12deg) scale(0.45); opacity: 0.45; }
+  12%  { transform: translate(-120px, -50px) rotateX(68deg) rotateZ(-12deg) scale(0.47); opacity: 0.65; }
+  25%  { transform: translate(0, -55px)     rotateX(68deg) rotateZ(-12deg) scale(0.49); opacity: 0.85; }
+  38%  { transform: translate(120px, -28px) rotateX(68deg) rotateZ(-12deg) scale(0.51); opacity: 0.92; }
+  50%  { transform: translate(170px, 10px)  rotateX(68deg) rotateZ(-12deg) scale(0.53); opacity: 0.96; }
+  62%  { transform: translate(110px, 52px)  rotateX(68deg) rotateZ(-12deg) scale(0.51); opacity: 0.92; }
+  75%  { transform: translate(0, 60px)      rotateX(68deg) rotateZ(-12deg) scale(0.49); opacity: 0.88; }
+  88%  { transform: translate(-110px, 38px) rotateX(68deg) rotateZ(-12deg) scale(0.47); opacity: 0.65; }
+  100% { transform: translate(-170px, 0)    rotateX(68deg) rotateZ(-12deg) scale(0.45); opacity: 0.45; }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sq-letter-outline,
+  .sq-letter-fill { font-size: clamp(1.2rem, 6vw, 2rem); }
+  .sq-reflection  { font-size: clamp(1.2rem, 6vw, 2rem); }
+  .sq-globe       { display: none; }
+  .sq-translation { font-size: 0.55rem; }
+  .sq-orbit-ring  { width: 220px; height: 70px; }
+  .sq-orbiter     { width: 32px; height: 32px; }
+  .sq-lander-svg  { width: 32px; height: 32px; }
+}
+
+/* ── prefers-reduced-motion ────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sq-star,
+  .sq-globe,
+  .sq-orbiter,
+  .sq-orbit-ring,
+  .sq-letter { animation: none !important; }
+  .sq-letter-fill    { opacity: 1; }
+  .sq-letter-outline { opacity: 0; }
+  .sq-reflection { opacity: 1; }
+  .sq-translation {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}

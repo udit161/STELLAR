@@ -638,7 +638,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     <div className="liquid-chat-container">
       {/* ── Top Header ── */}
       <div className="liquid-chat-header-row">
-        <SatQueryLogo onClick={onResetQuery} />
+        <SatQueryLogo onClick={onResetQuery} size="small" />
         <LiquidGlassCard pill className="top-query-bar">
           <span className="query-label">{t.activeQuery}</span>
           <span className="current-query-text" title={displayQueryText}>"{displayQueryText}"</span>
