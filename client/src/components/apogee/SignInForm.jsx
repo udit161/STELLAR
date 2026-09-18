@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useT } from '../../context/LanguageContext';
 
 export function SignInForm({ isActive, onSuccess }) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -34,7 +36,7 @@ export function SignInForm({ isActive, onSuccess }) {
     >
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         <div className="form-group">
-          <label className="form-label" htmlFor="signinEmail">Orbital Email / Call sign</label>
+          <label className="form-label" htmlFor="signinEmail">{t.orbitalEmail}</label>
           <div className="input-wrapper">
             <input
               type="email"
@@ -54,7 +56,7 @@ export function SignInForm({ isActive, onSuccess }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label" htmlFor="signinPassword">Security Key</label>
+          <label className="form-label" htmlFor="signinPassword">{t.securityKey}</label>
           <div className="input-wrapper">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -105,10 +107,10 @@ export function SignInForm({ isActive, onSuccess }) {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </span>
-            <span>Keep session active</span>
+            <span>{t.keepSessionActive}</span>
           </label>
           <a href="#forgot" className="forgot-link" onClick={(e) => e.preventDefault()}>
-            Reset Security Key?
+            {t.resetSecurityKey}
           </a>
         </div>
 
@@ -119,13 +121,13 @@ export function SignInForm({ isActive, onSuccess }) {
         >
           <span className="btn-spinner" aria-hidden="true" />
           <span className="btn-text">
-            {success ? '✓ Access Granted' : loading ? 'Authenticating...' : 'Launch Session'}
+            {success ? t.accessGranted : loading ? t.authenticating : t.launchSession}
           </span>
         </button>
 
         <div className="divider-row">
           <div className="divider-line" />
-          <span className="divider-text">or authenticate via</span>
+          <span className="divider-text">{t.orAuthenticateVia}</span>
           <div className="divider-line" />
         </div>
 

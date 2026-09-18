@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Rocket, Plus, FileText, Image as ImageIcon, X } from 'lucide-react';
+import { useT } from '../context/LanguageContext';
 import './LiquidMetalQueryBar.css';
 
-const PROMPTS = [
+const DEFAULT_PROMPTS = [
   'Ask anything…',
   'Track a satellite orbit…',
   'Query ISS position…',
@@ -24,8 +25,17 @@ function useTypewriter(prompts) {
   const [phase, setPhase]           = useState('typing'); // 'typing' | 'pausing' | 'deleting' | 'waiting'
   const charIdxRef = useRef(0);
 
+  // Reset when prompt list changes (e.g. language toggle)
   useEffect(() => {
-    const current = prompts[promptIdx];
+    setPromptIdx(0);
+    setDisplayed('');
+    setPhase('typing');
+    charIdxRef.current = 0;
+  }, [prompts]);
+
+  useEffect(() => {
+    if (!prompts || prompts.length === 0) return;
+    const current = prompts[promptIdx % prompts.length];
     let timer;
 
     if (phase === 'typing') {
@@ -60,6 +70,8 @@ function useTypewriter(prompts) {
 }
 
 function LiquidMetalQueryBar({ onLaunchQuery }) {
+  const t = useT();
+  const prompts = t.queryBarPrompts || DEFAULT_PROMPTS;
   const [query, setQuery]             = useState('');
   const [attachments, setAttachments] = useState([]);
   const [isLaunching, setIsLaunching] = useState(false);
@@ -67,7 +79,7 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
   const [isDragOver, setIsDragOver]   = useState(false);
   const inputRef      = useRef(null);
   const fileInputRef  = useRef(null);
-  const ghostText     = useTypewriter(PROMPTS);
+  const ghostText     = useTypewriter(prompts);
 
   const handleLaunch = (e) => {
     e?.stopPropagation();
@@ -178,7 +190,7 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
                 type="button" 
                 className="attachment-chip-remove" 
                 onClick={(e) => removeAttachment(att.id, e)}
-                title="Remove attachment"
+                title={t.removeAttachment}
               >
                 <X size={12} />
               </button>
@@ -194,7 +206,7 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         role="search"
-        aria-label="Satellite Intelligence Query Bar"
+        aria-label={t.queryBarAria}
       >
         <div className="liquid-shimmer-overlay" aria-hidden="true" />
 
@@ -206,8 +218,8 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
           type="button"
           className="liquid-attach-btn"
           onClick={handleAttachClick}
-          title="Attach telemetry document, dataset, or satellite picture"
-          aria-label="Attach documents or photos"
+          title={t.attachTooltip}
+          aria-label={t.attachTooltip}
         >
           <Plus size={16} />
         </button>
@@ -243,7 +255,7 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder=""
-            aria-label="Type your satellite query"
+            aria-label={t.queryInputAria}
             autoComplete="off"
             spellCheck="false"
           />
@@ -253,8 +265,8 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
         <button
           className={`rocket-launch-button ${isLaunching ? 'launching' : ''} ${canSubmit ? 'has-query' : ''}`}
           onClick={handleLaunch}
-          aria-label="Launch Satellite AI Query"
-          title="Launch query"
+          aria-label={t.launchQuery}
+          title={t.launchQuery}
           disabled={!canSubmit}
         >
           <Rocket

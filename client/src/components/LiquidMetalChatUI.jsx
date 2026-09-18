@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 import LiquidGlassCard from './LiquidGlassCard';
 import SatQueryLogo from './SatQueryLogo';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLanguage } from '../context/LanguageContext';
+import { useT } from '../context/LanguageContext';
+import { translateText } from '../utils/translate';
 import './LiquidMetalChatUI.css';
 
 const AI_BASE_URL = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
@@ -217,6 +221,18 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   // incrementing this counter re-triggers the query useEffect (Regenerate)
   const [regenCounter, setRegenCounter] = useState(0);
 
+  // ── Multilingual ──
+  const { language, isHindi } = useLanguage();
+  const t = useT();
+  // Cache: msgId → translated text (avoids redundant API calls)
+  const translationCache = useRef(new Map());
+  // Rendered messages (may be translated)
+  const [displayMessages, setDisplayMessages] = useState([]);
+  // Per-message translating flag: Set of msgIds currently being translated
+  const [translatingIds, setTranslatingIds] = useState(new Set());
+  // Active query text translated according to language
+  const [displayQueryText, setDisplayQueryText] = useState(queryText);
+
   const outputBodyRef = useRef(null);
   const fileInputRef = useRef(null);
   const pollRef = useRef(null);
@@ -290,6 +306,99 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     });
   }, [activeTab]);
 
+  // ── Translate active query bar text when language is Hindi ──
+  useEffect(() => {
+    let cancelled = false;
+    if (!isHindi || !queryText) {
+      setDisplayQueryText(queryText);
+      return;
+    }
+    const cacheKey = `query_${queryText}`;
+    const cached = translationCache.current.get(cacheKey);
+    if (cached) {
+      setDisplayQueryText(cached);
+      return;
+    }
+    translateText(queryText, 'hi', 'en')
+      .then((res) => {
+        if (!cancelled && res) {
+          translationCache.current.set(cacheKey, res);
+          setDisplayQueryText(res);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDisplayQueryText(queryText);
+      });
+    return () => { cancelled = true; };
+  }, [queryText, isHindi]);
+
+  // ── Translation effect: runs when messages list or language changes ──
+  useEffect(() => {
+    let cancelled = false;
+
+    async function translateAll() {
+      // Build the new display list
+      const updated = [];
+      const toTranslate = [];
+
+      for (const msg of messages) {
+        if (!isHindi) {
+          // English mode — show original
+          updated.push({ ...msg, displayText: msg.text });
+        } else {
+          // Hindi mode: translate both user prompts and AI responses
+          const cached = translationCache.current.get(msg.id);
+          if (cached) {
+            updated.push({ ...msg, displayText: cached });
+          } else {
+            updated.push({ ...msg, displayText: msg.text, translating: msg.sender === 'ai' });
+            toTranslate.push(msg.id);
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setDisplayMessages(updated);
+        if (toTranslate.length > 0) {
+          setTranslatingIds(new Set(toTranslate));
+        }
+      }
+
+      // Fire translation requests for uncached messages
+      for (const msgId of toTranslate) {
+        const msg = messages.find(m => m.id === msgId);
+        if (!msg) continue;
+        // Skip error/system messages
+        if (msg.isError) continue;
+        try {
+          const translated = await translateText(msg.text, 'hi', 'en');
+          if (cancelled) return;
+          translationCache.current.set(msgId, translated);
+          setDisplayMessages(prev =>
+            prev.map(m => m.id === msgId ? { ...m, displayText: translated, translating: false } : m)
+          );
+          setTranslatingIds(prev => {
+            const next = new Set(prev);
+            next.delete(msgId);
+            return next;
+          });
+        } catch {
+          // Leave original text on failure
+          if (!cancelled) {
+            setTranslatingIds(prev => {
+              const next = new Set(prev);
+              next.delete(msgId);
+              return next;
+            });
+          }
+        }
+      }
+    }
+
+    translateAll();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, language]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -299,7 +408,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         behavior: 'smooth'
       });
     }
-  }, [messages, isLoading]);
+  }, [displayMessages, isLoading]);
 
   // Call the real AI backend on initial query load OR when Regenerate is pressed
   useEffect(() => {
@@ -531,12 +640,15 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
       <div className="liquid-chat-header-row">
         <SatQueryLogo onClick={onResetQuery} />
         <LiquidGlassCard pill className="top-query-bar">
-          <span className="query-label">Active Query</span>
-          <span className="current-query-text" title={queryText}>"{queryText}"</span>
+          <span className="query-label">{t.activeQuery}</span>
+          <span className="current-query-text" title={displayQueryText}>"{displayQueryText}"</span>
         </LiquidGlassCard>
-        <button className="action-pill-btn about-header-btn" onClick={() => setShowAboutModal(true)}>
-          <Info size={14} /> About
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <LanguageSwitcher />
+          <button className="action-pill-btn about-header-btn" onClick={() => setShowAboutModal(true)}>
+            <Info size={14} /> {t.about}
+          </button>
+        </div>
       </div>
 
       {/* ── Main Layout Grid ── */}
@@ -545,19 +657,19 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         <LiquidGlassCard className="main-result-card">
           <div className="result-panel-header">
             <div className="tab-switcher">
-              <button className={`tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => setActiveTab('report')}>AI Analysis</button>
-              <button className={`tab-btn ${activeTab === 'radar' ? 'active' : ''}`} onClick={() => setActiveTab('radar')}>Orbital Radar</button>
-              <button className={`tab-btn ${activeTab === 'tle' ? 'active' : ''}`} onClick={() => setActiveTab('tle')}>NORAD TLE</button>
+              <button className={`tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => setActiveTab('report')}>{t.tabAIAnalysis}</button>
+              <button className={`tab-btn ${activeTab === 'radar' ? 'active' : ''}`} onClick={() => setActiveTab('radar')}>{t.tabOrbitalRadar}</button>
+              <button className={`tab-btn ${activeTab === 'tle' ? 'active' : ''}`} onClick={() => setActiveTab('tle')}>{t.tabNORADTLE}</button>
             </div>
             <div className="header-action-group">
               <button className="action-pill-btn" style={{ color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', background: 'rgba(167,139,250,0.12)' }}
                 onClick={() => alert(`Saved query "${queryText}" to Orbit Notes!`)}>
-                <FileText size={13} /> Save Note
+                <FileText size={13} /> {t.saveNote}
               </button>
-              <button className="action-pill-btn" onClick={handleShare}><Share2 size={13} /> Share</button>
-              <button className="action-pill-btn" onClick={handleExport}><Download size={13} /> Export</button>
+              <button className="action-pill-btn" onClick={handleShare}><Share2 size={13} /> {t.share}</button>
+              <button className="action-pill-btn" onClick={handleExport}><Download size={13} /> {t.export}</button>
               <button className="action-pill-btn" onClick={handleRegenerate} disabled={isLoading}>
-                <RefreshCw size={13} style={isLoading ? { animation: 'spin 1s linear infinite' } : {}} /> Regenerate
+                <RefreshCw size={13} style={isLoading ? { animation: 'spin 1s linear infinite' } : {}} /> {t.regenerate}
               </button>
             </div>
           </div>
@@ -575,7 +687,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                     border: '1px solid rgba(0,242,254,0.2)',
                   }}>
                     <div style={{ fontSize: '0.75rem', color: '#00F2FE', fontWeight: 600, marginBottom: '10px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      🛰️ Attached Imagery ({initImagePreviews.length})
+                      🛰️ {t.attachedImagery} ({initImagePreviews.length})
                     </div>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                       {initImagePreviews.map((img, i) => (
@@ -612,17 +724,26 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                 )}
 
                 {/* ── Chat Messages ── */}
-                {messages.map((msg) => (
+                {displayMessages.map((msg) => (
                   <div key={msg.id} className="chat-message">
                     <div className={`chat-avatar ${msg.sender === 'user' ? 'user-avatar' : ''}`}>
                       {msg.sender === 'user' ? 'U' : 'SQ'}
                     </div>
                     <div className="message-content-box">
-                      <div className={`message-author ${msg.sender === 'user' ? 'user-author' : ''}`}>
-                        {msg.sender === 'user' ? 'You' : 'SatQuery AI'}
+                      <div className={`message-author ${msg.sender === 'user' ? 'user-author' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>{msg.sender === 'user' ? t.you : t.satqueryAI}</span>
+                        {msg.sender === 'ai' && msg.translating && (
+                          <span className="translating-indicator">
+                            <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                            {t.translating}
+                          </span>
+                        )}
+                        {msg.sender === 'ai' && isHindi && !msg.translating && !msg.isError && (
+                          <span style={{ fontSize: '0.68rem', color: '#FF9933', opacity: 0.75 }}>हिंदी</span>
+                        )}
                       </div>
                       <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: '1.6', color: msg.isError ? '#f87171' : undefined }}>
-                        {msg.text}
+                        {msg.displayText ?? msg.text}
                       </p>
                       {/* Show image previews on the first user message */}
                       {msg.sender === 'user' && msg.id === 'user-init' && initImagePreviews.length > 0 && (
@@ -673,10 +794,12 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                   <div className="chat-message">
                     <div className="chat-avatar">SQ</div>
                     <div className="message-content-box">
-                      <div className="message-author">SatQuery AI</div>
+                      <div className="message-author">{t.satqueryAI}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00F2FE' }}>
                         <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span style={{ fontSize: '0.9rem' }}>Processing satellite intelligence query…</span>
+                        <span style={{ fontSize: '0.9rem' }}>
+                          {t.processingQuery}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -686,7 +809,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                 {error && !isLoading && (
                   <div style={{ display: 'flex', gap: '8px', padding: '10px 14px', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: '0.85rem' }}>
                     <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                    <span><strong>API Error:</strong> {error}</span>
+                    <span><strong>{t.apiError}</strong> {error}</span>
                   </div>
                 )}
               </div>
@@ -705,27 +828,27 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               const offNadir = modalities.off_nadir != null ? `${modalities.off_nadir}°` : (agentResult ? `${(Math.random() * 10 + 30).toFixed(1)}°` : '—');
               const toolsUsed = (lastTurn?.tool_names_used || []).join(', ') || (agentResult ? taskType.toLowerCase() + '_tool' : '—');
               const rows = [
-                ['Task Type', taskType.replace(/_/g, ' ')],
-                ['Sensor Mode', sensorMode],
-                ['Spectral / Polarization', polMode],
-                ['Pass Mode', passMode],
-                ['Off-Nadir Angle', offNadir],
-                ['Confidence', conf != null ? `${conf}%` : agentResult ? '—' : 'No result yet'],
-                ['Tool Pipeline', toolsUsed],
-                ['Bounding Boxes', String(extractBBoxes(agentResult).length || 0)],
+                [t.taskType, taskType.replace(/_/g, ' ')],
+                [t.sensorMode, sensorMode],
+                [t.spectralPolarization, polMode],
+                [t.passMode, passMode],
+                [t.offNadir, offNadir],
+                [t.confidence, conf != null ? `${conf}%` : agentResult ? '—' : t.noResultYet],
+                [t.toolPipeline, toolsUsed],
+                [t.boundingBoxes, String(extractBBoxes(agentResult).length || 0)],
               ];
               return (
                 <div style={{ padding: '20px', background: 'rgba(3,7,18,0.5)', borderRadius: '14px', border: '1px solid rgba(0,242,254,0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#00F2FE', fontWeight: 600 }}>
-                    <Activity size={18} /> {agentResult ? 'Agent Sensor & Orbital Metadata' : 'Orbital Sensor Sweep'}
+                    <Activity size={18} /> {agentResult ? t.agentSensorMetadata : t.orbitalSensorSweep}
                   </div>
                   {!agentResult && !isLoading && (
-                    <p style={{ color: '#94a3b8', fontSize: '0.88rem' }}>Run an AI Analysis query first to populate sensor metadata.</p>
+                    <p style={{ color: '#94a3b8', fontSize: '0.88rem' }}>{t.runQueryFirst}</p>
                   )}
                   {isLoading && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#facc15' }}>
                       <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                      <span style={{ fontSize: '0.9rem' }}>Waiting for agent result…</span>
+                      <span style={{ fontSize: '0.9rem' }}>{t.waitingAgent}</span>
                     </div>
                   )}
                   {agentResult && (
@@ -746,13 +869,13 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00F2FE', fontWeight: 600, fontSize: '0.95rem' }}>
                   <Activity size={16} />
-                  Live NORAD TLE Data
+                  {t.liveNORADTLE}
                   {tleLoading && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', marginLeft: '6px' }} />}
                 </div>
                 <div className="code-snippet-box">
                   {tleLoading
-                    ? '// Fetching live TLE from Celestrak…'
-                    : tleData || '// Click the NORAD TLE tab to fetch live data'}
+                    ? t.fetchingTLE
+                    : tleData || t.tleUnavailable}
                 </div>
                 <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748b' }}>
                   Source: <a href="https://celestrak.org" target="_blank" rel="noopener noreferrer" style={{ color: '#4FACFE' }}>celestrak.org</a> · Updates on tab open
@@ -766,10 +889,10 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         <div className="right-summary-column">
           <LiquidGlassCard className="summary-panel-card">
             <div className="summary-title-row">
-              <span className="summary-title">Query Summary</span>
+              <span className="summary-title">{t.querySummary}</span>
               <div className="tab-switcher" style={{ scale: '0.9' }}>
-                <button className={`tab-btn ${summaryMode === 'summary' ? 'active' : ''}`} onClick={() => setSummaryMode('summary')}>Visual</button>
-                <button className={`tab-btn ${summaryMode === 'raw' ? 'active' : ''}`} onClick={() => setSummaryMode('raw')}>Raw Data</button>
+                <button className={`tab-btn ${summaryMode === 'summary' ? 'active' : ''}`} onClick={() => setSummaryMode('summary')}>{t.visual}</button>
+                <button className={`tab-btn ${summaryMode === 'raw' ? 'active' : ''}`} onClick={() => setSummaryMode('raw')}>{t.rawData}</button>
               </div>
             </div>
 
@@ -778,7 +901,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                 <div className="metrics-stack">
                   <div className="metric-row">
                     <div className="metric-header">
-                      <span>Confidence Score</span>
+                      <span>{t.confidenceScore}</span>
                       <span className="metric-val">{isLoading ? '…' : `${conf || 94}%`}</span>
                     </div>
                     <div className="metric-bar-bg">
@@ -787,7 +910,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                   </div>
                   <div className="metric-row">
                     <div className="metric-header">
-                      <span>Classified Task</span>
+                      <span>{t.classifiedTask}</span>
                       <span className="metric-val" style={{ textTransform: 'capitalize', color: '#4FACFE' }}>
                         {isLoading ? '…' : (task || 'Satellite VQA').replace(/_/g, ' ')}
                       </span>
@@ -795,8 +918,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                   </div>
                   <div className="metric-row">
                     <div className="metric-header">
-                      <span>Spatial Detections</span>
-                      <span className="metric-val">{agentResult ? `${bboxCount} region(s)` : isLoading ? '…' : '—'}</span>
+                      <span>{t.spatialDetections}</span>
+                      <span className="metric-val">{agentResult ? `${bboxCount} ${t.regions}` : isLoading ? '…' : '—'}</span>
                     </div>
                     <div className="metric-bar-bg">
                       <div className="metric-bar-fill" style={{ width: bboxCount > 0 ? `${Math.min(bboxCount * 20, 100)}%` : '0%' }}></div>
@@ -804,15 +927,15 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                   </div>
                   <div className="metric-row">
                     <div className="metric-header">
-                      <span>Pipeline Status</span>
+                      <span>{t.pipelineStatus}</span>
                       <span className="metric-val" style={{ color: isLoading ? '#facc15' : error ? '#f87171' : (agentResult?.requires_clarification || agentResult?.result?.requires_clarification || agentResult?.is_valid === false) ? '#fbbf24' : agentResult ? '#34d399' : '#94a3b8' }}>
-                        {isLoading ? 'Processing…' : error ? 'Error' : (agentResult?.requires_clarification || agentResult?.result?.requires_clarification || agentResult?.is_valid === false) ? 'Clarification Needed ⚠️' : agentResult ? 'Completed ✓' : 'Idle'}
+                        {isLoading ? t.processing : error ? t.error : (agentResult?.requires_clarification || agentResult?.result?.requires_clarification || agentResult?.is_valid === false) ? t.clarificationNeeded : agentResult ? t.completed : t.idle}
                       </span>
                     </div>
                   </div>
                 </div>
                 <div className="topics-section">
-                  <span className="section-label">Related Topics & Tags</span>
+                  <span className="section-label">{t.relatedTopics}</span>
                   <div className="tags-wrap">
                     <span className="topic-chip">#Satellite-VQA</span>
                     <span className="topic-chip">#ISRO-Agent</span>
@@ -827,8 +950,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                 {agentResult
                   ? JSON.stringify(agentResult, null, 2)
                   : isLoading
-                    ? '// Processing…'
-                    : '// No result yet'}
+                    ? `// ${t.processing}`
+                    : `// ${t.noResultYet}`}
               </div>
             )}
           </LiquidGlassCard>
@@ -859,7 +982,11 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               <input
                 type="text"
                 className="followup-text-field"
-                placeholder={isLoading ? 'Processing query…' : 'Ask a follow-up query or attach imagery…'}
+                placeholder={
+                  isLoading
+                    ? t.followupLoadingPlaceholder
+                    : t.followupPlaceholder
+                }
                 value={followupText}
                 onChange={(e) => setFollowupText(e.target.value)}
                 disabled={isLoading}
@@ -877,13 +1004,13 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         <div className="about-modal-backdrop" onClick={() => setShowAboutModal(false)}>
           <LiquidGlassCard className="about-modal-card" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, color: '#00F2FE', fontSize: '1.2rem' }}>About SatQuery AI</h3>
+              <h3 style={{ margin: 0, color: '#00F2FE', fontSize: '1.2rem' }}>{t.aboutSatQuery}</h3>
               <button onClick={() => setShowAboutModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
             <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: 'rgba(255,255,255,0.85)' }}>
-              SatQuery AI is a state-of-the-art earth observation intelligence platform powered by a compiled LangGraph multi-agent orchestrator. It routes queries through specialist VQA, spatial grounding, change detection, and cross-modal SAR-optical fusion models.
+              {t.aboutDescription}
             </p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
               <span className="topic-chip"><CheckCircle2 size={12} /> LangGraph Orchestrated</span>

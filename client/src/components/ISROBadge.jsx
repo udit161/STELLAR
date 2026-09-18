@@ -1,15 +1,15 @@
 import React from 'react';
+import { useT } from '../context/LanguageContext';
 
 /**
  * ISROBadge
  * ----------
  * Displays the official ISRO SVG logo inside a continuously morphing
  * abstract blob frame rendered with CSS clip-path keyframes.
- *
- * The frame layer (gradient ring) and the image container share the
- * same animation so the cutout and border stay perfectly in sync.
  */
 export default function ISROBadge() {
+  const t = useT();
+
   return (
     <>
       {/* Inject keyframes once */}
@@ -124,7 +124,7 @@ export default function ISROBadge() {
             userSelect: 'none',
           }}
         >
-          ISRO
+          {t.isroBadge}
         </span>
       </div>
     </>
