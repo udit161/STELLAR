@@ -21,7 +21,7 @@ import {
   FileCheck
 } from 'lucide-react';
 import './GlassSidebar.css';
-import { useT } from '../context/LanguageContext';
+import { useT, useLanguage } from '../context/LanguageContext';
 
 const NAV_ITEMS = [
   { id: 'search',    icon: Search,   labelKey: 'navSearch' },
@@ -32,34 +32,93 @@ const NAV_ITEMS = [
 ];
 
 const INITIAL_HISTORY = [
-  { id: 1, query: 'Track ISRO Cartosat-3 orbit', time: '12m ago', tag: 'ISRO', desc: 'Real-time telemetry and Doppler shift analysis for LEO orbit node.' },
-  { id: 2, query: 'Query ISS position & TLE catalog', time: '1h ago', tag: 'NORAD', desc: 'NORAD Two-Line Element sets updated with current ISS altitude.' },
-  { id: 3, query: 'Find space debris in Low Earth Orbit', time: '3h ago', tag: 'Debris', desc: 'Collision avoidance risk calculations for active satellite mesh.' },
-  { id: 4, query: 'Predict Chandrayaan-3 trajectory decay', time: 'Yesterday', tag: 'Moon', desc: 'Lunar transfer trajectory & apogee distance modeling.' },
-  { id: 5, query: 'Analyse Sentinel-2 SAR radar imagery', time: '2 days ago', tag: 'Radar', desc: 'Multispectral false-color infrared terrain scan inspection.' },
+  {
+    id: 1,
+    query: 'Track ISRO Cartosat-3 orbit',
+    query_hi: 'इसरो कार्टोसैट-3 कक्षा को ट्रैक करें',
+    time: '12m ago',
+    time_hi: '12 मिनट पहले',
+    tag: 'ISRO',
+    tag_hi: 'इसरो',
+    desc: 'Real-time telemetry and Doppler shift analysis for LEO orbit node.',
+    desc_hi: 'LEO ऑर्बिट नोड के लिए रीयल-टाइम टेलीमेट्री और डॉपलर शिफ्ट विश्लेषण।'
+  },
+  {
+    id: 2,
+    query: 'Query ISS position & TLE catalog',
+    query_hi: 'ISS स्थिति और TLE कैटलॉग खोजें',
+    time: '1h ago',
+    time_hi: '1 घंटा पहले',
+    tag: 'NORAD',
+    tag_hi: 'नोराड',
+    desc: 'NORAD Two-Line Element sets updated with current ISS altitude.',
+    desc_hi: 'वर्तमान ISS ऊंचाई के साथ अद्यतित NORAD टू-लाइन एलिमेंट सेट।'
+  },
+  {
+    id: 3,
+    query: 'Find space debris in Low Earth Orbit',
+    query_hi: 'लो अर्थ ऑर्बिट (LEO) में अंतरिक्ष मलबा खोजें',
+    time: '3h ago',
+    time_hi: '3 घंटे पहले',
+    tag: 'Debris',
+    tag_hi: 'मलबा',
+    desc: 'Collision avoidance risk calculations for active satellite mesh.',
+    desc_hi: 'सक्रिय उपग्रह मेश के लिए टकराव परिहार जोखिम गणनाएं।'
+  },
+  {
+    id: 4,
+    query: 'Predict Chandrayaan-3 trajectory decay',
+    query_hi: 'चंद्रयान-3 प्रक्षेपवक्र क्षय का अनुमान लगाएं',
+    time: 'Yesterday',
+    time_hi: 'कल',
+    tag: 'Moon',
+    tag_hi: 'चंद्रमा',
+    desc: 'Lunar transfer trajectory & apogee distance modeling.',
+    desc_hi: 'चंद्र स्थानांतरण प्रक्षेपवक्र और अपोजी दूरी मॉडलिंग।'
+  },
+  {
+    id: 5,
+    query: 'Analyse Sentinel-2 SAR radar imagery',
+    query_hi: 'सेंटिनल-2 SAR रडार इमेजरी का विश्लेषण करें',
+    time: '2 days ago',
+    time_hi: '2 दिन पहले',
+    tag: 'Radar',
+    tag_hi: 'रडार',
+    desc: 'Multispectral false-color infrared terrain scan inspection.',
+    desc_hi: 'मल्टीस्पेक्ट्रल फॉल्स-कलर इन्फ्रारेड भूभाग स्कैन निरीक्षण।'
+  },
 ];
 
 const INITIAL_NOTES = [
   {
     id: 1,
     title: 'ISRO Cartosat-3 Orbit & Node Telemetry',
+    title_hi: 'इसरो कार्टोसैट-3 कक्षा और नोड टेलीमेट्री',
     content: 'Inclination: 97.5° SSO. Operating altitude ~509 km. High-resolution panchromatic & multispectral sensors active with Doppler frequency correction.',
+    content_hi: 'झुकाव: 97.5° SSO। परिचालन ऊंचाई ~509 किमी। डॉपलर आवृत्ति सुधार के साथ उच्च-रिज़ॉल्यूशन पैनक्रोमैटिक और मल्टीस्पेक्ट्रल सेंसर सक्रिय।',
     tag: 'Telemetry',
+    tag_hi: 'टेलीमेट्री',
     color: '#a78bfa',
-    date: 'Sep 10, 2026'
+    date: 'Sep 10, 2026',
+    date_hi: '10 सित, 2026'
   },
   {
     id: 2,
     title: 'Sentinel-2 Infrared Coastal Scan Analysis',
+    title_hi: 'सेंटिनल-2 इन्फ्रारेड तटीय स्कैन विश्लेषण',
     content: 'Multispectral false-color infrared highlights active coral reef ecosystems and coastal erosion patterns along Australian shoreline.',
+    content_hi: 'मल्टीस्पेक्ट्रल फॉल्स-कलर इन्फ्रारेड ऑस्ट्रेलियाई तटरेखा के साथ सक्रिय कोरल रीफ पारिस्थितिकी तंत्र और तटीय कटाव पैटर्न को उजागर करता है।',
     tag: 'Earth Scan',
+    tag_hi: 'पृथ्वी स्कैन',
     color: '#38bdf8',
-    date: 'Sep 09, 2026'
+    date: 'Sep 09, 2026',
+    date_hi: '09 सित, 2026'
   }
 ];
 
 function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLogout }) {
   const t = useT();
+  const { isHindi } = useLanguage();
   const [active, setActive] = useState(activeNav || null);
   const [historyList, setHistoryList] = useState(INITIAL_HISTORY);
   const [historyFilter, setHistoryFilter] = useState('');
@@ -205,19 +264,35 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     reader.readAsDataURL(file);
   };
 
-  const filteredHistory = historyList.filter(item => 
-    item.query.toLowerCase().includes(historyFilter.toLowerCase()) ||
-    item.tag.toLowerCase().includes(historyFilter.toLowerCase()) ||
-    item.desc.toLowerCase().includes(historyFilter.toLowerCase())
-  );
+  const filteredHistory = historyList.filter(item => {
+    const q = isHindi ? (item.query_hi || item.query) : item.query;
+    const tg = isHindi ? (item.tag_hi || item.tag) : item.tag;
+    const d = isHindi ? (item.desc_hi || item.desc) : item.desc;
+    const filter = historyFilter.toLowerCase();
+    return (
+      item.query.toLowerCase().includes(filter) ||
+      item.tag.toLowerCase().includes(filter) ||
+      item.desc.toLowerCase().includes(filter) ||
+      q.toLowerCase().includes(filter) ||
+      tg.toLowerCase().includes(filter) ||
+      d.toLowerCase().includes(filter)
+    );
+  });
 
   const filteredNotes = notesList.filter(note => {
-    const matchesTag = activeTagFilter === 'All' || note.tag.toLowerCase() === activeTagFilter.toLowerCase();
+    const title = isHindi ? (note.title_hi || note.title) : note.title;
+    const content = isHindi ? (note.content_hi || note.content) : note.content;
+    const tag = isHindi ? (note.tag_hi || note.tag) : note.tag;
+    const filter = noteFilter.toLowerCase();
+    const matchesTag = activeTagFilter === 'All' || note.tag.toLowerCase() === activeTagFilter.toLowerCase() || tag.toLowerCase() === activeTagFilter.toLowerCase();
     const matchesKeyword = 
-      note.title.toLowerCase().includes(noteFilter.toLowerCase()) ||
-      note.content.toLowerCase().includes(noteFilter.toLowerCase()) ||
-      note.tag.toLowerCase().includes(noteFilter.toLowerCase()) ||
-      (note.document && note.document.name.toLowerCase().includes(noteFilter.toLowerCase()));
+      note.title.toLowerCase().includes(filter) ||
+      note.content.toLowerCase().includes(filter) ||
+      note.tag.toLowerCase().includes(filter) ||
+      title.toLowerCase().includes(filter) ||
+      content.toLowerCase().includes(filter) ||
+      tag.toLowerCase().includes(filter) ||
+      (note.document && note.document.name.toLowerCase().includes(filter));
     return matchesTag && matchesKeyword;
   });
 
@@ -372,27 +447,33 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
             {/* Big History Grid / List */}
             <div className="history-big-list">
               {filteredHistory.length > 0 ? (
-                filteredHistory.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="history-big-item-card"
-                    onClick={() => handleHistoryClick(item.query)}
-                  >
-                    <div className="history-item-top">
-                      <span className="history-query-title">"{item.query}"</span>
-                      <span className="history-amber-tag">#{item.tag}</span>
+                filteredHistory.map((item) => {
+                  const displayQuery = isHindi ? (item.query_hi || item.query) : item.query;
+                  const displayTag   = isHindi ? (item.tag_hi || item.tag) : item.tag;
+                  const displayDesc  = isHindi ? (item.desc_hi || item.desc) : item.desc;
+                  const displayTime  = isHindi ? (item.time_hi || item.time) : item.time;
+                  return (
+                    <div 
+                      key={item.id} 
+                      className="history-big-item-card"
+                      onClick={() => handleHistoryClick(displayQuery)}
+                    >
+                      <div className="history-item-top">
+                        <span className="history-query-title">"{displayQuery}"</span>
+                        <span className="history-amber-tag">#{displayTag}</span>
+                      </div>
+                      <p className="history-query-desc">{displayDesc}</p>
+                      <div className="history-item-bottom">
+                        <span className="history-time-badge">
+                          <Clock size={12} /> {displayTime}
+                        </span>
+                        <span className="history-launch-prompt">
+                          {t.launchQuery} <ChevronRight size={14} />
+                        </span>
+                      </div>
                     </div>
-                    <p className="history-query-desc">{item.desc}</p>
-                    <div className="history-item-bottom">
-                      <span className="history-time-badge">
-                        <Clock size={12} /> {item.time}
-                      </span>
-                      <span className="history-launch-prompt">
-                        {t.launchQuery} <ChevronRight size={14} />
-                      </span>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="history-empty-box">
                   <Clock size={36} style={{ color: 'rgba(251, 191, 36, 0.4)', marginBottom: '10px' }} />
@@ -473,7 +554,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
 
                 <textarea 
                   className="note-content-textarea"
-                  placeholder="Type your notes, orbital calculations, or satellite analysis observations..."
+                  placeholder={t.noteContentPlaceholder}
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
                   rows={4}
@@ -483,7 +564,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                 {/* Document Attachment Upload */}
                 <div className="image-picker-row">
                   <label className="upload-custom-lbl doc-upload">
-                    <Paperclip size={14} /> Attach Document File (.pdf, .txt, .json, .csv, .docx)
+                    <Paperclip size={14} /> {t.attachDocument}
                     <input type="file" accept=".pdf,.txt,.json,.csv,.doc,.docx" onChange={handleFileUpload} style={{ display: 'none' }} />
                   </label>
                 </div>
@@ -555,44 +636,50 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
             {!isCreatingNote && (
               <div className="notes-grid-list">
                 {filteredNotes.length > 0 ? (
-                  filteredNotes.map((note) => (
-                    <div key={note.id} className="note-card-item">
-                      <div className="note-card-body">
-                        <div className="note-card-top">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <h3 className="note-card-title">{note.title}</h3>
-                            <span className="note-purple-tag">#{note.tag}</span>
+                  filteredNotes.map((note) => {
+                    const displayTitle = isHindi ? (note.title_hi || note.title) : note.title;
+                    const displayTag = isHindi ? (note.tag_hi || note.tag) : note.tag;
+                    const displayContent = isHindi ? (note.content_hi || note.content) : note.content;
+                    const displayDate = isHindi ? (note.date_hi || note.date) : note.date;
+                    return (
+                      <div key={note.id} className="note-card-item">
+                        <div className="note-card-body">
+                          <div className="note-card-top">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <h3 className="note-card-title">{displayTitle}</h3>
+                              <span className="note-purple-tag">#{displayTag}</span>
+                            </div>
+                            <div className="note-card-actions">
+                              <button 
+                                className="note-action-icon" 
+                                onClick={(e) => handleCopyNote({ ...note, title: displayTitle, content: displayContent, tag: displayTag, date: displayDate }, e)} 
+                                title="Copy Note Text"
+                              >
+                                {copiedId === note.id ? <Check size={14} color="#34d399" /> : <Copy size={14} />}
+                              </button>
+                              <button className="note-action-icon" onClick={() => handleEditNote(note)} title="Edit Note">
+                                <Edit3 size={14} />
+                              </button>
+                              <button className="note-action-icon delete" onClick={(e) => handleDeleteNote(note.id, e)} title="Delete Note">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
-                          <div className="note-card-actions">
-                            <button 
-                              className="note-action-icon" 
-                              onClick={(e) => handleCopyNote(note, e)} 
-                              title="Copy Note Text"
-                            >
-                              {copiedId === note.id ? <Check size={14} color="#34d399" /> : <Copy size={14} />}
-                            </button>
-                            <button className="note-action-icon" onClick={() => handleEditNote(note)} title="Edit Note">
-                              <Edit3 size={14} />
-                            </button>
-                            <button className="note-action-icon delete" onClick={(e) => handleDeleteNote(note.id, e)} title="Delete Note">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                        <p className="note-card-content">{note.content}</p>
-                        
-                        {note.document && (
-                          <div className="note-doc-pill">
-                            <Paperclip size={12} />
-                            <span>{note.document.name}</span>
-                            <span className="note-doc-size">{note.document.size}</span>
-                          </div>
-                        )}
+                          <p className="note-card-content">{displayContent}</p>
+                          
+                          {note.document && (
+                            <div className="note-doc-pill">
+                              <Paperclip size={12} />
+                              <span>{note.document.name}</span>
+                              <span className="note-doc-size">{note.document.size}</span>
+                            </div>
+                          )}
 
-                        <span className="note-card-date">{note.date}</span>
+                          <span className="note-card-date">{displayDate}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="history-empty-box">
                     <FileText size={36} style={{ color: 'rgba(167, 139, 250, 0.4)', marginBottom: '10px' }} />
