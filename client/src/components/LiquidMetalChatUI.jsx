@@ -413,14 +413,18 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   // Call the real AI backend on initial query load OR when Regenerate is pressed
   useEffect(() => {
     if (!queryText) return;
+    let cancelled = false;
+
     // Cancel any in-flight poll before starting fresh
     if (pollRef.current) clearInterval(pollRef.current);
     setMessages([]);
     setError(null);
     setAgentResult(null);
     setIsLoading(false);
-    runInitialQuery(queryText, attachments);
+
+    runInitialQuery(queryText, attachments, () => cancelled);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; if (pollRef.current) clearInterval(pollRef.current); };
   }, [queryText, regenCounter]);
 
   // Cleanup poll interval on unmount
@@ -525,17 +529,20 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   }, [pollJobResult]);
 
   /** Initial query run when component mounts */
-  const runInitialQuery = useCallback(async (query, fileAttachments) => {
+  const runInitialQuery = useCallback(async (query, fileAttachments, isCancelled = () => false) => {
+    if (isCancelled()) return;
     setMessages([{ id: 'user-init', sender: 'user', text: query }]);
     setIsLoading(true);
     try {
       const result = await runQuery(query, fileAttachments);
+      if (isCancelled()) return;
       const answer = extractAnswer(result);
       const aiText = answer
         ? buildAiMessage(answer, result)
         : '⚠️ Agent completed analysis but returned no textual response. Check the Raw Data tab for full output.';
       appendMessage({ id: 'ai-init', sender: 'ai', text: aiText });
     } catch (err) {
+      if (isCancelled()) return;
       setError(err.message);
       appendMessage({
         id: 'ai-err',

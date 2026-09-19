@@ -5,31 +5,31 @@ const TEXT = "SatQuery AI.".toUpperCase();
 
 // Color palette matching brand design
 const PALETTE = [
-  "#D8D365", "#E6F082", "#D8D365", "#605B51", 
-  "#D8D365", "#E6F082", "#D8D365", "#605B51", 
+  "#D8D365", "#E6F082", "#D8D365", "#605B51",
+  "#D8D365", "#E6F082", "#D8D365", "#605B51",
   "#454040", "#D8D365", "#E6F082", "#E6F082"
 ];
 
 // Multilingual SatQuery AI translations positioned OUTSIDE the main logo bounding box
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई",    lang: "Hindi",     top: "-42px",  left: "50%", color: "rgb(190, 123, 114)", delay: "0s"   },
-  { text: "സാറ്റ് ക്വറി എഐ",   lang: "Malayalam",top: "-38px",  left: "78%", color: "rgb(253, 175, 123)", delay: "0.2s" },
-  { text: "சாட்கொரி ஏஐ",     lang: "Tamil",     top: "-5%",    left: "96%", color: "rgb(190, 123, 114)", delay: "0.4s" },
-  { text: "সৎকোয়েরি এআই",   lang: "Bengali",   top: "50%",    left: "105%",color: "rgb(253, 175, 123)", delay: "0.6s" },
-  { text: "સમયાનુસાર એઆઈ",  lang: "Gujarati",  top: "105%",   left: "96%", color: "rgb(190, 123, 114)", delay: "0.8s" },
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-38px",left: "78%", color: "rgb(253, 175, 123)", delay: "1.0s" },
-  { text: "సాట్ క్వెరీ ఏఐ",    lang: "Telugu",    bottom: "-42px",left: "50%", color: "rgb(190, 123, 114)", delay: "1.2s" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ",   lang: "Punjabi",   bottom: "-38px",left: "22%", color: "rgb(253, 175, 123)", delay: "1.4s" },
-  { text: "सटक्वेरी एआय",    lang: "Marathi",   top: "105%",   left: "4%",  color: "rgb(190, 123, 114)", delay: "1.6s" },
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "50%",    left: "-5%", color: "rgb(253, 175, 123)", delay: "1.8s" },
-  { text: "<ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42>ವೇ", lang: "Kannada",  top: "-5%",    left: "4%",  color: "rgb(190, 123, 114)", delay: "2.0s" },
-  { text: "চেটকোৱেৰী এআই",   lang: "Assamese", top: "-38px",  left: "22%", color: "rgb(253, 175, 123)", delay: "2.2s" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi", top: "-42px", left: "50%", color: "rgb(190, 123, 114)", delay: "0s" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam", top: "-38px", left: "78%", color: "rgb(253, 175, 123)", delay: "0.2s" },
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil", top: "-5%", left: "96%", color: "rgb(190, 123, 114)", delay: "0.4s" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali", top: "50%", left: "105%", color: "rgb(253, 175, 123)", delay: "0.6s" },
+  { text: "સમયાનુસાર એઆઈ", lang: "Gujarati", top: "105%", left: "96%", color: "rgb(190, 123, 114)", delay: "0.8s" },
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia", bottom: "-38px", left: "78%", color: "rgb(253, 175, 123)", delay: "1.0s" },
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu", bottom: "-42px", left: "50%", color: "rgb(190, 123, 114)", delay: "1.2s" },
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi", bottom: "-38px", left: "22%", color: "rgb(253, 175, 123)", delay: "1.4s" },
+  { text: "सटक्वेरी एआय", lang: "Marathi", top: "105%", left: "4%", color: "rgb(190, 123, 114)", delay: "1.6s" },
+  { text: "ست کوئری اے آئی", lang: "Urdu", top: "50%", left: "-5%", color: "rgb(253, 175, 123)", delay: "1.8s" },
+  { text: "ಸ್ಯಾಟ್‌ಕ್ವೆರಿ ಏಐ", lang: "Kannada", top: "-5%", left: "4%", color: "rgb(190, 123, 114)", delay: "2.0s" },
+  { text: "চেটকোৱেৰী এআই", lang: "Assamese", top: "-38px", left: "22%", color: "rgb(253, 175, 123)", delay: "2.2s" },
 ];
 
-const FLOAT_HOLD_MS         = 3600;
+const FLOAT_HOLD_MS = 3600;
 const SCATTER_TRANSITION_MS = 1400;
-const SCATTER_HOLD_MS       = 800;
-const REASSEMBLE_SETTLE_MS  = 1800;
+const SCATTER_HOLD_MS = 800;
+const REASSEMBLE_SETTLE_MS = 1800;
 
 function getScatterOffset(index) {
   if (index === 11) {
@@ -46,16 +46,16 @@ function getScatterOffset(index) {
     return v - Math.floor(v);
   };
   return {
-    x:      (rand(1) - 0.5) * 110,
-    y:      (rand(2) - 0.5) * 70,
+    x: (rand(1) - 0.5) * 110,
+    y: (rand(2) - 0.5) * 70,
     rotate: rand(3) > 0.4 ? (rand(4) - 0.5) * 18 : 0,
   };
 }
 
 function getFloatParams(index) {
   return {
-    duration:  2.2 + (index % 5) * 0.3,
-    amplitude: 6   + (index % 3) * 2,
+    duration: 2.2 + (index % 5) * 0.3,
+    amplitude: 6 + (index % 3) * 2,
   };
 }
 
@@ -132,7 +132,7 @@ function ChandrayaanSatellite() {
 export default function ScatterAndReassembleText({ showMultilingual = true, animated = true }) {
   const letters = useMemo(() => TEXT.split(""), []);
   const scatterOffsets = useMemo(() => letters.map((_, i) => getScatterOffset(i)), [letters]);
-  const floatParams    = useMemo(() => letters.map((_, i) => getFloatParams(i)),   [letters]);
+  const floatParams = useMemo(() => letters.map((_, i) => getFloatParams(i)), [letters]);
 
   const [phase, setPhase] = useState("reassembled");
 
@@ -174,11 +174,11 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
   }, [animated]);
 
   return (
-    <div 
-      style={{ 
-        position: "relative", 
-        perspective: "1200px", 
-        transformStyle: "preserve-3d", 
+    <div
+      style={{
+        position: "relative",
+        perspective: "1200px",
+        transformStyle: "preserve-3d",
         width: "100%",
         maxWidth: "1150px",
         height: "360px",
@@ -363,7 +363,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
         {letters.map((char, i) => {
           const { x, y, rotate } = scatterOffsets[i];
           const isSpace = char === " ";
-          const isDot   = char === ".";
+          const isDot = char === ".";
 
           let animateTarget;
           let transition;

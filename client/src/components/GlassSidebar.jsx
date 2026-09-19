@@ -546,6 +546,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
                   const displayQuery = isHindi ? (item.query_hi || item.query) : item.query;
                   const displayTag   = isHindi ? (item.tag_hi || item.tag) : item.tag;
                   const displayTime  = isHindi ? (item.time_hi || item.time) : item.time;
+                  const displayDesc  = isHindi ? (item.desc_hi || item.desc || '') : (item.desc || '');
                   return (
                     <div 
                       key={item.id} 
