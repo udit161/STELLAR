@@ -3,59 +3,65 @@ import { motion } from "framer-motion";
 
 const TEXT = "SatQuery AI.".toUpperCase();
 
-// Color palette (cycled per letter)
-const PALETTE = ["#D8D365", "#E6F082", "#D8D365", "#605B51", "#D8D365", "#E6F082", "#D8D365", "#605B51", "#454040", "#D8D365", "#E6F082", "#D8D365"];
-
-// Multilingual SatQuery AI translations floating around the main title
-const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi",     top: "-55px",  left: "-6%",   delay: "0s",   color: "rgb(190, 123, 114)" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam",top: "-108px", left: "20%",   delay: "0.2s", color: "rgb(253, 175, 123)" },
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil",     top: "-48px",  left: "46%",   delay: "0.4s", color: "rgb(190, 123, 114)" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali",   top: "-102px", left: "75%",   delay: "0.6s", color: "rgb(253, 175, 123)" },
-  { text: "સમયાનુસાર એઆઈ", lang: "Gujarati",  top: "16%",    right: "-240px",delay: "0.8s", color: "rgb(190, 123, 114)" },
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-105px",right: "6%", delay: "1.0s", color: "rgb(253, 175, 123)" },
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu",    bottom: "-52px",left: "52%",   delay: "1.2s", color: "rgb(190, 123, 114)" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi",   bottom: "-102px",left: "24%",  delay: "1.4s", color: "rgb(253, 175, 123)" },
-  { text: "सटक्वेरी एआय", lang: "Marathi",   bottom: "-52px",left: "-5%",   delay: "1.6s", color: "rgb(190, 123, 114)" },
-  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "62%",    left: "-230px",delay: "1.8s", color: "rgb(253, 175, 123)" },
-  { text: "ಸ್ಯಾಟ್ಕ್ವೇರಿ ಎಐ", lang: "Kannada",  top: "10%",    left: "-210px",delay: "2.0s", color: "rgb(190, 123, 114)" },
+// Color palette matching brand design
+const PALETTE = [
+  "#D8D365", "#E6F082", "#D8D365", "#605B51", 
+  "#D8D365", "#E6F082", "#D8D365", "#605B51", 
+  "#454040", "#D8D365", "#E6F082", "#E6F082"
 ];
 
+// Multilingual SatQuery AI translations positioned OUTSIDE the main logo bounding box
+const MULTILINGUAL_TEXTS = [
+  { text: "सत्क्वेरी एआई",    lang: "Hindi",     top: "-42px",  left: "50%", color: "rgb(190, 123, 114)", delay: "0s"   },
+  { text: "സാറ്റ് ക്വറി എഐ",   lang: "Malayalam",top: "-38px",  left: "78%", color: "rgb(253, 175, 123)", delay: "0.2s" },
+  { text: "சாட்கொரி ஏஐ",     lang: "Tamil",     top: "-5%",    left: "96%", color: "rgb(190, 123, 114)", delay: "0.4s" },
+  { text: "সৎকোয়েরি এআই",   lang: "Bengali",   top: "50%",    left: "105%",color: "rgb(253, 175, 123)", delay: "0.6s" },
+  { text: "સમયાનુસાર એઆઈ",  lang: "Gujarati",  top: "105%",   left: "96%", color: "rgb(190, 123, 114)", delay: "0.8s" },
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia",      bottom: "-38px",left: "78%", color: "rgb(253, 175, 123)", delay: "1.0s" },
+  { text: "సాట్ క్వెరీ ఏఐ",    lang: "Telugu",    bottom: "-42px",left: "50%", color: "rgb(190, 123, 114)", delay: "1.2s" },
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ",   lang: "Punjabi",   bottom: "-38px",left: "22%", color: "rgb(253, 175, 123)", delay: "1.4s" },
+  { text: "सटक्वेरी एआय",    lang: "Marathi",   top: "105%",   left: "4%",  color: "rgb(190, 123, 114)", delay: "1.6s" },
+  { text: "ست کوئری اے آئی", lang: "Urdu",     top: "50%",    left: "-5%", color: "rgb(253, 175, 123)", delay: "1.8s" },
+  { text: "<ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42><ctrl42>ವೇ", lang: "Kannada",  top: "-5%",    left: "4%",  color: "rgb(190, 123, 114)", delay: "2.0s" },
+  { text: "চেটকোৱেৰী এআই",   lang: "Assamese", top: "-38px",  left: "22%", color: "rgb(253, 175, 123)", delay: "2.2s" },
+];
 
-const FLOAT_HOLD_MS         = 3200;  // time to float before next scatter
-const SCATTER_TRANSITION_MS = 1200;  // letters fly apart
-const SCATTER_HOLD_MS       = 700;   // pause while scattered
-const REASSEMBLE_SETTLE_MS  = 2000;  // generous settle time for spring → 0
+const FLOAT_HOLD_MS         = 3600;
+const SCATTER_TRANSITION_MS = 1400;
+const SCATTER_HOLD_MS       = 800;
+const REASSEMBLE_SETTLE_MS  = 1800;
 
-// Deterministic scatter offsets — stable across renders
 function getScatterOffset(index) {
+  if (index === 11) {
+    const iOffset = getScatterOffset(10);
+    return {
+      x: iOffset.x + 18,
+      y: iOffset.y + 4,
+      rotate: iOffset.rotate,
+    };
+  }
   const seed = index * 9301 + 49297;
   const rand = (n) => {
     const v = Math.sin(seed + n) * 10000;
     return v - Math.floor(v);
   };
   return {
-    x:      (rand(1) - 0.5) * 100,
-    y:      (rand(2) - 0.5) * 100,
-    rotate: rand(3) > 0.4 ? (rand(4) - 0.5) * 24 : 0,
+    x:      (rand(1) - 0.5) * 110,
+    y:      (rand(2) - 0.5) * 70,
+    rotate: rand(3) > 0.4 ? (rand(4) - 0.5) * 18 : 0,
   };
 }
 
-// Per-letter bob — vary DURATION for the organic wave; NO delay to avoid glitch
 function getFloatParams(index) {
   return {
-    duration:  2.0 + (index % 6) * 0.22,  // 2.0s – 3.1s
-    amplitude: 5   + (index % 4) * 1.5,   // 5px – 9.5px
+    duration:  2.2 + (index % 5) * 0.3,
+    amplitude: 6   + (index % 3) * 2,
   };
 }
 
-/* ============================================================
-   SINGLE SLEEK 3D CHANDRAYAAN-3 SATELLITE (COMPACT SIZE)
-   ============================================================ */
 function ChandrayaanSatellite() {
   return (
     <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {/* Thruster Exhaust Ion Plume */}
       <div style={{
         position: "absolute",
         left: "-18px",
@@ -69,7 +75,6 @@ function ChandrayaanSatellite() {
         animation: "pulsePlume 0.2s ease-in-out infinite alternate",
       }} />
 
-      {/* Main Bus & Solar Panels Assembly */}
       <svg width="68" height="38" viewBox="0 0 110 60" style={{ filter: "drop-shadow(0 0 14px rgba(14,165,233,0.7))" }}>
         <defs>
           <linearGradient id="goldMLI" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -85,39 +90,32 @@ function ChandrayaanSatellite() {
           </linearGradient>
         </defs>
 
-        {/* Left Solar Array (Ultra Detailed 3-Panel) */}
         <g>
           <rect x="2" y="16" width="30" height="28" rx="2" fill="#020617" stroke="#38bdf8" strokeWidth="0.8" />
           <rect x="4" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
           <rect x="13" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
           <rect x="22" y="18" width="8" height="24" rx="1" fill="url(#solarCell)" />
           <line x1="2" y1="30" x2="32" y2="30" stroke="#bae6fd" strokeWidth="0.5" opacity="0.6" />
-          {/* Strut connector */}
           <line x1="32" y1="30" x2="38" y2="30" stroke="#cbd5e1" strokeWidth="1.5" />
         </g>
 
-        {/* Central Satellite Body (Gold MLI Foil Wrapped Cubesat) */}
         <g>
           <rect x="38" y="14" width="34" height="32" rx="3" fill="url(#goldMLI)" stroke="#fef08a" strokeWidth="0.7" />
-          {/* MLI Foil Texture Grid */}
           <line x1="46" y1="14" x2="46" y2="46" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
           <line x1="55" y1="14" x2="55" y2="46" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
           <line x1="64" y1="14" x2="64" y2="46" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
           <line x1="38" y1="24" x2="72" y2="24" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
           <line x1="38" y1="34" x2="72" y2="34" stroke="#a16207" strokeWidth="0.4" opacity="0.5" />
 
-          {/* High-Gain Parabolic Dish Antenna */}
           <path d="M55,14 Q55,4 65,3" fill="none" stroke="#e2e8f0" strokeWidth="1.2" />
           <circle cx="66" cy="3" r="3.5" fill="#f8fafc" stroke="#64748b" strokeWidth="0.8" />
           <circle cx="66" cy="3" r="1.2" fill="#0284c7" />
 
-          {/* Optical Earth Sensor Aperture */}
           <circle cx="55" cy="30" r="4.5" fill="#020617" stroke="#38bdf8" strokeWidth="1" />
           <circle cx="55" cy="30" r="2.5" fill="#0ea5e9" />
           <circle cx="54" cy="29" r="0.8" fill="#ffffff" />
         </g>
 
-        {/* Right Solar Array (Ultra Detailed 3-Panel) */}
         <g>
           <line x1="72" y1="30" x2="78" y2="30" stroke="#cbd5e1" strokeWidth="1.5" />
           <rect x="78" y="16" width="30" height="28" rx="2" fill="#020617" stroke="#38bdf8" strokeWidth="0.8" />
@@ -131,7 +129,7 @@ function ChandrayaanSatellite() {
   );
 }
 
-export default function ScatterAndReassembleText({ showMultilingual = true, singleLine = false, animated = true }) {
+export default function ScatterAndReassembleText({ showMultilingual = true, animated = true }) {
   const letters = useMemo(() => TEXT.split(""), []);
   const scatterOffsets = useMemo(() => letters.map((_, i) => getScatterOffset(i)), [letters]);
   const floatParams    = useMemo(() => letters.map((_, i) => getFloatParams(i)),   [letters]);
@@ -148,17 +146,14 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
 
     function runCycle() {
       if (!isMounted) return;
-      // 1. Float cleanly
       t1 = setTimeout(() => {
         if (!isMounted) return;
         setPhase("scattered");
 
-        // 2. Pause scattered
         t2 = setTimeout(() => {
           if (!isMounted) return;
           setPhase("reassembling");
 
-          // 3. Spring reassemble
           t3 = setTimeout(() => {
             if (!isMounted) return;
             setPhase("reassembled");
@@ -179,9 +174,30 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
   }, [animated]);
 
   return (
-    <div style={{ position: "relative", perspective: "1200px", transformStyle: "preserve-3d", transform: "scale(0.8)", transformOrigin: "center center" }}>
+    <div 
+      style={{ 
+        position: "relative", 
+        perspective: "1200px", 
+        transformStyle: "preserve-3d", 
+        width: "100%",
+        maxWidth: "1150px",
+        height: "360px",
+        margin: "0 auto",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <style>{`
-        /* Smooth 3D Orbital Trajectory with 8-point trigonometric keyframes */
+        @keyframes letterFloatBob {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-8px);
+          }
+        }
+
         @keyframes orbitChandrayaan {
           0% {
             transform: translate3d(-36vw, 0vh, -100px) rotate(-12deg) scale(0.45);
@@ -251,19 +267,19 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
 
         @keyframes langTwinkleFloat {
           0%, 100% {
-            transform: translate3d(0, 0px, 0) scale(0.96);
+            transform: translate(-50%, -50%) scale(0.96);
             opacity: 0.65;
             filter: brightness(1.0);
           }
           50% {
-            transform: translate3d(0, -8px, 0) scale(1.03);
+            transform: translate(-50%, calc(-50% - 6px)) scale(1.04);
             opacity: 1;
-            filter: brightness(1.35);
+            filter: brightness(1.3);
           }
         }
       `}</style>
 
-      {/* Multilingual Floating Texts around Main Logo */}
+      {/* Multilingual Floating Texts Positioned Symmetrically OUTSIDE the Main Title */}
       {showMultilingual && MULTILINGUAL_TEXTS.map((item, idx) => (
         <span
           key={idx}
@@ -272,8 +288,8 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
             top: item.top,
             bottom: item.bottom,
             left: item.left,
-            right: item.right,
-            fontSize: "20px",
+            transform: "translate(-50%, -50%)",
+            fontSize: "19px",
             fontWeight: 800,
             fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
             color: item.color,
@@ -292,7 +308,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
         </span>
       ))}
 
-      {/* Glowing 3D Orbit Trajectory Line (Single Sleek Ring) */}
+      {/* Glowing 3D Orbit Trajectory Line */}
       <svg width="100%" height="100%" viewBox="0 0 1000 350"
         style={{
           position: "absolute",
@@ -332,58 +348,40 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
         </div>
       )}
 
-      {/* Main Text Content */}
+      {/* Main Text Content: Strict No-Wrap Container */}
       <div
         style={{
           position: "relative",
           zIndex: 10,
           display: "flex",
-          flexWrap: singleLine ? "nowrap" : "wrap",
-          whiteSpace: singleLine ? "nowrap" : "normal",
-          alignItems: "center",
+          flexWrap: "nowrap",
+          whiteSpace: "nowrap",
+          alignItems: "baseline",
           justifyContent: "center",
         }}
       >
         {letters.map((char, i) => {
-          const { x, y, rotate }        = scatterOffsets[i];
-          const { duration, amplitude } = floatParams[i];
+          const { x, y, rotate } = scatterOffsets[i];
           const isSpace = char === " ";
+          const isDot   = char === ".";
 
           let animateTarget;
           let transition;
 
           if (!animated) {
-            animateTarget = { x: 0, y: 0, rotate: 0, opacity: 1 };
+            animateTarget = { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 };
             transition = { duration: 0.5 };
           } else if (phase === "scattered") {
-            animateTarget = { x, y, rotate, opacity: 0.85 };
-            transition = {
-              duration: 1.2,
-              ease: [0.16, 1, 0.3, 1],
-            };
-          } else if (phase === "reassembling") {
-            animateTarget = { x: 0, y: 0, rotate: 0, opacity: 1 };
+            animateTarget = { x, y, rotate, scale: 0.92, opacity: 0.85 };
             transition = {
               duration: 1.4,
-              ease: [0.34, 1.35, 0.64, 1],
+              ease: [0.16, 1, 0.3, 1],
             };
           } else {
-            animateTarget = { 
-              x: 0, 
-              rotate: 0, 
-              y: [0, -amplitude, 0], 
-              opacity: 1 
-            };
+            animateTarget = { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1 };
             transition = {
-              opacity: { duration: 0.5, ease: "easeOut" },
-              x: { duration: 0.8, ease: "easeOut" },
-              rotate: { duration: 0.8, ease: "easeOut" },
-              y: {
-                duration: duration * 1.1,
-                ease: [0.42, 0, 0.58, 1],
-                repeat: Infinity,
-                repeatType: "mirror",
-              },
+              duration: 1.5,
+              ease: [0.22, 1, 0.36, 1],
             };
           }
 
@@ -392,12 +390,13 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
               key={`${char}-${i}`}
               style={{
                 display: "inline-block",
-                fontSize: singleLine ? "clamp(2.5rem, 5.5vw, 5rem)" : "clamp(3rem, 8vw, 9rem)",
+                fontSize: "clamp(2.5rem, 6.2vw, 6.2rem)",
                 fontWeight: 900,
                 fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-                letterSpacing: singleLine ? "0.02em" : "-0.02em",
+                letterSpacing: "-0.02em",
                 userSelect: "none",
                 color: isSpace ? "transparent" : (PALETTE[i] ?? "#D8D365"),
+                marginLeft: isDot ? "-0.05em" : "0",
                 lineHeight: 1,
                 willChange: "transform, opacity",
                 backfaceVisibility: "hidden",
@@ -405,7 +404,16 @@ export default function ScatterAndReassembleText({ showMultilingual = true, sing
               animate={animateTarget}
               transition={transition}
             >
-              {isSpace ? "\u00A0" : char}
+              <span
+                style={{
+                  display: "inline-block",
+                  animation: animated && (phase === "reassembled" || phase === "reassembling")
+                    ? `letterFloatBob ${floatParams[i].duration}s ease-in-out infinite alternate ${i * 0.12}s`
+                    : "none",
+                }}
+              >
+                {isSpace ? "\u00A0" : char}
+              </span>
             </motion.span>
           );
         })}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TopologyBackground } from './components/TopologyBackground';
 import TwinklingStars from './components/TwinklingStars';
-import SatQueryLogo from './components/SatQueryLogo';
+import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import GlassSidebar from './components/GlassSidebar';
 import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
 import LiquidMetalChatUI from './components/LiquidMetalChatUI';
@@ -78,7 +78,7 @@ function App() {
         <main className="main-content">
           {!querySubmitted ? (
             <div className="center-stage">
-              <SatQueryLogo size="large" />
+              <ScatterAndReassembleText />
             </div>
           ) : (
             <LiquidMetalChatUI 
