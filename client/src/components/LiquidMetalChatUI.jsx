@@ -208,7 +208,6 @@ function buildAiMessage(answer, result) {
 
 export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery }) {
   const [activeTab, setActiveTab] = useState('report');
-  const [summaryMode, setSummaryMode] = useState('summary');
   const [followupText, setFollowupText] = useState('');
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [showAboutModal, setShowAboutModal] = useState(false);
@@ -894,75 +893,6 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
         {/* ── Right Summary Column ── */}
         <div className="right-summary-column">
-          <LiquidGlassCard className="summary-panel-card">
-            <div className="summary-title-row">
-              <span className="summary-title">{t.querySummary}</span>
-              <div className="tab-switcher" style={{ scale: '0.9' }}>
-                <button className={`tab-btn ${summaryMode === 'summary' ? 'active' : ''}`} onClick={() => setSummaryMode('summary')}>{t.visual}</button>
-                <button className={`tab-btn ${summaryMode === 'raw' ? 'active' : ''}`} onClick={() => setSummaryMode('raw')}>{t.rawData}</button>
-              </div>
-            </div>
-
-            {summaryMode === 'summary' ? (
-              <>
-                <div className="metrics-stack">
-                  <div className="metric-row">
-                    <div className="metric-header">
-                      <span>{t.confidenceScore}</span>
-                      <span className="metric-val">{isLoading ? '…' : `${conf || 94}%`}</span>
-                    </div>
-                    <div className="metric-bar-bg">
-                      <div className="metric-bar-fill" style={{ width: isLoading ? '50%' : `${conf || 94}%` }}></div>
-                    </div>
-                  </div>
-                  <div className="metric-row">
-                    <div className="metric-header">
-                      <span>{t.classifiedTask}</span>
-                      <span className="metric-val" style={{ textTransform: 'capitalize', color: '#4FACFE' }}>
-                        {isLoading ? '…' : (task || 'Satellite VQA').replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="metric-row">
-                    <div className="metric-header">
-                      <span>{t.spatialDetections}</span>
-                      <span className="metric-val">{agentResult ? `${bboxCount} ${t.regions}` : isLoading ? '…' : '—'}</span>
-                    </div>
-                    <div className="metric-bar-bg">
-                      <div className="metric-bar-fill" style={{ width: bboxCount > 0 ? `${Math.min(bboxCount * 20, 100)}%` : '0%' }}></div>
-                    </div>
-                  </div>
-                  <div className="metric-row">
-                    <div className="metric-header">
-                      <span>{t.pipelineStatus}</span>
-                      <span className="metric-val" style={{ color: isLoading ? '#facc15' : error ? '#f87171' : (agentResult?.requires_clarification || agentResult?.result?.requires_clarification || agentResult?.is_valid === false) ? '#fbbf24' : agentResult ? '#34d399' : '#94a3b8' }}>
-                        {isLoading ? t.processing : error ? t.error : (agentResult?.requires_clarification || agentResult?.result?.requires_clarification || agentResult?.is_valid === false) ? t.clarificationNeeded : agentResult ? t.completed : t.idle}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="topics-section">
-                  <span className="section-label">{t.relatedTopics}</span>
-                  <div className="tags-wrap">
-                    <span className="topic-chip">#{t.topicSatelliteVQA || 'Satellite-VQA'}</span>
-                    <span className="topic-chip">#{t.topicISROAgent || 'ISRO-Agent'}</span>
-                    <span className="topic-chip">#{t.topicLangGraph || 'LangGraph'}</span>
-                    <span className="topic-chip">#{t.topicCartosat3 || 'Cartosat-3'}</span>
-                    <span className="topic-chip">#{t.topicSentinel2 || 'Sentinel-2'}</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="code-snippet-box" style={{ height: '260px', fontSize: '0.72rem' }}>
-                {agentResult
-                  ? JSON.stringify(agentResult, null, 2)
-                  : isLoading
-                    ? `// ${t.processing}`
-                    : `// ${t.noResultYet}`}
-              </div>
-            )}
-          </LiquidGlassCard>
-
           {/* Follow-up Query Bar */}
           <LiquidGlassCard pill className="summary-followup-card">
             {attachedFiles.length > 0 && (

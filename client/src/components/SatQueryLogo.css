@@ -18,8 +18,8 @@
 /* Compact Container */
 .satquery-logo-container {
   position: relative;
-  width: 170px;
-  height: 60px;
+  width: 200px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,7 +58,7 @@
   position: absolute;
   inset: 0;
   z-index: 3;
-  overflow: visible;
+  overflow: hidden;
   background: radial-gradient(circle at 35% 35%, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.98));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -76,11 +76,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: scale(0.28);
+  /* Fixed render size so ScatterAndReassembleText has a known viewport,
+     then scale it down to fit the pill. width/height set the actual
+     layout box that gets clipped by overflow:hidden on the card. */
+  width: 680px;
+  height: 200px;
+  transform: scale(0.27);
   transform-origin: center center;
-  width: 100%;
-  height: 100%;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 @keyframes abstractBlobMorph {
