@@ -17,6 +17,7 @@ import {
 import LiquidGlassCard from './LiquidGlassCard';
 import SatQueryLogo from './SatQueryLogo';
 import LanguageSwitcher from './LanguageSwitcher';
+import AboutModal from './AboutModal';
 import { useLanguage } from '../context/LanguageContext';
 import { useT } from '../context/LanguageContext';
 import { translateText } from '../utils/translate';
@@ -936,27 +937,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         </div>
       </div>
 
-      {/* ── About Modal ── */}
-      {showAboutModal && (
-        <div className="about-modal-backdrop" onClick={() => setShowAboutModal(false)}>
-          <LiquidGlassCard className="about-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, color: '#00F2FE', fontSize: '1.2rem' }}>{t.aboutSatQuery}</h3>
-              <button onClick={() => setShowAboutModal(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
-            </div>
-            <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: 'rgba(255,255,255,0.85)' }}>
-              {t.aboutDescription}
-            </p>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-              <span className="topic-chip"><CheckCircle2 size={12} /> {t.langGraphOrchestrated || 'LangGraph Orchestrated'}</span>
-              <span className="topic-chip"><CheckCircle2 size={12} /> {t.isroCompliant || 'ISRO Compliant'}</span>
-              <span className="topic-chip"><CheckCircle2 size={12} /> {t.liquidGlassUI || 'Liquid Glass UI'}</span>
-            </div>
-          </LiquidGlassCard>
-        </div>
-      )}
+      {/* ── About & Team Modal ── */}
+      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
