@@ -712,52 +712,6 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <div className="output-body" ref={outputBodyRef}>
             {activeTab === 'report' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-                {/* ── Image Preview Strip ── */}
-                {initImagePreviews.length > 0 && (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: 'rgba(0,242,254,0.06)',
-                    borderRadius: '14px',
-                    border: '1px solid rgba(0,242,254,0.2)',
-                  }}>
-                    <div style={{ fontSize: '0.75rem', color: '#00F2FE', fontWeight: 600, marginBottom: '10px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      🛰️ {t.attachedImagery} ({initImagePreviews.length})
-                    </div>
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      {initImagePreviews.map((img, i) => (
-                        <div key={i} style={{ position: 'relative' }}>
-                          <img
-                            src={img.url}
-                            alt={img.name}
-                            title={img.name}
-                            style={{
-                              maxWidth: '220px',
-                              maxHeight: '160px',
-                              minWidth: '80px',
-                              borderRadius: '10px',
-                              border: '1px solid rgba(0,242,254,0.35)',
-                              objectFit: 'cover',
-                              display: 'block',
-                              boxShadow: '0 4px 18px rgba(0,242,254,0.15)',
-                            }}
-                          />
-                          <span style={{
-                            display: 'block',
-                            fontSize: '0.68rem',
-                            color: '#94a3b8',
-                            marginTop: '5px',
-                            maxWidth: '220px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}>{img.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* ── Chat Messages ── */}
                 {displayMessages.map((msg) => (
                   <div key={msg.id} className="chat-message">
