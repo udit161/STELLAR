@@ -125,17 +125,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 0;
-  min-height: auto;
-}
-
-.main-result-card.floating-main-area {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  padding: 0;
+  padding: 24px;
+  min-height: 575px;
 }
 
 /* Panel Header & Tabs */
@@ -143,27 +134,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 6px;
-  margin-bottom: 12px;
-  gap: 16px;
-  width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.result-panel-header::-webkit-scrollbar {
-  display: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .tab-switcher {
   display: flex;
   gap: 6px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.3);
   padding: 4px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
-  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tab-btn {
@@ -176,7 +159,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
 }
 
 .tab-btn.active {
@@ -189,7 +171,6 @@
 .header-action-group {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
 }
 
 /* Output Content Box (Scrollable with hidden physical scrollbar) */

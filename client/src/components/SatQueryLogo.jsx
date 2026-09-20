@@ -3,7 +3,6 @@ import ScatterAndReassembleText from './ScatterAndReassembleText';
 import './SatQueryLogo.css';
 
 export function SatQueryLogo({ onClick, size = 'normal', animated = true }) {
-  const isSmall = size === 'small';
   return (
     <div 
       className={`satquery-logo-wrapper ${size}`}
@@ -16,7 +15,7 @@ export function SatQueryLogo({ onClick, size = 'normal', animated = true }) {
         <div className="satquery-logo-mask" />
         <div className="satquery-logo-card">
           <div className="satquery-logo-scaled-inner">
-            <ScatterAndReassembleText showMultilingual={false} singleLine={true} animated={isSmall ? false : animated} />
+            <ScatterAndReassembleText showMultilingual={false} singleLine={true} animated={animated} />
           </div>
         </div>
       </div>
