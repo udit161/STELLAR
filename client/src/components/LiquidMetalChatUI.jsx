@@ -679,8 +679,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
       {/* ── Main Layout Grid ── */}
       <div className="chat-layout-grid">
-        {/* ── Left Main Panel ── */}
-        <LiquidGlassCard className="main-result-card">
+        {/* ── Left Main Panel (Floating without outer card box) ── */}
+        <div className="main-result-card floating-main-area">
           <div className="result-panel-header">
             <div className="tab-switcher">
               <button className={`tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => setActiveTab('report')}>{t.tabAIAnalysis}</button>
@@ -970,7 +970,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               </div>
             )}
           </div>
-        </LiquidGlassCard>
+        </div>
 
         {/* ── Right Summary Column ── */}
         <div className="right-summary-column">
