@@ -18,11 +18,13 @@ import {
   Check,
   Download,
   LogOut,
-  FileCheck
+  FileCheck,
+  Info
 } from 'lucide-react';
 import './GlassSidebar.css';
 import { useT, useLanguage } from '../context/LanguageContext';
 import { translations } from '../utils/translations';
+import AboutModal from './AboutModal';
 
 const NOTE_TAGS = [
   { id: 'Telemetry', labelKey: 'tagTelemetry' },
@@ -43,6 +45,7 @@ const getTagDisplay = (tagId, t, isHindi) => {
 const NAV_ITEMS = [
   { id: 'history',   icon: Clock,    labelKey: 'navHistory' },
   { id: 'documents', icon: FileText,  labelKey: 'navNotesDocs', title: 'Orbit Notes & Documents' },
+  { id: 'about',     icon: Info,      labelKey: 'navAbout',     title: 'About & Team' },
   { id: 'settings',  icon: Settings,  labelKey: 'navSettings' },
   { id: 'profile',   icon: User,      labelKey: 'navProfile' },
 ];
@@ -875,6 +878,9 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
           </div>
         </div>
       )}
+
+      {/* ── About & Team Modal ── */}
+      <AboutModal isOpen={active === 'about'} onClose={() => setActive(null)} />
     </>
   );
 }

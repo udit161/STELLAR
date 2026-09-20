@@ -81,14 +81,23 @@ export const translations = {
     fetchingTLE: '// Fetching live TLE from Celestrak…',
     tleUnavailable: '// Click the NORAD TLE tab to fetch live data',
 
-    // ── About Modal ──
+    // ── About Modal & Team ──
     aboutSatQuery: 'About SatQuery AI',
     aboutDescription: 'SatQuery AI is a state-of-the-art earth observation intelligence platform powered by a compiled LangGraph multi-agent orchestrator. It routes queries through specialist VQA, spatial grounding, change detection, and cross-modal SAR-optical fusion models.',
+    teamName: 'Debugg Dynasty',
+    teamTitle: 'Meet Team Debugg Dynasty',
+    memberUditRole: 'Team Leader and AI & UI Lead',
+    memberAadhyaRole: 'Researcher',
+    memberAmanRole: 'Backend Lead',
+    memberSwastikaRole: 'Visual Content Designer',
+    memberAkashRole: 'Backend Dev',
+    memberNishantRole: 'Frontend Dev',
 
     // ── Sidebar — Nav Labels ──
     navSearch: 'Search',
     navHistory: 'History',
     navNotesDocs: 'Notes & Docs',
+    navAbout: 'About & Team',
     navSettings: 'Settings',
     navProfile: 'Profile',
 
@@ -271,14 +280,23 @@ export const translations = {
     fetchingTLE: '// Celestrak से लाइव TLE प्राप्त हो रहा है…',
     tleUnavailable: '// लाइव डेटा के लिए NORAD TLE टैब पर क्लिक करें',
 
-    // ── About Modal ──
+    // ── About Modal & Team ──
     aboutSatQuery: 'सैटक्वेरी AI के बारे में',
     aboutDescription: 'सैटक्वेरी AI एक अत्याधुनिक पृथ्वी अवलोकन खुफिया मंच है जो संकलित LangGraph मल्टी-एजेंट ऑर्केस्ट्रेटर द्वारा संचालित है। यह प्रश्नों को विशेषज्ञ VQA, स्थानिक ग्राउंडिंग, परिवर्तन पहचान और क्रॉस-मोडल SAR-ऑप्टिकल फ्यूजन मॉडल के माध्यम से रूट करता है।',
+    teamName: 'Debugg Dynasty',
+    teamTitle: 'टीम Debugg Dynasty से मिलें',
+    memberUditRole: 'टीम लीडर और AI & UI लीड',
+    memberAadhyaRole: 'शोधकर्ता (Researcher)',
+    memberAmanRole: 'बैकएंड लीड (Backend Lead)',
+    memberSwastikaRole: 'विजुअल कंटेंट डिजाइनर',
+    memberAkashRole: 'बैकएंड डेवलपर',
+    memberNishantRole: 'फ्रंटएंड डेवलपर',
 
     // ── Sidebar — Nav Labels ──
     navSearch: 'खोज',
     navHistory: 'इतिहास',
     navNotesDocs: 'नोट्स & दस्तावेज़',
+    navAbout: 'जानकारी & टीम',
     navSettings: 'सेटिंग्स',
     navProfile: 'प्रोफ़ाइल',
 
