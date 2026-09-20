@@ -26,6 +26,15 @@
   border-radius: 9999px;
 }
 
+.satquery-logo-wrapper.small .satquery-logo-container {
+  width: 175px;
+  height: 46px;
+}
+
+.satquery-logo-wrapper.small .satquery-logo-scaled-inner {
+  transform: scale(0.20);
+}
+
 .satquery-logo-halo {
   position: absolute;
   inset: -6px;
