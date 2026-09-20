@@ -24,6 +24,7 @@ export const translations = {
 
     // ── Chat Tabs ──
     tabAIAnalysis: 'AI Analysis',
+    tabUploadedImage: 'Uploaded Image',
     tabOrbitalRadar: 'Orbital Radar',
     tabNORADTLE: 'NORAD TLE',
 
@@ -213,6 +214,7 @@ export const translations = {
 
     // ── Chat Tabs ──
     tabAIAnalysis: 'AI विश्लेषण',
+    tabUploadedImage: 'अपलोड की गई छवि',
     tabOrbitalRadar: 'कक्षीय राडार',
     tabNORADTLE: 'NORAD TLE',
 

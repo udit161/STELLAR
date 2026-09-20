@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  FileText
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import LiquidGlassCard from './LiquidGlassCard';
 import SatQueryLogo from './SatQueryLogo';
@@ -243,13 +244,17 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     const previews = [];
     (attachments || []).forEach(f => {
       const file = f.fileObj || f;
-      if (file instanceof File && file.type.startsWith('image/')) {
-        previews.push({ name: file.name, url: URL.createObjectURL(file) });
+      if (file instanceof File && file.type && file.type.startsWith('image/')) {
+        previews.push({ name: file.name || 'Satellite Image', url: URL.createObjectURL(file) });
+      } else if (f.data && (f.isImage || (typeof f.data === 'string' && f.data.startsWith('data:image')))) {
+        previews.push({ name: f.name || 'Satellite Image', url: f.data });
+      } else if (f.url) {
+        previews.push({ name: f.name || 'Satellite Image', url: f.url });
       }
     });
     setInitImagePreviews(previews);
-    return () => previews.forEach(p => URL.revokeObjectURL(p.url));
-  }, []);
+    return () => previews.forEach(p => p.url?.startsWith('blob:') && URL.revokeObjectURL(p.url));
+  }, [attachments]);
 
   // Fetch live TLE from Celestrak GP API when TLE tab is opened
   useEffect(() => {
@@ -554,19 +559,32 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
   const handleFileSelect = (e) => {
     if (e.target.files?.length > 0) {
-      const newFiles = Array.from(e.target.files).map(file => ({
-        name: file.name,
-        size: file.size < 1024 * 1024
-          ? `${(file.size / 1024).toFixed(1)} KB`
-          : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        fileObj: file
-      }));
+      const newFiles = Array.from(e.target.files).map(file => {
+        const isImage = file.type?.startsWith('image/');
+        return {
+          name: file.name,
+          size: file.size < 1024 * 1024
+            ? `${(file.size / 1024).toFixed(1)} KB`
+            : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          fileObj: file,
+          isImage,
+          previewUrl: isImage ? URL.createObjectURL(file) : null
+        };
+      });
       setAttachedFiles(prev => [...prev, ...newFiles]);
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeAttachedFile = (idx) => setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
+  const removeAttachedFile = (idx) => {
+    setAttachedFiles(prev => {
+      const target = prev[idx];
+      if (target?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
 
   const handleSendFollowup = async (e) => {
     e?.preventDefault();
@@ -664,6 +682,15 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <div className="result-panel-header">
             <div className="tab-switcher">
               <button className={`tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => setActiveTab('report')}>{t.tabAIAnalysis}</button>
+              <button className={`tab-btn ${activeTab === 'image' ? 'active' : ''}`} onClick={() => setActiveTab('image')}>
+                <ImageIcon size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                {t.tabUploadedImage || 'Uploaded Image'}
+                {initImagePreviews.length > 0 && (
+                  <span style={{ marginLeft: '6px', padding: '1px 6px', borderRadius: '10px', background: '#00f2fe', color: '#020617', fontSize: '0.68rem', fontWeight: 800 }}>
+                    {initImagePreviews.length}
+                  </span>
+                )}
+              </button>
               <button className={`tab-btn ${activeTab === 'radar' ? 'active' : ''}`} onClick={() => setActiveTab('radar')}>{t.tabOrbitalRadar}</button>
               <button className={`tab-btn ${activeTab === 'tle' ? 'active' : ''}`} onClick={() => setActiveTab('tle')}>{t.tabNORADTLE}</button>
             </div>
@@ -821,6 +848,104 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               </div>
             )}
 
+            {activeTab === 'image' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '6px 2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(0, 242, 254, 0.15)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00F2FE', fontWeight: 700, fontSize: '1rem' }}>
+                    <ImageIcon size={18} />
+                    {t.uploadedQueryImagery || 'Uploaded Query Satellite Imagery'}
+                  </div>
+                  {initImagePreviews.length > 0 && (
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(15,23,42,0.7)', padding: '4px 12px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      {initImagePreviews.length} {initImagePreviews.length === 1 ? 'Image' : 'Images'}
+                    </span>
+                  )}
+                </div>
+
+                {initImagePreviews.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {initImagePreviews.map((img, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: 'relative',
+                          background: 'rgba(3, 7, 18, 0.6)',
+                          borderRadius: '16px',
+                          border: '1px solid rgba(0, 242, 254, 0.25)',
+                          padding: '16px',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00f2fe', boxShadow: '0 0 8px #00f2fe' }} />
+                            <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f8fafc' }}>{img.name}</span>
+                          </div>
+                          <a
+                            href={img.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '5px 12px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              color: '#00f2fe',
+                              background: 'rgba(0, 242, 254, 0.1)',
+                              border: '1px solid rgba(0, 242, 254, 0.3)',
+                              borderRadius: '20px',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <Download size={13} /> View Full Res
+                          </a>
+                        </div>
+
+                        {/* Full Size Image View */}
+                        <div style={{ position: 'relative', width: '100%', overflow: 'hidden', borderRadius: '12px', background: '#020617', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <img
+                            src={img.url}
+                            alt={img.name}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '520px',
+                              width: 'auto',
+                              height: 'auto',
+                              objectFit: 'contain',
+                              display: 'block',
+                              borderRadius: '10px',
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '4px' }}>
+                          <span style={{ fontSize: '0.73rem', color: '#94a3b8', background: 'rgba(15,23,42,0.8)', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            Filename: {img.name}
+                          </span>
+                          <span style={{ fontSize: '0.73rem', color: '#38bdf8', background: 'rgba(56,189,248,0.1)', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(56,189,248,0.2)' }}>
+                            User Uploaded Query Imagery
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '44px 20px', textAlign: 'center', background: 'rgba(3,7,18,0.4)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <ImageIcon size={38} style={{ color: '#475569', marginBottom: '10px' }} />
+                    <h4 style={{ margin: '0 0 6px', color: '#94a3b8', fontSize: '0.98rem' }}>No Input Image Uploaded</h4>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.84rem' }}>
+                      This query was submitted as a text prompt without attached imagery. You can upload satellite imagery anytime using the attachment button in the query bar.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeTab === 'radar' && (() => {
               // Build radar metrics from agent result
               const r = agentResult?.result || agentResult || {};
@@ -895,12 +1020,38 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         <div className="right-summary-column">
           {/* Follow-up Query Bar */}
           <LiquidGlassCard pill className="summary-followup-card">
+            {/* Show Initial Active Query Image Previews if available */}
+            {initImagePreviews.length > 0 && attachedFiles.length === 0 && (
+              <div style={{ display: 'flex', gap: '8px', padding: '6px 14px 4px', alignItems: 'center', borderBottom: '1px solid rgba(0,242,254,0.12)' }}>
+                <span style={{ fontSize: '0.72rem', color: '#00f2fe', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <ImageIcon size={12} /> Active Image:
+                </span>
+                {initImagePreviews.map((img, i) => (
+                  <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(0,242,254,0.12)', border: '1px solid rgba(0,242,254,0.35)', borderRadius: '10px', padding: '2px 8px 2px 4px' }}>
+                    <img
+                      src={img.url}
+                      alt={img.name}
+                      style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', border: '1px solid rgba(0,242,254,0.5)' }}
+                    />
+                    <span style={{ fontSize: '0.72rem', color: '#e2e8f0', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {img.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Show New Follow-up Attached Files */}
             {attachedFiles.length > 0 && (
               <div style={{ display: 'flex', gap: '6px', padding: '6px 12px 2px', flexWrap: 'wrap' }}>
                 {attachedFiles.map((file, idx) => (
-                  <span key={idx} style={{ background: 'rgba(0,242,254,0.15)', border: '1px solid rgba(0,242,254,0.4)', borderRadius: '12px', padding: '2px 8px', fontSize: '0.73rem', color: '#00f2fe', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <FileText size={11} />
-                    {file.name} ({file.size})
+                  <span key={idx} style={{ background: 'rgba(0,242,254,0.15)', border: '1px solid rgba(0,242,254,0.4)', borderRadius: '12px', padding: '3px 10px', fontSize: '0.73rem', color: '#00f2fe', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    {file.previewUrl ? (
+                      <img src={file.previewUrl} alt={file.name} style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
+                    ) : (
+                      <FileText size={12} />
+                    )}
+                    <span>{file.name} ({file.size})</span>
                     <button type="button" onClick={() => removeAttachedFile(idx)} style={{ background: 'none', border: 'none', color: '#00f2fe', cursor: 'pointer', padding: 0, marginLeft: '2px', display: 'flex', alignItems: 'center' }}>
                       <X size={12} />
                     </button>
@@ -916,6 +1067,24 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               <button type="button" className="input-icon-btn" title="Voice Input">
                 <Mic size={16} />
               </button>
+              
+              {/* Inline image thumbnail inside the input row for current query image */}
+              {initImagePreviews.length > 0 && attachedFiles.length === 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px', flexShrink: 0 }} title={`Active Query Image: ${initImagePreviews[0].name}`}>
+                  <img
+                    src={initImagePreviews[0].url}
+                    alt={initImagePreviews[0].name}
+                    style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '6px',
+                      objectFit: 'cover',
+                      border: '1.5px solid rgba(0,242,254,0.7)',
+                      boxShadow: '0 0 8px rgba(0,242,254,0.4)',
+                    }}
+                  />
+                </div>
+              )}
               <input
                 type="text"
                 className="followup-text-field"

@@ -81,7 +81,7 @@
      layout box that gets clipped by overflow:hidden on the card. */
   width: 680px;
   height: 200px;
-  transform: scale(0.27);
+  transform: scale(0.24);
   transform-origin: center center;
   white-space: nowrap;
   flex-shrink: 0;
