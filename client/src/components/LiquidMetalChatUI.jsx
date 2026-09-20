@@ -219,6 +219,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const [tleData, setTleData] = useState(null);
   const [tleLoading, setTleLoading] = useState(false);
   const [initImagePreviews, setInitImagePreviews] = useState([]);
+  const [rightImgIdx, setRightImgIdx] = useState(0);
   // incrementing this counter re-triggers the query useEffect (Regenerate)
   const [regenCounter, setRegenCounter] = useState(0);
 
@@ -1019,29 +1020,89 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
         {/* ── Right Summary Column ── */}
         <div className="right-summary-column">
-          {/* Follow-up Query Bar */}
-          <LiquidGlassCard pill className="summary-followup-card">
-            {/* Show Initial Active Query Image Previews if available */}
-            {initImagePreviews.length > 0 && attachedFiles.length === 0 && (
-              <div style={{ display: 'flex', gap: '8px', padding: '6px 14px 4px', alignItems: 'center', borderBottom: '1px solid rgba(0,242,254,0.12)' }}>
-                <span style={{ fontSize: '0.72rem', color: '#00f2fe', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <ImageIcon size={12} /> Active Image:
-                </span>
-                {initImagePreviews.map((img, i) => (
-                  <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(0,242,254,0.12)', border: '1px solid rgba(0,242,254,0.35)', borderRadius: '10px', padding: '2px 8px 2px 4px' }}>
-                    <img
-                      src={img.url}
-                      alt={img.name}
-                      style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', border: '1px solid rgba(0,242,254,0.5)' }}
-                    />
-                    <span style={{ fontSize: '0.72rem', color: '#e2e8f0', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {img.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
 
+          {/* ── Uploaded Image Card (always shown, above follow-up bar) ── */}
+          <LiquidGlassCard className="right-image-card">
+            {/* Tab Header */}
+            <div className="right-image-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#00F2FE', fontWeight: 700, fontSize: '0.82rem', letterSpacing: '0.04em' }}>
+                <ImageIcon size={15} />
+                Uploaded Image
+                {initImagePreviews.length > 0 && (
+                  <span style={{ background: '#00f2fe', color: '#020617', borderRadius: '20px', padding: '1px 7px', fontSize: '0.65rem', fontWeight: 800 }}>
+                    {initImagePreviews.length}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Image Body */}
+            <div className="right-image-card-body">
+              {initImagePreviews.length > 0 ? (
+                <>
+                  {/* Thumbnail strip for multiple images */}
+                  {initImagePreviews.length > 1 && (
+                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+                      {initImagePreviews.map((img, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setRightImgIdx(i)}
+                          style={{
+                            flexShrink: 0,
+                            width: '42px', height: '42px',
+                            borderRadius: '8px',
+                            border: rightImgIdx === i ? '2px solid #00f2fe' : '2px solid rgba(255,255,255,0.1)',
+                            overflow: 'hidden', padding: 0, background: 'none', cursor: 'pointer',
+                            boxShadow: rightImgIdx === i ? '0 0 10px rgba(0,242,254,0.5)' : 'none',
+                            transition: 'all 0.2s ease',
+                          }}
+                          title={img.name}
+                        >
+                          <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Main full image */}
+                  {initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)] && (
+                    <div className="right-image-main-wrap">
+                      <img
+                        src={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].url}
+                        alt={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].name}
+                        className="right-image-main-img"
+                      />
+                      {/* Meta bar */}
+                      <div className="right-image-meta-bar">
+                        <span className="right-image-meta-name" title={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].name}>
+                          {initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].name}
+                        </span>
+                        <a
+                          href={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="right-image-open-btn"
+                          title="Open full resolution"
+                        >
+                          <Download size={11} /> Full Res
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="right-image-empty-state">
+                  <ImageIcon size={30} style={{ color: '#334155', marginBottom: '8px' }} />
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.8rem', textAlign: 'center', lineHeight: 1.5 }}>
+                    No image attached to this query
+                  </p>
+                </div>
+              )}
+            </div>
+          </LiquidGlassCard>
+
+          {/* ── Follow-up Query Bar ── */}
+          <LiquidGlassCard pill className="summary-followup-card">
             {/* Show New Follow-up Attached Files */}
             {attachedFiles.length > 0 && (
               <div style={{ display: 'flex', gap: '6px', padding: '6px 12px 2px', flexWrap: 'wrap' }}>
@@ -1068,24 +1129,6 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               <button type="button" className="input-icon-btn" title="Voice Input">
                 <Mic size={16} />
               </button>
-              
-              {/* Inline image thumbnail inside the input row for current query image */}
-              {initImagePreviews.length > 0 && attachedFiles.length === 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', marginLeft: '4px', flexShrink: 0 }} title={`Active Query Image: ${initImagePreviews[0].name}`}>
-                  <img
-                    src={initImagePreviews[0].url}
-                    alt={initImagePreviews[0].name}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '6px',
-                      objectFit: 'cover',
-                      border: '1.5px solid rgba(0,242,254,0.7)',
-                      boxShadow: '0 0 8px rgba(0,242,254,0.4)',
-                    }}
-                  />
-                </div>
-              )}
               <input
                 type="text"
                 className="followup-text-field"
@@ -1104,6 +1147,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
             </form>
           </LiquidGlassCard>
         </div>
+
       </div>
 
       {/* ── About & Team Modal ── */}
