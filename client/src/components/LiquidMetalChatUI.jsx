@@ -601,6 +601,11 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         return { name: file.name, url: URL.createObjectURL(file) };
       });
 
+    // Keep Uploaded Image tab in sync with follow-up images
+    if (filePreviews.length > 0) {
+      setInitImagePreviews(prev => [...prev, ...filePreviews]);
+    }
+
     const displayText = text
       ? (attachedFiles.length > 0 ? `${text} [+${attachedFiles.length} file(s)]` : text)
       : `[Attached: ${attachedFiles.map(f => f.name).join(', ')}]`;
