@@ -26,6 +26,19 @@ import './LiquidMetalChatUI.css';
 
 const AI_BASE_URL = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
 
+/** Format errors into friendly diagnostic messages */
+function formatErrorMessage(msg) {
+  if (!msg) return 'Unknown error occurred.';
+  if (
+    msg === 'Failed to fetch' ||
+    msg.toLowerCase().includes('failed to fetch') ||
+    msg.toLowerCase().includes('networkerror')
+  ) {
+    return `Cannot connect to AI Agent backend (${AI_BASE_URL}). Please verify that the FastAPI backend service is running on port 8000.`;
+  }
+  return msg;
+}
+
 /** Extract readable answer from agent result state */
 function extractAnswer(result) {
   if (!result) return null;
@@ -548,12 +561,13 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         : '⚠️ Agent completed analysis but returned no textual response. Check the Raw Data tab for full output.';
       appendMessage({ id: 'ai-init', sender: 'ai', text: aiText });
     } catch (err) {
+      const formattedErr = formatErrorMessage(err.message);
       if (isCancelled()) return;
-      setError(err.message);
+      setError(formattedErr);
       appendMessage({
         id: 'ai-err',
         sender: 'ai',
-        text: `❌ Agent error: ${err.message}`,
+        text: `❌ Agent error: ${formattedErr}`,
         isError: true
       });
     }
@@ -623,8 +637,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
       setIsLoading(false);
     } catch (err) {
       setIsLoading(false);
-      setError(err.message);
-      appendMessage({ id: `ai-err-${msgId}`, sender: 'ai', text: `❌ ${err.message}`, isError: true });
+      const formattedErr = formatErrorMessage(err.message);
+      setError(formattedErr);
+      appendMessage({ id: `ai-err-${msgId}`, sender: 'ai', text: `❌ ${formattedErr}`, isError: true });
     } finally {
       // Revoke preview URLs after a delay to avoid flicker
       setTimeout(() => filePreviews.forEach(p => URL.revokeObjectURL(p.url)), 30000);
