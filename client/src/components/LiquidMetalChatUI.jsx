@@ -232,6 +232,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const [tleData, setTleData] = useState(null);
   const [tleLoading, setTleLoading] = useState(false);
   const [initImagePreviews, setInitImagePreviews] = useState([]);
+  const [allUploadedPreviews, setAllUploadedPreviews] = useState([]);
   const [rightImgIdx, setRightImgIdx] = useState(0);
   // incrementing this counter re-triggers the query useEffect (Regenerate)
   const [regenCounter, setRegenCounter] = useState(0);
@@ -268,6 +269,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
       }
     });
     setInitImagePreviews(previews);
+    setAllUploadedPreviews(previews);
     return () => previews.forEach(p => p.url?.startsWith('blob:') && URL.revokeObjectURL(p.url));
   }, [attachments]);
 
@@ -615,6 +617,11 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         return { name: file.name, url: URL.createObjectURL(file) };
       });
 
+    // Keep Uploaded Image tab in sync — but NOT the initial chat bubble
+    if (filePreviews.length > 0) {
+      setAllUploadedPreviews(prev => [...prev, ...filePreviews]);
+    }
+
     const displayText = text
       ? (attachedFiles.length > 0 ? `${text} [+${attachedFiles.length} file(s)]` : text)
       : `[Attached: ${attachedFiles.map(f => f.name).join(', ')}]`;
@@ -684,9 +691,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <span className="query-label">{t.activeQuery}</span>
           <span className="current-query-text" title={displayQueryText}>"{displayQueryText}"</span>
         </LiquidGlassCard>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
           <LanguageSwitcher />
-          <button className="action-pill-btn about-header-btn" onClick={() => setShowAboutModal(true)}>
+          <button className="action-pill-btn" onClick={() => setShowAboutModal(true)}>
             <Info size={14} /> {t.about}
           </button>
         </div>
@@ -702,9 +709,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               <button className={`tab-btn ${activeTab === 'image' ? 'active' : ''}`} onClick={() => setActiveTab('image')}>
                 <ImageIcon size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
                 {t.tabUploadedImage || 'Uploaded Image'}
-                {initImagePreviews.length > 0 && (
+                {allUploadedPreviews.length > 0 && (
                   <span style={{ marginLeft: '6px', padding: '1px 6px', borderRadius: '10px', background: '#00f2fe', color: '#020617', fontSize: '0.68rem', fontWeight: 800 }}>
-                    {initImagePreviews.length}
+                    {allUploadedPreviews.length}
                   </span>
                 )}
               </button>
@@ -826,16 +833,16 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                     <ImageIcon size={18} />
                     {t.uploadedQueryImagery || 'Uploaded Query Satellite Imagery'}
                   </div>
-                  {initImagePreviews.length > 0 && (
+                  {allUploadedPreviews.length > 0 && (
                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(15,23,42,0.7)', padding: '4px 12px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      {initImagePreviews.length} {initImagePreviews.length === 1 ? 'Image' : 'Images'}
+                      {allUploadedPreviews.length} {allUploadedPreviews.length === 1 ? 'Image' : 'Images'}
                     </span>
                   )}
                 </div>
 
-                {initImagePreviews.length > 0 ? (
+                {allUploadedPreviews.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {initImagePreviews.map((img, i) => (
+                    {allUploadedPreviews.map((img, i) => (
                       <div
                         key={i}
                         style={{
@@ -992,27 +999,16 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
           {/* ── Uploaded Image Card (always shown, above follow-up bar) ── */}
           <LiquidGlassCard className="right-image-card">
-            {/* Tab Header */}
-            <div className="right-image-card-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#00F2FE', fontWeight: 700, fontSize: '0.82rem', letterSpacing: '0.04em' }}>
-                <ImageIcon size={15} />
-                Uploaded Image
-                {initImagePreviews.length > 0 && (
-                  <span style={{ background: '#00f2fe', color: '#020617', borderRadius: '20px', padding: '1px 7px', fontSize: '0.65rem', fontWeight: 800 }}>
-                    {initImagePreviews.length}
-                  </span>
-                )}
-              </div>
-            </div>
+
 
             {/* Image Body */}
             <div className="right-image-card-body">
-              {initImagePreviews.length > 0 ? (
+              {allUploadedPreviews.length > 0 ? (
                 <>
                   {/* Thumbnail strip for multiple images */}
-                  {initImagePreviews.length > 1 && (
+                  {allUploadedPreviews.length > 1 && (
                     <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
-                      {initImagePreviews.map((img, i) => (
+                      {allUploadedPreviews.map((img, i) => (
                         <button
                           key={i}
                           onClick={() => setRightImgIdx(i)}
@@ -1034,20 +1030,20 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                   )}
 
                   {/* Main full image */}
-                  {initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)] && (
+                  {allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)] && (
                     <div className="right-image-main-wrap">
                       <img
-                        src={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].url}
-                        alt={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].name}
+                        src={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].url}
+                        alt={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].name}
                         className="right-image-main-img"
                       />
                       {/* Meta bar */}
                       <div className="right-image-meta-bar">
-                        <span className="right-image-meta-name" title={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].name}>
-                          {initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].name}
+                        <span className="right-image-meta-name" title={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].name}>
+                          {allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].name}
                         </span>
                         <a
-                          href={initImagePreviews[Math.min(rightImgIdx, initImagePreviews.length - 1)].url}
+                          href={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="right-image-open-btn"
