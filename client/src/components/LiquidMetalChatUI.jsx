@@ -984,18 +984,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
           {/* ── Uploaded Image Card (always shown, above follow-up bar) ── */}
           <LiquidGlassCard className="right-image-card">
-            {/* Tab Header */}
-            <div className="right-image-card-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: '#00F2FE', fontWeight: 700, fontSize: '0.82rem', letterSpacing: '0.04em' }}>
-                <ImageIcon size={15} />
-                Uploaded Image
-                {allUploadedPreviews.length > 0 && (
-                  <span style={{ background: '#00f2fe', color: '#020617', borderRadius: '20px', padding: '1px 7px', fontSize: '0.65rem', fontWeight: 800 }}>
-                    {allUploadedPreviews.length}
-                  </span>
-                )}
-              </div>
-            </div>
+
 
             {/* Image Body */}
             <div className="right-image-card-body">
