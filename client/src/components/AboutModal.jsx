@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Crown, 
-  Search, 
-  Server, 
-  Palette, 
-  Code, 
-  Monitor, 
-  Rocket, 
-  Cpu, 
-  Globe, 
-  ShieldCheck, 
+import {
+  X,
+  Crown,
+  Search,
+  Server,
+  Palette,
+  Code,
+  Monitor,
+  Rocket,
+  Cpu,
+  Globe,
+  ShieldCheck,
   Sparkles,
   Users,
   Layers
@@ -104,7 +104,7 @@ function IndiaBadgeInline() {
 function DebuggDynastyIsroBadge({ onClick }) {
   const { isHindi } = useLanguage();
   return (
-    <div 
+    <div
       className="debugg-isro-badge-wrap"
       onClick={onClick}
       title={isHindi ? "टीम विवरण खोलने के लिए क्लिक करें" : "Click to open Team Debugg Dynasty tab"}
@@ -172,7 +172,7 @@ const TEAM_MEMBERS = [
     }
   },
   {
-    name: 'Aman',
+    name: 'Aman Deep',
     roleKey: 'memberAmanRole',
     defaultRole: 'Backend Lead',
     roleKeyHi: 'memberAmanRoleHi',
@@ -254,7 +254,7 @@ export function AboutModal({ isOpen, onClose }) {
   return (
     <div className="about-modal-backdrop lime-theme" onClick={onClose}>
       <div className="about-modal-dialog lime-dialog" onClick={(e) => e.stopPropagation()}>
-        
+
         {/* Top Header Bar with Sub-Tab Switcher */}
         <div className="about-modal-header">
           <div className="about-modal-brand">
@@ -271,7 +271,7 @@ export function AboutModal({ isOpen, onClose }) {
           {/* Sub-Tab Navigation Switcher */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="about-subtab-bar">
-              <button 
+              <button
                 className={`subtab-btn ${activeTab === 'platform' ? 'active' : ''}`}
                 onClick={() => setActiveTab('platform')}
               >
@@ -279,7 +279,7 @@ export function AboutModal({ isOpen, onClose }) {
                 <span>{isHindi ? 'प्लेटफ़ॉर्म' : 'Platform'}</span>
               </button>
 
-              <button 
+              <button
                 className={`subtab-btn ${activeTab === 'team' ? 'active' : ''}`}
                 onClick={() => setActiveTab('team')}
               >
@@ -300,7 +300,7 @@ export function AboutModal({ isOpen, onClose }) {
           {/* ── TAB 1: PLATFORM DESCRIPTION + TRIO BADGES (INDIA | TEAM LOGO | ISRO) BELOW ── */}
           {activeTab === 'platform' && (
             <div className="platform-tab-content">
-              
+
               {/* App Overview Card */}
               <div className="about-section-card app-overview-lime">
                 <div className="about-section-title">
@@ -308,7 +308,7 @@ export function AboutModal({ isOpen, onClose }) {
                 </div>
 
                 <p className="about-description-text">
-                  {t.aboutDescription || 
+                  {t.aboutDescription ||
                     'SatQuery AI is a state-of-the-art earth observation intelligence platform powered by a compiled LangGraph multi-agent orchestrator. It routes queries through specialist VQA, spatial grounding, change detection, and cross-modal SAR-optical fusion models.'}
                 </p>
 
@@ -346,7 +346,7 @@ export function AboutModal({ isOpen, onClose }) {
           {/* ── TAB 2: TEAM DEBUGG DYNASTY MEMBERS INFORMATION ── */}
           {activeTab === 'team' && (
             <div className="team-tab-content">
-              
+
               <div className="about-section-card team-section-lime">
                 <div className="team-header-row">
                   <div className="team-title-wrap">
@@ -365,13 +365,13 @@ export function AboutModal({ isOpen, onClose }) {
                 <div className="team-grid">
                   {TEAM_MEMBERS.map((member) => {
                     const IconComponent = member.icon;
-                    const roleText = isHindi 
+                    const roleText = isHindi
                       ? (t[member.roleKeyHi] || member.defaultRoleHi)
                       : (t[member.roleKey] || member.defaultRole);
 
                     return (
-                      <div 
-                        key={member.name} 
+                      <div
+                        key={member.name}
                         className={`team-card ${member.highlight ? 'highlight-leader-lime' : ''}`}
                         style={{
                           background: member.bgGradient,
@@ -379,8 +379,8 @@ export function AboutModal({ isOpen, onClose }) {
                         }}
                       >
                         <div className="team-card-top">
-                          <div 
-                            className="team-avatar-icon" 
+                          <div
+                            className="team-avatar-icon"
                             style={{ background: `${member.color}22`, color: member.color, borderColor: member.borderColor }}
                           >
                             <IconComponent size={20} />
@@ -388,10 +388,10 @@ export function AboutModal({ isOpen, onClose }) {
                           {member.socials && (
                             <div className="team-social-links">
                               {member.socials.instagram && (
-                                <a 
-                                  href={member.socials.instagram} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
+                                <a
+                                  href={member.socials.instagram}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="team-social-btn"
                                   title="Instagram"
                                   style={{ color: member.color, borderColor: `${member.color}44`, background: `${member.color}15` }}
@@ -400,10 +400,10 @@ export function AboutModal({ isOpen, onClose }) {
                                 </a>
                               )}
                               {member.socials.github && (
-                                <a 
-                                  href={member.socials.github} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
+                                <a
+                                  href={member.socials.github}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="team-social-btn"
                                   title="GitHub"
                                   style={{ color: member.color, borderColor: `${member.color}44`, background: `${member.color}15` }}
@@ -412,10 +412,10 @@ export function AboutModal({ isOpen, onClose }) {
                                 </a>
                               )}
                               {member.socials.linkedin && (
-                                <a 
-                                  href={member.socials.linkedin} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
+                                <a
+                                  href={member.socials.linkedin}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="team-social-btn"
                                   title="LinkedIn"
                                   style={{ color: member.color, borderColor: `${member.color}44`, background: `${member.color}15` }}
