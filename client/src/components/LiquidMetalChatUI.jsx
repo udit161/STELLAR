@@ -251,7 +251,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
   const outputBodyRef = useRef(null);
   const fileInputRef = useRef(null);
-  const pollRef = useRef(null);
+  const activePollStopRef = useRef(null);
+  const activeRequestIdRef = useRef(0);
 
   const [messages, setMessages] = useState([]);
 
