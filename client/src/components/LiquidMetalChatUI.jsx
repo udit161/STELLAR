@@ -666,22 +666,26 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     const files = [...attachedFiles];
     setFollowupText('');
     setAttachedFiles([]);
+    const reqId = ++activeRequestIdRef.current;
     setIsLoading(true);
 
     try {
       const result = await runQuery(text || queryText, files);
+      if (reqId !== activeRequestIdRef.current) return;
       const answer = extractAnswer(result);
       const aiText = answer
         ? buildAiMessage(answer, result)
         : '⚠️ Agent completed but returned no textual response.';
       appendMessage({ id: `ai-${msgId}`, sender: 'ai', text: aiText });
-      setIsLoading(false);
     } catch (err) {
-      setIsLoading(false);
+      if (reqId !== activeRequestIdRef.current) return;
       const formattedErr = formatErrorMessage(err.message);
       setError(formattedErr);
       appendMessage({ id: `ai-err-${msgId}`, sender: 'ai', text: `❌ ${formattedErr}`, isError: true });
     } finally {
+      if (reqId === activeRequestIdRef.current) {
+        setIsLoading(false);
+      }
       // Revoke preview URLs after a delay to avoid flicker
       setTimeout(() => filePreviews.forEach(p => URL.revokeObjectURL(p.url)), 30000);
     }
