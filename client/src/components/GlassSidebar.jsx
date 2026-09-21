@@ -45,7 +45,6 @@ const getTagDisplay = (tagId, t, isHindi) => {
 const NAV_ITEMS = [
   { id: 'history',   icon: Clock,    labelKey: 'navHistory' },
   { id: 'documents', icon: FileText,  labelKey: 'navNotesDocs', title: 'Orbit Notes & Documents' },
-  { id: 'about',     icon: Info,      labelKey: 'navAbout',     title: 'About & Team' },
   { id: 'settings',  icon: Settings,  labelKey: 'navSettings' },
   { id: 'profile',   icon: User,      labelKey: 'navProfile' },
 ];
