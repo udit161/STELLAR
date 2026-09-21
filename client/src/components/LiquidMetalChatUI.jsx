@@ -435,22 +435,35 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   // Call the real AI backend on initial query load OR when Regenerate is pressed
   useEffect(() => {
     if (!queryText) return;
-    let cancelled = false;
 
-    // Cancel any in-flight poll before starting fresh
-    if (pollRef.current) clearInterval(pollRef.current);
+    if (activePollStopRef.current) {
+      activePollStopRef.current();
+      activePollStopRef.current = null;
+    }
+
     setMessages([]);
     setError(null);
     setAgentResult(null);
-    setIsLoading(false);
 
-    runInitialQuery(queryText, attachments, () => cancelled);
+    const reqId = ++activeRequestIdRef.current;
+    runInitialQuery(queryText, attachments, reqId);
+
+    return () => {
+      if (activePollStopRef.current) {
+        activePollStopRef.current();
+        activePollStopRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    return () => { cancelled = true; if (pollRef.current) clearInterval(pollRef.current); };
   }, [queryText, regenCounter]);
 
   // Cleanup poll interval on unmount
-  useEffect(() => () => clearInterval(pollRef.current), []);
+  useEffect(() => () => {
+    if (activePollStopRef.current) {
+      activePollStopRef.current();
+      activePollStopRef.current = null;
+    }
+  }, []);
 
   const appendMessage = useCallback((msg) => {
     setMessages(prev => [...prev, msg]);
@@ -460,22 +473,35 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const pollJobResult = useCallback((jobId, onResult) => {
     let attempts = 0;
     const MAX = 60; // 30 seconds max
-    pollRef.current = setInterval(async () => {
+    let timerId = null;
+
+    const stop = () => {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    };
+
+    timerId = setInterval(async () => {
       attempts++;
       try {
         const res = await fetch(`${AI_BASE_URL}/api/v1/trace/${jobId}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.status === 'completed' || data.status === 'failed') {
-          clearInterval(pollRef.current);
+          stop();
           onResult(data);
+          return;
         }
       } catch (_) { /* keep polling */ }
+
       if (attempts >= MAX) {
-        clearInterval(pollRef.current);
+        stop();
         onResult({ status: 'failed', error: 'Timed out waiting for AI response.' });
       }
     }, 500);
+
+    return stop;
   }, []);
 
   /** Run the AI query — uses query-with-image if files present, else async query + poll */
@@ -500,7 +526,6 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     };
 
     try {
-      let data;
       // Only use multipart endpoint if there are real File objects attached
       const realFiles = files.filter(f => (f.fileObj instanceof File) || (f instanceof File));
       if (realFiles.length > 0) {
@@ -516,9 +541,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           const errBody = await res.json().catch(() => null);
           throw new Error(parseApiError(errBody, `HTTP ${res.status}`));
         }
-        data = await res.json();
+        const data = await res.json();
         setAgentResult(data);
-        setIsLoading(false);
         return data;
       } else {
         // Async text query → poll trace
@@ -536,36 +560,41 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           throw new Error(parseApiError(errBody, `HTTP ${res.status}`));
         }
         const job = await res.json();
-        return await new Promise((resolve) => {
-          pollJobResult(job.job_id, (result) => {
-            setAgentResult(result);
-            setIsLoading(false);
-            resolve(result);
+        return await new Promise((resolve, reject) => {
+          const stop = pollJobResult(job.job_id, (result) => {
+            if (activePollStopRef.current === stop) {
+              activePollStopRef.current = null;
+            }
+            if (result.status === 'failed') {
+              reject(new Error(result.error || 'AI processing failed.'));
+            } else {
+              setAgentResult(result);
+              resolve(result);
+            }
           });
+          activePollStopRef.current = stop;
         });
       }
     } catch (err) {
-      setIsLoading(false);
       throw err;
     }
   }, [pollJobResult]);
 
   /** Initial query run when component mounts */
-  const runInitialQuery = useCallback(async (query, fileAttachments, isCancelled = () => false) => {
-    if (isCancelled()) return;
+  const runInitialQuery = useCallback(async (query, fileAttachments, reqId) => {
     setMessages([{ id: 'user-init', sender: 'user', text: query }]);
     setIsLoading(true);
     try {
       const result = await runQuery(query, fileAttachments);
-      if (isCancelled()) return;
+      if (reqId !== activeRequestIdRef.current) return;
       const answer = extractAnswer(result);
       const aiText = answer
         ? buildAiMessage(answer, result)
         : '⚠️ Agent completed analysis but returned no textual response. Check the Raw Data tab for full output.';
       appendMessage({ id: 'ai-init', sender: 'ai', text: aiText });
     } catch (err) {
+      if (reqId !== activeRequestIdRef.current) return;
       const formattedErr = formatErrorMessage(err.message);
-      if (isCancelled()) return;
       setError(formattedErr);
       appendMessage({
         id: 'ai-err',
@@ -573,6 +602,10 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         text: `❌ Agent error: ${formattedErr}`,
         isError: true
       });
+    } finally {
+      if (reqId === activeRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [runQuery, appendMessage]);
 
