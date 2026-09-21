@@ -676,9 +676,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <span className="query-label">{t.activeQuery}</span>
           <span className="current-query-text" title={displayQueryText}>"{displayQueryText}"</span>
         </LiquidGlassCard>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
           <LanguageSwitcher />
-          <button className="action-pill-btn about-header-btn" onClick={() => setShowAboutModal(true)}>
+          <button className="action-pill-btn" onClick={() => setShowAboutModal(true)}>
             <Info size={14} /> {t.about}
           </button>
         </div>
