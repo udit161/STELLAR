@@ -108,25 +108,58 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
   const processFiles = (files) => {
     const fileList = Array.from(files);
     fileList.forEach(file => {
-      const isImage = file.type.startsWith('image/');
+      const isImage = file.type ? file.type.startsWith('image/') : true;
+      const fileName = file.name || `Pasted_Satellite_Image_${Date.now()}.png`;
       const reader = new FileReader();
       reader.onload = (loadEvent) => {
         setAttachments(prev => [
           ...prev,
           {
             id: Date.now() + Math.random(),
-            name: file.name,
+            name: fileName,
             size: file.size < 1024 * 1024 
               ? `${(file.size / 1024).toFixed(1)} KB` 
               : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
             isImage,
-            type: file.type || (isImage ? 'image' : 'document'),
-            data: loadEvent.target.result
+            type: file.type || (isImage ? 'image/png' : 'document'),
+            data: loadEvent.target.result,
+            fileObj: file
           }
         ]);
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const handlePaste = (e) => {
+    const clipboardData = e.clipboardData || e.originalEvent?.clipboardData;
+    if (!clipboardData) return;
+
+    const items = clipboardData.items;
+    const filesToProcess = [];
+
+    if (items && items.length > 0) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file' || (item.type && item.type.startsWith('image/'))) {
+          const file = item.getAsFile();
+          if (file) {
+            const fileName = file.name && file.name !== 'image.png'
+              ? file.name
+              : `Pasted_Satellite_Image_${Date.now()}_${i + 1}.png`;
+            const namedFile = new File([file], fileName, { type: file.type || 'image/png' });
+            filesToProcess.push(namedFile);
+          }
+        }
+      }
+    } else if (clipboardData.files && clipboardData.files.length > 0) {
+      filesToProcess.push(...Array.from(clipboardData.files));
+    }
+
+    if (filesToProcess.length > 0) {
+      e.preventDefault();
+      processFiles(filesToProcess);
+    }
   };
 
   const handleFileSelect = (e) => {
@@ -315,6 +348,7 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onPaste={handlePaste}
         role="search"
         aria-label={t.queryBarAria}
       >
@@ -364,6 +398,7 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            onPaste={handlePaste}
             placeholder=""
             aria-label={t.queryInputAria}
             autoComplete="off"
