@@ -660,6 +660,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   };
 
   const handleFollowupPaste = (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     const clipboardData = e.clipboardData || e.originalEvent?.clipboardData;
     if (!clipboardData) return;
 
@@ -674,7 +677,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           if (file) {
             const fileName = file.name && file.name !== 'image.png'
               ? file.name
-              : `Pasted_Satellite_Image_${Date.now()}_${i + 1}.png`;
+              : `Pasted_Satellite_Image_${Date.now()}.png`;
             const namedFile = new File([file], fileName, { type: file.type || 'image/png' });
             const isImage = namedFile.type?.startsWith('image/');
             filesToProcess.push({
@@ -686,26 +689,25 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               isImage,
               previewUrl: isImage ? URL.createObjectURL(namedFile) : null
             });
+            break;
           }
         }
       }
     } else if (clipboardData.files && clipboardData.files.length > 0) {
-      Array.from(clipboardData.files).forEach(file => {
-        const isImage = file.type?.startsWith('image/');
-        filesToProcess.push({
-          name: file.name,
-          size: file.size < 1024 * 1024
-            ? `${(file.size / 1024).toFixed(1)} KB`
-            : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-          fileObj: file,
-          isImage,
-          previewUrl: isImage ? URL.createObjectURL(file) : null
-        });
+      const file = clipboardData.files[0];
+      const isImage = file.type?.startsWith('image/');
+      filesToProcess.push({
+        name: file.name,
+        size: file.size < 1024 * 1024
+          ? `${(file.size / 1024).toFixed(1)} KB`
+          : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        fileObj: file,
+        isImage,
+        previewUrl: isImage ? URL.createObjectURL(file) : null
       });
     }
 
     if (filesToProcess.length > 0) {
-      e.preventDefault();
       setAttachedFiles(prev => [...prev, ...filesToProcess]);
     }
   };
@@ -1206,7 +1208,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                 ))}
               </div>
             )}
-            <form className="followup-input-box" onSubmit={handleSendFollowup} onPaste={handleFollowupPaste}>
+            <form className="followup-input-box" onSubmit={handleSendFollowup}>
               <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} multiple accept="image/*,.tif,.tiff,.geojson,.png,.jpg,.jpeg" />
               <button type="button" className="input-icon-btn" title="Attach Satellite Imagery" onClick={() => fileInputRef.current?.click()}>
                 <Paperclip size={16} />

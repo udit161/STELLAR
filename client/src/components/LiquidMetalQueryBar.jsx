@@ -132,6 +132,9 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
   };
 
   const handlePaste = (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     const clipboardData = e.clipboardData || e.originalEvent?.clipboardData;
     if (!clipboardData) return;
 
@@ -146,18 +149,18 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
           if (file) {
             const fileName = file.name && file.name !== 'image.png'
               ? file.name
-              : `Pasted_Satellite_Image_${Date.now()}_${i + 1}.png`;
+              : `Pasted_Satellite_Image_${Date.now()}.png`;
             const namedFile = new File([file], fileName, { type: file.type || 'image/png' });
             filesToProcess.push(namedFile);
+            break;
           }
         }
       }
     } else if (clipboardData.files && clipboardData.files.length > 0) {
-      filesToProcess.push(...Array.from(clipboardData.files));
+      filesToProcess.push(clipboardData.files[0]);
     }
 
     if (filesToProcess.length > 0) {
-      e.preventDefault();
       processFiles(filesToProcess);
     }
   };
@@ -348,7 +351,6 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onPaste={handlePaste}
         role="search"
         aria-label={t.queryBarAria}
       >
