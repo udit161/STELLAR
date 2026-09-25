@@ -660,9 +660,6 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   };
 
   const handleFollowupPaste = (e) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-
     const clipboardData = e.clipboardData || e.originalEvent?.clipboardData;
     if (!clipboardData) return;
 
@@ -708,6 +705,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     }
 
     if (filesToProcess.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
       setAttachedFiles(prev => [...prev, ...filesToProcess]);
     }
   };

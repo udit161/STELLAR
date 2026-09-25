@@ -132,9 +132,6 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
   };
 
   const handlePaste = (e) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-
     const clipboardData = e.clipboardData || e.originalEvent?.clipboardData;
     if (!clipboardData) return;
 
@@ -161,6 +158,8 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
     }
 
     if (filesToProcess.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
       processFiles(filesToProcess);
     }
   };
