@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  FileText
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import LiquidGlassCard from './LiquidGlassCard';
 import SatQueryLogo from './SatQueryLogo';
@@ -24,6 +25,19 @@ import { translateText } from '../utils/translate';
 import './LiquidMetalChatUI.css';
 
 const AI_BASE_URL = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
+
+/** Format errors into friendly diagnostic messages */
+function formatErrorMessage(msg) {
+  if (!msg) return 'Unknown error occurred.';
+  if (
+    msg === 'Failed to fetch' ||
+    msg.toLowerCase().includes('failed to fetch') ||
+    msg.toLowerCase().includes('networkerror')
+  ) {
+    return `Cannot connect to AI Agent backend (${AI_BASE_URL}). Please verify that the FastAPI backend service is running on port 8000.`;
+  }
+  return msg;
+}
 
 /** Extract readable answer from agent result state */
 function extractAnswer(result) {
@@ -218,6 +232,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const [tleData, setTleData] = useState(null);
   const [tleLoading, setTleLoading] = useState(false);
   const [initImagePreviews, setInitImagePreviews] = useState([]);
+  const [allUploadedPreviews, setAllUploadedPreviews] = useState([]);
+  const [rightImgIdx, setRightImgIdx] = useState(0);
   // incrementing this counter re-triggers the query useEffect (Regenerate)
   const [regenCounter, setRegenCounter] = useState(0);
 
@@ -235,7 +251,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
   const outputBodyRef = useRef(null);
   const fileInputRef = useRef(null);
-  const pollRef = useRef(null);
+  const activePollStopRef = useRef(null);
+  const activeRequestIdRef = useRef(0);
 
   const [messages, setMessages] = useState([]);
 
@@ -244,13 +261,18 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     const previews = [];
     (attachments || []).forEach(f => {
       const file = f.fileObj || f;
-      if (file instanceof File && file.type.startsWith('image/')) {
-        previews.push({ name: file.name, url: URL.createObjectURL(file) });
+      if (file instanceof File && file.type && file.type.startsWith('image/')) {
+        previews.push({ name: file.name || 'Satellite Image', url: URL.createObjectURL(file) });
+      } else if (f.data && (f.isImage || (typeof f.data === 'string' && f.data.startsWith('data:image')))) {
+        previews.push({ name: f.name || 'Satellite Image', url: f.data });
+      } else if (f.url) {
+        previews.push({ name: f.name || 'Satellite Image', url: f.url });
       }
     });
     setInitImagePreviews(previews);
-    return () => previews.forEach(p => URL.revokeObjectURL(p.url));
-  }, []);
+    setAllUploadedPreviews(previews);
+    return () => previews.forEach(p => p.url?.startsWith('blob:') && URL.revokeObjectURL(p.url));
+  }, [attachments]);
 
   // Fetch live TLE from Celestrak GP API when TLE tab is opened
   useEffect(() => {
@@ -413,22 +435,35 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   // Call the real AI backend on initial query load OR when Regenerate is pressed
   useEffect(() => {
     if (!queryText) return;
-    let cancelled = false;
 
-    // Cancel any in-flight poll before starting fresh
-    if (pollRef.current) clearInterval(pollRef.current);
+    if (activePollStopRef.current) {
+      activePollStopRef.current();
+      activePollStopRef.current = null;
+    }
+
     setMessages([]);
     setError(null);
     setAgentResult(null);
-    setIsLoading(false);
 
-    runInitialQuery(queryText, attachments, () => cancelled);
+    const reqId = ++activeRequestIdRef.current;
+    runInitialQuery(queryText, attachments, reqId);
+
+    return () => {
+      if (activePollStopRef.current) {
+        activePollStopRef.current();
+        activePollStopRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    return () => { cancelled = true; if (pollRef.current) clearInterval(pollRef.current); };
   }, [queryText, regenCounter]);
 
   // Cleanup poll interval on unmount
-  useEffect(() => () => clearInterval(pollRef.current), []);
+  useEffect(() => () => {
+    if (activePollStopRef.current) {
+      activePollStopRef.current();
+      activePollStopRef.current = null;
+    }
+  }, []);
 
   const appendMessage = useCallback((msg) => {
     setMessages(prev => [...prev, msg]);
@@ -438,22 +473,35 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
   const pollJobResult = useCallback((jobId, onResult) => {
     let attempts = 0;
     const MAX = 60; // 30 seconds max
-    pollRef.current = setInterval(async () => {
+    let timerId = null;
+
+    const stop = () => {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    };
+
+    timerId = setInterval(async () => {
       attempts++;
       try {
         const res = await fetch(`${AI_BASE_URL}/api/v1/trace/${jobId}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.status === 'completed' || data.status === 'failed') {
-          clearInterval(pollRef.current);
+          stop();
           onResult(data);
+          return;
         }
       } catch (_) { /* keep polling */ }
+
       if (attempts >= MAX) {
-        clearInterval(pollRef.current);
+        stop();
         onResult({ status: 'failed', error: 'Timed out waiting for AI response.' });
       }
     }, 500);
+
+    return stop;
   }, []);
 
   /** Run the AI query — uses query-with-image if files present, else async query + poll */
@@ -478,7 +526,6 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     };
 
     try {
-      let data;
       // Only use multipart endpoint if there are real File objects attached
       const realFiles = files.filter(f => (f.fileObj instanceof File) || (f instanceof File));
       if (realFiles.length > 0) {
@@ -494,9 +541,8 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           const errBody = await res.json().catch(() => null);
           throw new Error(parseApiError(errBody, `HTTP ${res.status}`));
         }
-        data = await res.json();
+        const data = await res.json();
         setAgentResult(data);
-        setIsLoading(false);
         return data;
       } else {
         // Async text query → poll trace
@@ -514,60 +560,83 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           throw new Error(parseApiError(errBody, `HTTP ${res.status}`));
         }
         const job = await res.json();
-        return await new Promise((resolve) => {
-          pollJobResult(job.job_id, (result) => {
-            setAgentResult(result);
-            setIsLoading(false);
-            resolve(result);
+        return await new Promise((resolve, reject) => {
+          const stop = pollJobResult(job.job_id, (result) => {
+            if (activePollStopRef.current === stop) {
+              activePollStopRef.current = null;
+            }
+            if (result.status === 'failed') {
+              reject(new Error(result.error || 'AI processing failed.'));
+            } else {
+              setAgentResult(result);
+              resolve(result);
+            }
           });
+          activePollStopRef.current = stop;
         });
       }
     } catch (err) {
-      setIsLoading(false);
       throw err;
     }
   }, [pollJobResult]);
 
   /** Initial query run when component mounts */
-  const runInitialQuery = useCallback(async (query, fileAttachments, isCancelled = () => false) => {
-    if (isCancelled()) return;
+  const runInitialQuery = useCallback(async (query, fileAttachments, reqId) => {
     setMessages([{ id: 'user-init', sender: 'user', text: query }]);
     setIsLoading(true);
     try {
       const result = await runQuery(query, fileAttachments);
-      if (isCancelled()) return;
+      if (reqId !== activeRequestIdRef.current) return;
       const answer = extractAnswer(result);
       const aiText = answer
         ? buildAiMessage(answer, result)
         : '⚠️ Agent completed analysis but returned no textual response. Check the Raw Data tab for full output.';
       appendMessage({ id: 'ai-init', sender: 'ai', text: aiText });
     } catch (err) {
-      if (isCancelled()) return;
-      setError(err.message);
+      if (reqId !== activeRequestIdRef.current) return;
+      const formattedErr = formatErrorMessage(err.message);
+      setError(formattedErr);
       appendMessage({
         id: 'ai-err',
         sender: 'ai',
-        text: `❌ Agent error: ${err.message}`,
+        text: `❌ Agent error: ${formattedErr}`,
         isError: true
       });
+    } finally {
+      if (reqId === activeRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [runQuery, appendMessage]);
 
   const handleFileSelect = (e) => {
     if (e.target.files?.length > 0) {
-      const newFiles = Array.from(e.target.files).map(file => ({
-        name: file.name,
-        size: file.size < 1024 * 1024
-          ? `${(file.size / 1024).toFixed(1)} KB`
-          : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        fileObj: file
-      }));
+      const newFiles = Array.from(e.target.files).map(file => {
+        const isImage = file.type?.startsWith('image/');
+        return {
+          name: file.name,
+          size: file.size < 1024 * 1024
+            ? `${(file.size / 1024).toFixed(1)} KB`
+            : `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          fileObj: file,
+          isImage,
+          previewUrl: isImage ? URL.createObjectURL(file) : null
+        };
+      });
       setAttachedFiles(prev => [...prev, ...newFiles]);
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeAttachedFile = (idx) => setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
+  const removeAttachedFile = (idx) => {
+    setAttachedFiles(prev => {
+      const target = prev[idx];
+      if (target?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
 
   const handleSendFollowup = async (e) => {
     e?.preventDefault();
@@ -582,6 +651,11 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         return { name: file.name, url: URL.createObjectURL(file) };
       });
 
+    // Keep Uploaded Image tab in sync — but NOT the initial chat bubble
+    if (filePreviews.length > 0) {
+      setAllUploadedPreviews(prev => [...prev, ...filePreviews]);
+    }
+
     const displayText = text
       ? (attachedFiles.length > 0 ? `${text} [+${attachedFiles.length} file(s)]` : text)
       : `[Attached: ${attachedFiles.map(f => f.name).join(', ')}]`;
@@ -592,21 +666,26 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     const files = [...attachedFiles];
     setFollowupText('');
     setAttachedFiles([]);
+    const reqId = ++activeRequestIdRef.current;
     setIsLoading(true);
 
     try {
       const result = await runQuery(text || queryText, files);
+      if (reqId !== activeRequestIdRef.current) return;
       const answer = extractAnswer(result);
       const aiText = answer
         ? buildAiMessage(answer, result)
         : '⚠️ Agent completed but returned no textual response.';
       appendMessage({ id: `ai-${msgId}`, sender: 'ai', text: aiText });
-      setIsLoading(false);
     } catch (err) {
-      setIsLoading(false);
-      setError(err.message);
-      appendMessage({ id: `ai-err-${msgId}`, sender: 'ai', text: `❌ ${err.message}`, isError: true });
+      if (reqId !== activeRequestIdRef.current) return;
+      const formattedErr = formatErrorMessage(err.message);
+      setError(formattedErr);
+      appendMessage({ id: `ai-err-${msgId}`, sender: 'ai', text: `❌ ${formattedErr}`, isError: true });
     } finally {
+      if (reqId === activeRequestIdRef.current) {
+        setIsLoading(false);
+      }
       // Revoke preview URLs after a delay to avoid flicker
       setTimeout(() => filePreviews.forEach(p => URL.revokeObjectURL(p.url)), 30000);
     }
@@ -650,9 +729,9 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <span className="query-label">{t.activeQuery}</span>
           <span className="current-query-text" title={displayQueryText}>"{displayQueryText}"</span>
         </LiquidGlassCard>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
           <LanguageSwitcher />
-          <button className="action-pill-btn about-header-btn" onClick={() => setShowAboutModal(true)}>
+          <button className="action-pill-btn" onClick={() => setShowAboutModal(true)}>
             <Info size={14} /> {t.about}
           </button>
         </div>
@@ -665,6 +744,15 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <div className="result-panel-header">
             <div className="tab-switcher">
               <button className={`tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => setActiveTab('report')}>{t.tabAIAnalysis}</button>
+              <button className={`tab-btn ${activeTab === 'image' ? 'active' : ''}`} onClick={() => setActiveTab('image')}>
+                <ImageIcon size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                {t.tabUploadedImage || 'Uploaded Image'}
+                {allUploadedPreviews.length > 0 && (
+                  <span style={{ marginLeft: '6px', padding: '1px 6px', borderRadius: '10px', background: '#00f2fe', color: '#020617', fontSize: '0.68rem', fontWeight: 800 }}>
+                    {allUploadedPreviews.length}
+                  </span>
+                )}
+              </button>
               <button className={`tab-btn ${activeTab === 'radar' ? 'active' : ''}`} onClick={() => setActiveTab('radar')}>{t.tabOrbitalRadar}</button>
               <button className={`tab-btn ${activeTab === 'tle' ? 'active' : ''}`} onClick={() => setActiveTab('tle')}>{t.tabNORADTLE}</button>
             </div>
@@ -684,52 +772,6 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
           <div className="output-body" ref={outputBodyRef}>
             {activeTab === 'report' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-                {/* ── Image Preview Strip ── */}
-                {initImagePreviews.length > 0 && (
-                  <div style={{
-                    padding: '14px 16px',
-                    background: 'rgba(0,242,254,0.06)',
-                    borderRadius: '14px',
-                    border: '1px solid rgba(0,242,254,0.2)',
-                  }}>
-                    <div style={{ fontSize: '0.75rem', color: '#00F2FE', fontWeight: 600, marginBottom: '10px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      🛰️ {t.attachedImagery} ({initImagePreviews.length})
-                    </div>
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      {initImagePreviews.map((img, i) => (
-                        <div key={i} style={{ position: 'relative' }}>
-                          <img
-                            src={img.url}
-                            alt={img.name}
-                            title={img.name}
-                            style={{
-                              maxWidth: '220px',
-                              maxHeight: '160px',
-                              minWidth: '80px',
-                              borderRadius: '10px',
-                              border: '1px solid rgba(0,242,254,0.35)',
-                              objectFit: 'cover',
-                              display: 'block',
-                              boxShadow: '0 4px 18px rgba(0,242,254,0.15)',
-                            }}
-                          />
-                          <span style={{
-                            display: 'block',
-                            fontSize: '0.68rem',
-                            color: '#94a3b8',
-                            marginTop: '5px',
-                            maxWidth: '220px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}>{img.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* ── Chat Messages ── */}
                 {displayMessages.map((msg) => (
                   <div key={msg.id} className="chat-message">
@@ -822,6 +864,104 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
               </div>
             )}
 
+            {activeTab === 'image' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '6px 2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(0, 242, 254, 0.15)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00F2FE', fontWeight: 700, fontSize: '1rem' }}>
+                    <ImageIcon size={18} />
+                    {t.uploadedQueryImagery || 'Uploaded Query Satellite Imagery'}
+                  </div>
+                  {allUploadedPreviews.length > 0 && (
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(15,23,42,0.7)', padding: '4px 12px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      {allUploadedPreviews.length} {allUploadedPreviews.length === 1 ? 'Image' : 'Images'}
+                    </span>
+                  )}
+                </div>
+
+                {allUploadedPreviews.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {allUploadedPreviews.map((img, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: 'relative',
+                          background: 'rgba(3, 7, 18, 0.6)',
+                          borderRadius: '16px',
+                          border: '1px solid rgba(0, 242, 254, 0.25)',
+                          padding: '16px',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00f2fe', boxShadow: '0 0 8px #00f2fe' }} />
+                            <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#f8fafc' }}>{img.name}</span>
+                          </div>
+                          <a
+                            href={img.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '5px 12px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              color: '#00f2fe',
+                              background: 'rgba(0, 242, 254, 0.1)',
+                              border: '1px solid rgba(0, 242, 254, 0.3)',
+                              borderRadius: '20px',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <Download size={13} /> View Full Res
+                          </a>
+                        </div>
+
+                        {/* Full Size Image View */}
+                        <div style={{ position: 'relative', width: '100%', overflow: 'hidden', borderRadius: '12px', background: '#020617', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <img
+                            src={img.url}
+                            alt={img.name}
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '520px',
+                              width: 'auto',
+                              height: 'auto',
+                              objectFit: 'contain',
+                              display: 'block',
+                              borderRadius: '10px',
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '4px' }}>
+                          <span style={{ fontSize: '0.73rem', color: '#94a3b8', background: 'rgba(15,23,42,0.8)', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                            Filename: {img.name}
+                          </span>
+                          <span style={{ fontSize: '0.73rem', color: '#38bdf8', background: 'rgba(56,189,248,0.1)', padding: '3px 10px', borderRadius: '8px', border: '1px solid rgba(56,189,248,0.2)' }}>
+                            User Uploaded Query Imagery
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '44px 20px', textAlign: 'center', background: 'rgba(3,7,18,0.4)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <ImageIcon size={38} style={{ color: '#475569', marginBottom: '10px' }} />
+                    <h4 style={{ margin: '0 0 6px', color: '#94a3b8', fontSize: '0.98rem' }}>No Input Image Uploaded</h4>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.84rem' }}>
+                      This query was submitted as a text prompt without attached imagery. You can upload satellite imagery anytime using the attachment button in the query bar.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeTab === 'radar' && (() => {
               // Build radar metrics from agent result
               const r = agentResult?.result || agentResult || {};
@@ -894,14 +1034,89 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
         {/* ── Right Summary Column ── */}
         <div className="right-summary-column">
-          {/* Follow-up Query Bar */}
+
+          {/* ── Uploaded Image Card (always shown, above follow-up bar) ── */}
+          <LiquidGlassCard className="right-image-card">
+
+
+            {/* Image Body */}
+            <div className="right-image-card-body">
+              {allUploadedPreviews.length > 0 ? (
+                <>
+                  {/* Thumbnail strip for multiple images */}
+                  {allUploadedPreviews.length > 1 && (
+                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+                      {allUploadedPreviews.map((img, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setRightImgIdx(i)}
+                          style={{
+                            flexShrink: 0,
+                            width: '42px', height: '42px',
+                            borderRadius: '8px',
+                            border: rightImgIdx === i ? '2px solid #00f2fe' : '2px solid rgba(255,255,255,0.1)',
+                            overflow: 'hidden', padding: 0, background: 'none', cursor: 'pointer',
+                            boxShadow: rightImgIdx === i ? '0 0 10px rgba(0,242,254,0.5)' : 'none',
+                            transition: 'all 0.2s ease',
+                          }}
+                          title={img.name}
+                        >
+                          <img src={img.url} alt={img.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Main full image */}
+                  {allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)] && (
+                    <div className="right-image-main-wrap">
+                      <img
+                        src={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].url}
+                        alt={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].name}
+                        className="right-image-main-img"
+                      />
+                      {/* Meta bar */}
+                      <div className="right-image-meta-bar">
+                        <span className="right-image-meta-name" title={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].name}>
+                          {allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].name}
+                        </span>
+                        <a
+                          href={allUploadedPreviews[Math.min(rightImgIdx, allUploadedPreviews.length - 1)].url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="right-image-open-btn"
+                          title="Open full resolution"
+                        >
+                          <Download size={11} /> Full Res
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="right-image-empty-state">
+                  <ImageIcon size={30} style={{ color: '#334155', marginBottom: '8px' }} />
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.8rem', textAlign: 'center', lineHeight: 1.5 }}>
+                    No image attached to this query
+                  </p>
+                </div>
+              )}
+            </div>
+          </LiquidGlassCard>
+
+          {/* ── Follow-up Query Bar ── */}
           <LiquidGlassCard pill className="summary-followup-card">
+            {/* Show New Follow-up Attached Files */}
             {attachedFiles.length > 0 && (
               <div style={{ display: 'flex', gap: '6px', padding: '6px 12px 2px', flexWrap: 'wrap' }}>
                 {attachedFiles.map((file, idx) => (
-                  <span key={idx} style={{ background: 'rgba(0,242,254,0.15)', border: '1px solid rgba(0,242,254,0.4)', borderRadius: '12px', padding: '2px 8px', fontSize: '0.73rem', color: '#00f2fe', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <FileText size={11} />
-                    {file.name} ({file.size})
+                  <span key={idx} style={{ background: 'rgba(0,242,254,0.15)', border: '1px solid rgba(0,242,254,0.4)', borderRadius: '12px', padding: '3px 10px', fontSize: '0.73rem', color: '#00f2fe', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    {file.previewUrl ? (
+                      <img src={file.previewUrl} alt={file.name} style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover' }} />
+                    ) : (
+                      <FileText size={12} />
+                    )}
+                    <span>{file.name} ({file.size})</span>
                     <button type="button" onClick={() => removeAttachedFile(idx)} style={{ background: 'none', border: 'none', color: '#00f2fe', cursor: 'pointer', padding: 0, marginLeft: '2px', display: 'flex', alignItems: 'center' }}>
                       <X size={12} />
                     </button>
@@ -935,6 +1150,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
             </form>
           </LiquidGlassCard>
         </div>
+
       </div>
 
       {/* ── About & Team Modal ── */}

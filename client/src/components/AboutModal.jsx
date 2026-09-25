@@ -136,7 +136,7 @@ const TEAM_MEMBERS = [
     borderColor: 'rgba(56, 189, 248, 0.4)',
   },
   {
-    name: 'Aman',
+    name: 'Aman Deep',
     roleKey: 'memberAmanRole',
     defaultRole: 'Backend Lead',
     roleKeyHi: 'memberAmanRoleHi',
@@ -335,9 +335,52 @@ export function AboutModal({ isOpen, onClose }) {
                           >
                             <IconComponent size={20} />
                           </div>
+<<<<<<< HEAD
                           <span className="team-member-tag" style={{ color: member.color, borderColor: `${member.color}44` }}>
                             #{member.tag}
                           </span>
+=======
+                          {member.socials && (
+                            <div className="team-social-links">
+                              {member.socials.instagram && (
+                                <a
+                                  href={member.socials.instagram}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="team-social-btn"
+                                  title="Instagram"
+                                  style={{ color: member.color, borderColor: `${member.color}44`, background: `${member.color}15` }}
+                                >
+                                  <InstagramIcon size={14} />
+                                </a>
+                              )}
+                              {member.socials.github && (
+                                <a
+                                  href={member.socials.github}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="team-social-btn"
+                                  title="GitHub"
+                                  style={{ color: member.color, borderColor: `${member.color}44`, background: `${member.color}15` }}
+                                >
+                                  <GithubIcon size={14} />
+                                </a>
+                              )}
+                              {member.socials.linkedin && (
+                                <a
+                                  href={member.socials.linkedin}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="team-social-btn"
+                                  title="LinkedIn"
+                                  style={{ color: member.color, borderColor: `${member.color}44`, background: `${member.color}15` }}
+                                >
+                                  <LinkedinIcon size={14} />
+                                </a>
+                              )}
+                            </div>
+                          )}
+>>>>>>> 509804a917167e9ed7e136c00c2a23f69baefea4
                         </div>
 
                         <div className="team-card-info">

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Rocket, Plus, FileText, Image as ImageIcon, X } from 'lucide-react';
+import { Rocket, Plus, FileText, Image as ImageIcon, X, Eye, Paperclip } from 'lucide-react';
 import { useT } from '../context/LanguageContext';
 import './LiquidMetalQueryBar.css';
 
@@ -163,6 +163,11 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
   const showGhost = !query;
   const canSubmit = query.trim().length > 0 || attachments.length > 0;
 
+  // Image preview tab state (only relevant when attachments exist)
+  const imageAttachments = attachments.filter(a => a.isImage);
+  const [previewTab, setPreviewTab] = useState('image');
+  const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+
   return (
     <div className="liquid-bar-dock">
       <span className="ambient-particle particle-tl" aria-hidden="true" />
@@ -170,25 +175,130 @@ function LiquidMetalQueryBar({ onLaunchQuery }) {
       <span className="ambient-particle particle-bl" aria-hidden="true" />
       <span className="ambient-particle particle-br" aria-hidden="true" />
 
-      {/* Attachments Shelf above Query Bar */}
-      {attachments.length > 0 && (
+      {/* ── Image Preview Panel (shown above bar when images are attached) ── */}
+      {imageAttachments.length > 0 && (
+        <div className="qb-image-preview-panel" onClick={e => e.stopPropagation()}>
+          {/* Panel Header with tabs */}
+          <div className="qb-preview-header">
+            <div className="qb-preview-tabs">
+              <button
+                className={`qb-preview-tab ${previewTab === 'image' ? 'active' : ''}`}
+                onClick={() => setPreviewTab('image')}
+              >
+                <ImageIcon size={12} />
+                Image Preview
+                <span className="qb-preview-badge">{imageAttachments.length}</span>
+              </button>
+              <button
+                className={`qb-preview-tab ${previewTab === 'files' ? 'active' : ''}`}
+                onClick={() => setPreviewTab('files')}
+              >
+                <Paperclip size={12} />
+                All Files
+                <span className="qb-preview-badge">{attachments.length}</span>
+              </button>
+            </div>
+            <button
+              className="qb-preview-close"
+              onClick={e => { e.stopPropagation(); setAttachments([]); }}
+              title="Remove all attachments"
+            >
+              <X size={13} />
+            </button>
+          </div>
+
+          {/* Image Preview Tab */}
+          {previewTab === 'image' && (
+            <div className="qb-image-tab-body">
+              {/* Thumbnail strip if multiple images */}
+              {imageAttachments.length > 1 && (
+                <div className="qb-thumb-strip">
+                  {imageAttachments.map((img, i) => (
+                    <button
+                      key={img.id}
+                      className={`qb-thumb-btn ${selectedImgIdx === i ? 'active' : ''}`}
+                      onClick={() => setSelectedImgIdx(i)}
+                      title={img.name}
+                    >
+                      <img src={img.data} alt={img.name} className="qb-thumb-img" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Main Image View */}
+              {imageAttachments[Math.min(selectedImgIdx, imageAttachments.length - 1)] && (
+                <div className="qb-main-image-wrap">
+                  <img
+                    src={imageAttachments[Math.min(selectedImgIdx, imageAttachments.length - 1)].data}
+                    alt={imageAttachments[Math.min(selectedImgIdx, imageAttachments.length - 1)].name}
+                    className="qb-main-image"
+                  />
+                  <div className="qb-image-meta">
+                    <span className="qb-image-filename">
+                      {imageAttachments[Math.min(selectedImgIdx, imageAttachments.length - 1)].name}
+                    </span>
+                    <span className="qb-image-size">
+                      {imageAttachments[Math.min(selectedImgIdx, imageAttachments.length - 1)].size}
+                    </span>
+                    <button
+                      className="qb-image-remove-btn"
+                      onClick={e => removeAttachment(imageAttachments[Math.min(selectedImgIdx, imageAttachments.length - 1)].id, e)}
+                      title="Remove this image"
+                    >
+                      <X size={11} /> Remove
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* All Files Tab */}
+          {previewTab === 'files' && (
+            <div className="qb-files-tab-body">
+              {attachments.map((att) => (
+                <div key={att.id} className="attachment-chip">
+                  {att.isImage ? (
+                    <img src={att.data} alt={att.name} className="attachment-chip-thumb" />
+                  ) : (
+                    <div className="attachment-chip-doc-icon">
+                      <FileText size={13} />
+                    </div>
+                  )}
+                  <div className="attachment-chip-text">
+                    <span className="attachment-chip-name" title={att.name}>{att.name}</span>
+                    <span className="attachment-chip-size">{att.size}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="attachment-chip-remove"
+                    onClick={(e) => removeAttachment(att.id, e)}
+                    title={t.removeAttachment}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Non-image doc chips only shown when no image tab panel is visible */}
+      {imageAttachments.length === 0 && attachments.length > 0 && (
         <div className="liquid-attachments-shelf" onClick={(e) => e.stopPropagation()}>
           {attachments.map((att) => (
             <div key={att.id} className="attachment-chip">
-              {att.isImage ? (
-                <img src={att.data} alt={att.name} className="attachment-chip-thumb" />
-              ) : (
-                <div className="attachment-chip-doc-icon">
-                  <FileText size={13} />
-                </div>
-              )}
+              <div className="attachment-chip-doc-icon">
+                <FileText size={13} />
+              </div>
               <div className="attachment-chip-text">
                 <span className="attachment-chip-name" title={att.name}>{att.name}</span>
                 <span className="attachment-chip-size">{att.size}</span>
               </div>
-              <button 
-                type="button" 
-                className="attachment-chip-remove" 
+              <button
+                type="button"
+                className="attachment-chip-remove"
                 onClick={(e) => removeAttachment(att.id, e)}
                 title={t.removeAttachment}
               >

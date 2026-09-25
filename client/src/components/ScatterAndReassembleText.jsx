@@ -12,18 +12,18 @@ const PALETTE = [
 
 // Multilingual SatQuery AI translations positioned OUTSIDE the main logo bounding box
 const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi", top: "-42px", left: "50%", color: "rgb(190, 123, 114)", delay: "0s" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam", top: "-38px", left: "78%", color: "rgb(253, 175, 123)", delay: "0.2s" },
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil", top: "-5%", left: "96%", color: "rgb(190, 123, 114)", delay: "0.4s" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali", top: "50%", left: "105%", color: "rgb(253, 175, 123)", delay: "0.6s" },
-  { text: "સમયાનુસાર એઆઈ", lang: "Gujarati", top: "105%", left: "96%", color: "rgb(190, 123, 114)", delay: "0.8s" },
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia", bottom: "-38px", left: "78%", color: "rgb(253, 175, 123)", delay: "1.0s" },
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu", bottom: "-42px", left: "50%", color: "rgb(190, 123, 114)", delay: "1.2s" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi", bottom: "-38px", left: "22%", color: "rgb(253, 175, 123)", delay: "1.4s" },
-  { text: "सटक्वेरी एआय", lang: "Marathi", top: "105%", left: "4%", color: "rgb(190, 123, 114)", delay: "1.6s" },
-  { text: "ست کوئری اے آئی", lang: "Urdu", top: "50%", left: "-5%", color: "rgb(253, 175, 123)", delay: "1.8s" },
-  { text: "ಸ್ಯಾಟ್‌ಕ್ವೆರಿ ಏಐ", lang: "Kannada", top: "-5%", left: "4%", color: "rgb(190, 123, 114)", delay: "2.0s" },
-  { text: "চেটকোৱেৰী এআই", lang: "Assamese", top: "-38px", left: "22%", color: "rgb(253, 175, 123)", delay: "2.2s" },
+  { text: "सत्क्वेरी एआई", lang: "Hindi", top: "-4%", left: "50%", color: "rgb(190, 123, 114)", delay: "0s" },
+  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam", top: "3%", left: "76%", color: "rgb(253, 175, 123)", delay: "0.2s" },
+  { text: "சாட்கொரி ஏஐ", lang: "Tamil", top: "24%", left: "95%", color: "rgb(190, 123, 114)", delay: "0.4s" },
+  { text: "সৎকোয়েরি এআই", lang: "Bengali", top: "50%", left: "101%", color: "rgb(253, 175, 123)", delay: "0.6s" },
+  { text: "સમયાનુસાર એઆઈ", lang: "Gujarati", top: "76%", left: "95%", color: "rgb(190, 123, 114)", delay: "0.8s" },
+  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia", top: "97%", left: "76%", color: "rgb(253, 175, 123)", delay: "1.0s" },
+  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu", top: "104%", left: "50%", color: "rgb(190, 123, 114)", delay: "1.2s" },
+  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi", top: "97%", left: "24%", color: "rgb(253, 175, 123)", delay: "1.4s" },
+  { text: "सटक्वेरी एआय", lang: "Marathi", top: "76%", left: "5%", color: "rgb(190, 123, 114)", delay: "1.6s" },
+  { text: "ست کوئری اے آئی", lang: "Urdu", top: "50%", left: "-1%", color: "rgb(253, 175, 123)", delay: "1.8s" },
+  { text: "ಸ್ಯಾಟ್‌ಕ್ವೆರಿ ಏಐ", lang: "Kannada", top: "24%", left: "5%", color: "rgb(190, 123, 114)", delay: "2.0s" },
+  { text: "চেটকোৱেৰী এআই", lang: "Assamese", top: "3%", left: "24%", color: "rgb(253, 175, 123)", delay: "2.2s" },
 ];
 
 const FLOAT_HOLD_MS = 3600;
@@ -35,8 +35,8 @@ function getScatterOffset(index) {
   if (index === 11) {
     const iOffset = getScatterOffset(10);
     return {
-      x: iOffset.x + 18,
-      y: iOffset.y + 4,
+      x: iOffset.x + 12,
+      y: iOffset.y + 2.3,
       rotate: iOffset.rotate,
     };
   }
@@ -46,16 +46,16 @@ function getScatterOffset(index) {
     return v - Math.floor(v);
   };
   return {
-    x: (rand(1) - 0.5) * 110,
-    y: (rand(2) - 0.5) * 70,
-    rotate: rand(3) > 0.4 ? (rand(4) - 0.5) * 18 : 0,
+    x: (rand(1) - 0.5) * 58,
+    y: (rand(2) - 0.5) * 35,
+    rotate: rand(3) > 0.4 ? (rand(4) - 0.5) * 14 : 0,
   };
 }
 
 function getFloatParams(index) {
   return {
     duration: 2.2 + (index % 5) * 0.3,
-    amplitude: 6 + (index % 3) * 2,
+    amplitude: 3 + (index % 3) * 1.5,
   };
 }
 
@@ -289,7 +289,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
             bottom: item.bottom,
             left: item.left,
             transform: "translate(-50%, -50%)",
-            fontSize: "19px",
+            fontSize: "16px",
             fontWeight: 800,
             fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
             color: item.color,
@@ -390,7 +390,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
               key={`${char}-${i}`}
               style={{
                 display: "inline-block",
-                fontSize: "clamp(2.5rem, 6.2vw, 6.2rem)",
+                fontSize: "clamp(2.4rem, 5.8vw, 5.6rem)",
                 fontWeight: 900,
                 fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
                 letterSpacing: "-0.02em",
