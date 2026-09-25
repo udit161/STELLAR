@@ -613,7 +613,17 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
 
   /** Initial query run when component mounts */
   const runInitialQuery = useCallback(async (query, fileAttachments, reqId) => {
-    setMessages([{ id: 'user-init', sender: 'user', text: query }]);
+    const initPreviews = (fileAttachments || [])
+      .filter(f => {
+        const file = f.fileObj || f;
+        return file instanceof File && file.type?.startsWith('image/');
+      })
+      .map(f => {
+        const file = f.fileObj || f;
+        return { name: file.name, url: URL.createObjectURL(file) };
+      });
+
+    setMessages([{ id: 'user-init', sender: 'user', text: query, filePreviews: initPreviews }]);
     setIsLoading(true);
     try {
       const result = await runQuery(query, fileAttachments);
@@ -734,14 +744,18 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         return { name: file.name, url: URL.createObjectURL(file) };
       });
 
-    // Keep Uploaded Image tab in sync — but NOT the initial chat bubble
+    // Keep Uploaded Image tab in sync — show latest image(s), scrolling to new ones
     if (filePreviews.length > 0) {
-      setAllUploadedPreviews(prev => [...prev, ...filePreviews]);
+      setAllUploadedPreviews(prev => {
+        const updated = [...prev, ...filePreviews];
+        // Auto-select the newly added image
+        setRightImgIdx(updated.length - 1);
+        return updated;
+      });
     }
 
-    const displayText = text
-      ? (attachedFiles.length > 0 ? `${text} [+${attachedFiles.length} file(s)]` : text)
-      : `[Attached: ${attachedFiles.map(f => f.name).join(', ')}]`;
+    // Clean display text — no [+N file(s)] clutter
+    const displayText = text || `[Attached: ${attachedFiles.map(f => f.name).join(', ')}]`;
 
     const msgId = Date.now();
     appendMessage({ id: `user-${msgId}`, sender: 'user', text: displayText, filePreviews });
