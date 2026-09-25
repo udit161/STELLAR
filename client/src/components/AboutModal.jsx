@@ -7,11 +7,9 @@ import {
   Palette,
   Code,
   Monitor,
-  Rocket,
   Cpu,
   Globe,
   ShieldCheck,
-  Sparkles,
   Users,
   Layers
 } from 'lucide-react';

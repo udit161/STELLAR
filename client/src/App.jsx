@@ -39,7 +39,6 @@ function App() {
   }
 
   const handleLaunchQuery = (queryText, attachments = []) => {
-    console.log('Satellite AI Query launched:', queryText, attachments);
     setActiveQuery(queryText || 'Track ISRO satellite orbits');
     setActiveAttachments(attachments || []);
     setQuerySubmitted(true);
