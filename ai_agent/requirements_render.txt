@@ -1,0 +1,24 @@
+# SatQuery AI Agent — Render.com Demo Requirements
+# Stripped-down for Render free tier (512MB RAM limit)
+# Heavy ML models (TF, Transformers) are omitted — agent runs with mock LLM
+# The orchestrator already handles missing langgraph/langchain gracefully (try/except)
+
+fastapi>=0.100.0
+uvicorn>=0.24.0
+pydantic>=2.5.0
+pydantic[email]>=2.5.0
+sqlalchemy>=2.0.0
+python-multipart>=0.0.6
+pyjwt>=2.8.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0
+
+# Geospatial & image (lightweight subset — no GDAL/rasterio system deps needed)
+numpy>=1.23.0,<2.0.0
+pillow>=9.0.0
+shapely>=2.0.0
+pyproj>=3.6.0
+
+# Reports & HTTP
+reportlab>=4.2.0
+httpx>=0.25.0

@@ -1,0 +1,84 @@
+# render.yaml — Root-level config for all 3 SatQueryAI services on Render
+# Deploy at: https://dashboard.render.com → New → Blueprint → connect repo
+
+services:
+  # ── 1. React/Vite Frontend (Static Site) ────────────────────────────────────
+  - type: web
+    name: satquery-client
+    env: static
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false   # Set to your satquery-api-gateway Render URL after deploy
+
+  # ── 2. Node.js API Gateway ──────────────────────────────────────────────────
+  - type: web
+    name: satquery-api-gateway
+    env: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: PYTHON_API_URL
+        sync: false   # Set to your satquery-ai-agent Render URL after deploy
+      - key: DATABASE_URL
+        fromDatabase:
+          name: satquery-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: HF_TOKEN
+        sync: false
+      - key: HF_READ_TOKEN
+        sync: false
+      - key: HF_WRITE_TOKEN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+
+  # ── 3. Python FastAPI AI Agent ──────────────────────────────────────────────
+  - type: web
+    name: satquery-ai-agent
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r ai_agent/requirements_render.txt
+    startCommand: uvicorn ai_agent.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: HF_TOKEN
+        sync: false
+      - key: HUGGINGFACE_HUB_TOKEN
+        sync: false
+      - key: HF_READ_TOKEN
+        sync: false
+      - key: HF_WRITE_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: satquery-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+
+# ── PostgreSQL Database ────────────────────────────────────────────────────────
+databases:
+  - name: satquery-postgres
+    databaseName: satquery
+    user: satquery_user
+    plan: free
+    region: oregon
