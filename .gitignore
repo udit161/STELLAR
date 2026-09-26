@@ -1,4 +1,4 @@
-﻿# Node
+# Node
 node_modules/
 npm-debug.log*
 yarn-error.log*
@@ -15,9 +15,20 @@ env/
 .env/
 .venv/
 
-# Env files
+# Env files — keep .example files, ignore everything else
 .env
 .env.*
+!.env.example
+!.env.production.example
+
+# SQLite databases (local only)
+*.db
+
+# Uploaded files (local only)
+uploads/
+
+# Python checkpoints
+checkpoints/
 
 # OS/Editor
 .DS_Store

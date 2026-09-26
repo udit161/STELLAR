@@ -1,0 +1,43 @@
+# SatQuery AI Agent — Hugging Face Spaces Dockerfile
+# Platform: Hugging Face Spaces (Docker SDK)
+# Free tier: 16GB RAM, 2 vCPUs, always-on, public HTTPS URL
+
+FROM python:3.10-slim
+
+# System dependencies required by GDAL/Rasterio/PROJ
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gdal-bin \
+    libgdal-dev \
+    libproj-dev \
+    proj-data \
+    proj-bin \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# HF Spaces runs containers as non-root user (uid 1000)
+RUN useradd -m -u 1000 appuser
+WORKDIR /home/appuser/app
+
+# Copy and install dependencies first (Docker layer caching)
+COPY ai_agent/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy AI agent source
+COPY ai_agent ./ai_agent
+
+# Ensure PYTHONPATH includes project root
+ENV PYTHONPATH=/home/appuser/app
+ENV PORT=7860
+ENV HOST=0.0.0.0
+
+# HF Spaces requires the app to listen on port 7860
+EXPOSE 7860
+
+# Switch to non-root user (required by HF Spaces)
+USER appuser
+
+# Start FastAPI via uvicorn on HF Spaces port
+CMD ["uvicorn", "ai_agent.main:app", "--host", "0.0.0.0", "--port", "7860"]

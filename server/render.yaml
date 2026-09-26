@@ -1,12 +1,39 @@
 # Deployment configuration for Render
+# Covers: Node.js API Gateway + PostgreSQL Database
+
 services:
   - type: web
     name: satquery-api-gateway
     env: node
-    buildCommand: npm install
-    startCommand: npm start
+    region: oregon
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
     envVars:
       - key: PORT
         value: 5000
+      - key: NODE_ENV
+        value: production
       - key: PYTHON_API_URL
-        value: http://localhost:8000
+        sync: false  # Set this manually in Render dashboard to your HF Spaces URL
+      - key: DATABASE_URL
+        fromDatabase:
+          name: satquery-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: HF_TOKEN
+        sync: false  # Set in Render dashboard — do NOT hardcode
+      - key: HF_READ_TOKEN
+        sync: false
+      - key: HF_WRITE_TOKEN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+
+databases:
+  - name: satquery-postgres
+    databaseName: satquery
+    user: satquery_user
+    plan: free
+    region: oregon
