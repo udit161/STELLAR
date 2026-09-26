@@ -109,7 +109,7 @@ except ImportError:
 
 
 DATASET_REPO = "BIFOLD-BigEarthNetv2-0/BigEarthNet.txt"
-DEFAULT_HF_TOKEN = os.getenv("HF_TOKEN", "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")
+DEFAULT_HF_TOKEN = os.getenv("HF_TOKEN", "")  # Set HF_TOKEN in your .env file
 MERGED_CHECKPOINT_PATH = os.path.join(BASE_DIR, "checkpoints", "merged_vlm", "merged_vlm_final.pt")
 
 

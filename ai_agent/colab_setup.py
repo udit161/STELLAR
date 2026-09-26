@@ -13,13 +13,22 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 def setup_huggingface_environment(
-    read_token: str = "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",
-    write_token: str = "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"
+    read_token: str = None,
+    write_token: str = None
 ):
     """
     Configures Hugging Face authentication, installs ecosystem libraries (transformers, datasets, peft, bitsandbytes),
     and configures environment variables for Google Colab.
+    Pass tokens explicitly, or set HF_READ_TOKEN / HF_WRITE_TOKEN in your Colab secrets.
     """
+    # Resolve from environment if not passed explicitly
+    read_token = read_token or os.getenv("HF_READ_TOKEN") or os.getenv("HF_TOKEN", "")
+    write_token = write_token or os.getenv("HF_WRITE_TOKEN") or os.getenv("HF_TOKEN", "")
+
+    if not write_token:
+        print("[!] WARNING: No HuggingFace token found. Set HF_TOKEN or HF_WRITE_TOKEN in your environment.")
+        return
+
     print("[+] Initializing SatQuery AI Google Colab Environment...")
 
     # 1. Install required Hugging Face ecosystem libraries
