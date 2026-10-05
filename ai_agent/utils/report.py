@@ -30,7 +30,7 @@ def generate_audit_report(
     output_path: str | None = None,
 ) -> Dict[str, Any]:
     """
-    Generate a PDF audit report for a SatQuery AI job.
+    Generate a PDF audit report for a Stellar AI job.
     """
 
     if output_path is None:
@@ -56,7 +56,7 @@ def generate_audit_report(
 
     story.append(
         Paragraph(
-            "SatQuery AI - Analysis Audit Report",
+            "Stellar AI - Analysis Audit Report",
             styles["Title"],
         )
     )

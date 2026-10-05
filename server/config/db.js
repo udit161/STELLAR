@@ -19,7 +19,7 @@ const poolConfig = process.env.DATABASE_URL
   : {
       user: process.env.PGUSER || 'postgres',
       host: process.env.PGHOST || 'localhost',
-      database: process.env.PGDATABASE || 'satquery_db',
+      database: process.env.PGDATABASE || 'stellar_db',
       password: process.env.PGPASSWORD || 'postgres',
       port: parseInt(process.env.PGPORT || '5432', 10),
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,

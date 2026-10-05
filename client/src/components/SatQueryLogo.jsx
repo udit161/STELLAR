@@ -1,20 +1,20 @@
 import React from 'react';
 import ScatterAndReassembleText from './ScatterAndReassembleText';
-import './SatQueryLogo.css';
+import './StellarLogo.css';
 
-export function SatQueryLogo({ onClick, size = 'normal', animated = true }) {
+export function StellarLogo({ onClick, size = 'normal', animated = true }) {
   return (
     <div 
-      className={`satquery-logo-wrapper ${size}`}
+      className={`stellar-logo-wrapper ${size}`}
       onClick={onClick} 
-      title="SatQuery AI"
+      title="Stellar AI"
     >
-      <div className="satquery-logo-container">
-        <div className="satquery-logo-halo" />
-        <div className="satquery-logo-ring" />
-        <div className="satquery-logo-mask" />
-        <div className="satquery-logo-card">
-          <div className="satquery-logo-scaled-inner">
+      <div className="stellar-logo-container">
+        <div className="stellar-logo-halo" />
+        <div className="stellar-logo-ring" />
+        <div className="stellar-logo-mask" />
+        <div className="stellar-logo-card">
+          <div className="stellar-logo-scaled-inner">
             <ScatterAndReassembleText showMultilingual={false} singleLine={true} animated={animated} />
           </div>
         </div>
@@ -23,4 +23,4 @@ export function SatQueryLogo({ onClick, size = 'normal', animated = true }) {
   );
 }
 
-export default SatQueryLogo;
+export default StellarLogo;

@@ -17,7 +17,7 @@ export function AuthPage({ onSuccess }) {
         <LanguageSwitcher />
       </div>
 
-      {/* Header Mid: SatQuery AI Abstract Morphing Logo Card */}
+      {/* Header Mid: Stellar AI Abstract Morphing Logo Card */}
       <header className="header-mid-bar">
         <div className="intro-abstract-card-container">
           <div className="intro-abstract-halo" />
@@ -34,7 +34,7 @@ export function AuthPage({ onSuccess }) {
       <main className="apogee-viewport-container">
         <div className="apogee-layout">
           {/* Left Column: Hero & Interactive Astronaut Head with Cursor-Tracking Eyes */}
-          <section className="hero-stage" aria-label="SatQuery AI Platform Briefing">
+          <section className="hero-stage" aria-label="Stellar AI Platform Briefing">
             <div className="brand-badge">
               <span className="brand-badge-dot" aria-hidden="true" />
               <span className="brand-badge-text">{t.brandBadge}</span>

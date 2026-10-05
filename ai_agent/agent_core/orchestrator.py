@@ -1,5 +1,5 @@
 """
-SatQuery AI - Multi-Agent State Graph Orchestrator
+Stellar AI - Multi-Agent State Graph Orchestrator
 Coordinates intent classification, multi-step compound specialist pipelines, validation gatekeeping,
 and result synthesis across Earth Observation (EO) satellite intelligence tasks using LangGraph.
 Standardized outputs from specialist models seamlessly synchronize with state.py trackers.
@@ -369,7 +369,7 @@ TOOL_PARAM_WHITELIST: Dict[str, Dict[str, Dict[str, Any]]] = {
 class Orchestrator:
 
     """
-    Main LangGraph-powered Agentic Orchestrator for SatQuery AI.
+    Main LangGraph-powered Agentic Orchestrator for Stellar AI.
     Manages end-to-end lifecycle: Validation -> Controller Routing -> Multi-Step Specialist Pipeline -> Output Synthesis.
     Supports single-task as well as chained compound workflows (e.g. Fusion -> Change Detection -> Grounding).
     """
@@ -2263,7 +2263,7 @@ class Orchestrator:
         else:
             clarification_text = (
                 f"⚠️ Unrecognized or ambiguous query: '{raw_query}'. "
-                "SatQuery AI specializes in Earth Observation and satellite imagery analysis. "
+                "Stellar AI specializes in Earth Observation and satellite imagery analysis. "
                 "Please submit a valid query such as asking about land cover types, vegetation health (NDVI), water body identification, or change detection."
             )
 

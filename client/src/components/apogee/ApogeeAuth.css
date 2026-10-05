@@ -1,8 +1,8 @@
 /* ==========================================================================
-   1. DESIGN SYSTEM & CSS CUSTOM PROPERTIES (SATQUERY BRAND GOLD & CYAN PALETTE)
+   1. DESIGN SYSTEM & CSS CUSTOM PROPERTIES (STELLAR BRAND GOLD & CYAN PALETTE)
    ========================================================================== */
 :root {
-  /* Palette matching SatQuery AI Logo (#eab308 Gold & #38bdf8 Electric Cyan) */
+  /* Palette matching Stellar AI Logo (#eab308 Gold & #38bdf8 Electric Cyan) */
   --color-void: #05060d;
   --color-space-dark: #0a0f26;
   --color-space-mid: #131a3d;
@@ -355,7 +355,7 @@
 }
 
 /* ==========================================================================
-   5. LIQUID METAL GLASS CARD & CONIC BORDER WRAPPER (MATCHING SATQUERY LOGO)
+   5. LIQUID METAL GLASS CARD & CONIC BORDER WRAPPER (MATCHING STELLAR LOGO)
    ========================================================================== */
 .card-border-wrapper {
   position: relative;

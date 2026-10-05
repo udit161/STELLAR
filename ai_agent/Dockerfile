@@ -1,4 +1,4 @@
-# SatQuery AI - Python AI Backend
+# Stellar AI - Python AI Backend
 FROM python:3.10-slim
 
 # System dependencies required by GDAL/Rasterio/PROJ

@@ -11,5 +11,5 @@
     "r": 16,
     "lora_alpha": 32
   },
-  "output_file": "C:\\SIH\\SatQueryAI\\ai_agent\\checkpoints\\merged_vlm\\merged_vlm_final.pt"
+  "output_file": "C:\\SIH\\StellarAI\\ai_agent\\checkpoints\\merged_vlm\\merged_vlm_final.pt"
 }

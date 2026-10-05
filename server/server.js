@@ -18,7 +18,7 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    service: 'SatQuery AI Express API Gateway',
+    service: 'Stellar AI Express API Gateway',
     database: 'PostgreSQL'
   });
 });

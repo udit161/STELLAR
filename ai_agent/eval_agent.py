@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-eval_agent.py — Standalone Batch Evaluation Runner for SatQuery AI Agent
+eval_agent.py — Standalone Batch Evaluation Runner for Stellar AI Agent
 =========================================================================
 
 Evaluates the compiled LangGraph / FallbackGraph orchestrator against
@@ -1411,7 +1411,7 @@ def print_presentation_summary_table(report: Dict[str, Any]) -> None:
 
     W = 100
     print("\n" + "=" * W)
-    print(" PRESENTATION SLIDE TABULAR SUMMARY — SATQUERY AI EVALUATION")
+    print(" PRESENTATION SLIDE TABULAR SUMMARY — STELLAR AI EVALUATION")
     print("=" * W)
 
     table_rows = [
@@ -1452,7 +1452,7 @@ def print_presentation_summary_table(report: Dict[str, Any]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="SatQuery AI Agent batch evaluation runner.",
+        description="Stellar AI Agent batch evaluation runner.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--mock",     action="store_true",

@@ -9,7 +9,7 @@
 
 <br/><br/>
 
-# 🛰️ SatQuery AI
+# 🛰️ Stellar AI
 ### *Multi-Agent Satellite Intelligence Platform*
 
 **Natural Language Interface for Earth Observation · Powered by LangGraph Agentic Orchestration**
@@ -24,13 +24,13 @@
 
 Satellite imagery from missions like **Sentinel-1 (SAR)** and **Sentinel-2 (Optical)** generates petabytes of geospatial data daily. Yet, extracting actionable intelligence from this data requires specialized GIS expertise, complex toolchains, and significant processing time — creating a high barrier for disaster response teams, urban planners, and environmental researchers.
 
-**SatQuery AI** eliminates this barrier by enabling anyone to query satellite imagery using plain natural language.
+**Stellar AI** eliminates this barrier by enabling anyone to query satellite imagery using plain natural language.
 
 ---
 
-## 🎯 What is SatQuery AI?
+## 🎯 What is Stellar AI?
 
-SatQuery AI is a **multi-agent Earth Observation (EO) intelligence platform** that processes satellite imagery queries through an autonomous LangGraph state graph. It routes natural language questions to specialized AI models for:
+Stellar AI is a **multi-agent Earth Observation (EO) intelligence platform** that processes satellite imagery queries through an autonomous LangGraph state graph. It routes natural language questions to specialized AI models for:
 
 | Capability | Description |
 |---|---|
@@ -47,7 +47,7 @@ SatQuery AI is a **multi-agent Earth Observation (EO) intelligence platform** th
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                      SatQuery AI — System Architecture                       │
+│                      Stellar AI — System Architecture                       │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────┐   HTTPS   ┌──────────────────────┐  REST/WS  ┌─────────────────────────────────┐
@@ -76,7 +76,7 @@ SatQuery AI is a **multi-agent Earth Observation (EO) intelligence platform** th
 ### Directory Structure
 
 ```
-📦 SatQueryAI/
+📦 StellarAI/
 ├── 🖥️  client/                      # React + Vite Frontend
 │   └── src/
 │       ├── pages/
@@ -239,7 +239,7 @@ SatQuery AI is a **multi-agent Earth Observation (EO) intelligence platform** th
 
 ## 🔁 Conversational Memory System
 
-SatQuery AI maintains **multi-turn spatial context** across conversations:
+Stellar AI maintains **multi-turn spatial context** across conversations:
 
 | Feature | Description |
 |---|---|
@@ -314,8 +314,8 @@ TOOL_PARAM_WHITELIST = {
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-org/SatQueryAI.git
-cd SatQueryAI
+git clone https://github.com/your-org/StellarAI.git
+cd StellarAI
 ```
 
 ### 2. Install All Dependencies
@@ -339,7 +339,7 @@ MODEL_CHECKPOINT=path/to/weights
 
 **`server/.env`**
 ```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/satquery
+DATABASE_URL=postgresql://user:pass@localhost:5432/stellar
 JWT_SECRET=your_jwt_secret
 PORT=5000
 ```
@@ -436,6 +436,6 @@ Submit a satellite intelligence query with optional image attachments.
 
 **Made with ❤️ for ISRO · Bharat 🇮🇳**
 
-*SatQuery AI — Democratizing Earth Observation Intelligence*
+*Stellar AI — Democratizing Earth Observation Intelligence*
 
 </div>

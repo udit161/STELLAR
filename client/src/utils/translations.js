@@ -1,5 +1,5 @@
 /**
- * SatQuery AI — UI String Translations
+ * Stellar AI — UI String Translations
  * All static UI strings in English (en) and Hindi (hi).
  * Access via useT() hook from LanguageContext.
  */
@@ -36,7 +36,7 @@ export const translations = {
 
     // ── Chat Messages ──
     you: 'You',
-    satqueryAI: 'SatQuery AI',
+    stellarAI: 'Stellar AI',
     processingQuery: 'Processing satellite intelligence query…',
     attachedImagery: 'Attached Imagery',
     apiError: 'API Error:',
@@ -82,8 +82,8 @@ export const translations = {
     tleUnavailable: '// Click the NORAD TLE tab to fetch live data',
 
     // ── About Modal & Team ──
-    aboutSatQuery: 'About SatQuery AI',
-    aboutDescription: 'SatQuery AI is a state-of-the-art earth observation intelligence platform powered by a compiled LangGraph multi-agent orchestrator. It routes queries through specialist VQA, spatial grounding, change detection, and cross-modal SAR-optical fusion models.',
+    aboutStellar: 'About Stellar AI',
+    aboutDescription: 'Stellar AI is a state-of-the-art earth observation intelligence platform powered by a compiled LangGraph multi-agent orchestrator. It routes queries through specialist VQA, spatial grounding, change detection, and cross-modal SAR-optical fusion models.',
     teamName: 'Debugg Dynasty',
     teamTitle: 'Meet Team Debugg Dynasty',
     memberUditRole: 'Team Leader and AI & UI Lead',
@@ -165,7 +165,7 @@ export const translations = {
     translating: 'Translating…',
 
     // ── Auth & Hero Screen ──
-    brandBadge: 'SatQuery AI Engine • Active',
+    brandBadge: 'Stellar AI Engine • Active',
     heroHeading: 'Autonomous Satellite Visual QA',
     heroSubtitle: 'Instantly query any Earth observation scene, STAC Sentinel-2 & Landsat-9 imagery, coordinates, or automated change detection through natural AI conversations.',
     telemetryStac: 'STAC Sentinel-2 & Landsat-9',
@@ -197,7 +197,7 @@ export const translations = {
     // ── Badges & Home UI ──
     isroBadge: 'ISRO',
     indiaBadge: 'INDIA',
-    satqueryHeroTitle: 'SATQUERY AI.',
+    stellarHeroTitle: 'STELLAR AI.',
     queryBarAria: 'Satellite Intelligence Query Bar',
     queryInputAria: 'Type your satellite query',
     attachTooltip: 'Attach telemetry document, dataset, or satellite picture',
@@ -235,7 +235,7 @@ export const translations = {
 
     // ── Chat Messages ──
     you: 'आप',
-    satqueryAI: 'सैटक्वेरी AI',
+    stellarAI: 'सैटक्वेरी AI',
     processingQuery: 'उपग्रह डेटा विश्लेषण हो रहा है…',
     attachedImagery: 'संलग्न चित्र',
     apiError: 'API त्रुटि:',
@@ -281,7 +281,7 @@ export const translations = {
     tleUnavailable: '// लाइव डेटा के लिए NORAD TLE टैब पर क्लिक करें',
 
     // ── About Modal & Team ──
-    aboutSatQuery: 'सैटक्वेरी AI के बारे में',
+    aboutStellar: 'सैटक्वेरी AI के बारे में',
     aboutDescription: 'सैटक्वेरी AI एक अत्याधुनिक पृथ्वी अवलोकन खुफिया मंच है जो संकलित LangGraph मल्टी-एजेंट ऑर्केस्ट्रेटर द्वारा संचालित है। यह प्रश्नों को विशेषज्ञ VQA, स्थानिक ग्राउंडिंग, परिवर्तन पहचान और क्रॉस-मोडल SAR-ऑप्टिकल फ्यूजन मॉडल के माध्यम से रूट करता है।',
     teamName: 'Debugg Dynasty',
     teamTitle: 'टीम Debugg Dynasty से मिलें',
@@ -396,7 +396,7 @@ export const translations = {
     // ── Badges & Home UI ──
     isroBadge: 'इसरो',
     indiaBadge: 'भारत',
-    satqueryHeroTitle: 'सैटक्वेरी एआई.',
+    stellarHeroTitle: 'सैटक्वेरी एआई.',
     queryBarAria: 'उपग्रह खुफिया प्रश्न पट्टी',
     queryInputAria: 'अपना उपग्रह प्रश्न दर्ज करें',
     attachTooltip: 'टेलीमेट्री दस्तावेज़, डेटासेट या उपग्रह चित्र संलग्न करें',

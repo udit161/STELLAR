@@ -1,5 +1,5 @@
 """
-SatQuery AI - Specialist Tool Registry with Standardized Outputs, Context Injection & Robust Error Handling
+Stellar AI - Specialist Tool Registry with Standardized Outputs, Context Injection & Robust Error Handling
 LangGraph & LangChain Executable Tool Wrappers for Earth Observation (EO) Specialist Models.
 
 Safety Nets & Validation:
@@ -374,7 +374,7 @@ def _extract_image_paths_from_state(state: Dict[str, Any]) -> List[str]:
 
 class StandardToolOutput(BaseModel):
     """
-    Standardized result dictionary returned by EVERY tool wrapper in SatQuery AI.
+    Standardized result dictionary returned by EVERY tool wrapper in Stellar AI.
     Guarantees deterministic format for orchestrator.py state tracking and state.py updates.
     
     Fields:

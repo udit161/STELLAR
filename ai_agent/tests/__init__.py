@@ -1,3 +1,3 @@
 """
-SatQuery AI - Agent Test Suite Package
+Stellar AI - Agent Test Suite Package
 """

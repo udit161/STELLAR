@@ -1,4 +1,4 @@
--- SatQuery AI PostgreSQL Database Schema
+-- Stellar AI PostgreSQL Database Schema
 
 -- Enable UUID extension if supported
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

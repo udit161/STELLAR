@@ -1,5 +1,5 @@
 """
-SatQuery AI - Agent State Schema
+Stellar AI - Agent State Schema
 Tracks the entire lifecycle of a satellite intelligence user request across the LangGraph state graph.
 Includes rich schemas for:
 - Inputs: Raw query, uploaded image paths (single, bi-temporal, optical-SAR), formats (GeoTIFF, COG, PNG).
@@ -871,7 +871,7 @@ class AgentState(TypedDict):
 
 class RSAgentState(TypedDict, total=False):
     """
-    Comprehensive LangGraph TypedDict state for the SatQuery AI remote-sensing
+    Comprehensive LangGraph TypedDict state for the Stellar AI remote-sensing
     agent workflow.
 
     Designed to be the *single source of truth* passed between all graph nodes.

@@ -1,5 +1,5 @@
 """
-SatQuery AI - Grounding & Scene Captioning Specialist Model
+Stellar AI - Grounding & Scene Captioning Specialist Model
 Open-vocabulary object grounding and comprehensive land-cover scene captioning for remote sensing imagery.
 Supports target feature localization (bounding box detection) and structured scene description generation.
 """
@@ -351,7 +351,7 @@ class GroundingCaptioningModel:
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Unified inference entry point compatible with SatQuery AI specialist model interface.
+        Unified inference entry point compatible with Stellar AI specialist model interface.
         Routes to generate_scene_description or ground_text_query depending on query mode.
         """
         if mode == "caption" or not text_query or not text_query.strip():

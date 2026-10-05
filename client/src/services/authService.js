@@ -1,12 +1,12 @@
 /**
- * SatQuery AI - Authentication Service Layer
+ * Stellar AI - Authentication Service Layer
  * Handles signup, login, token storage, and user session management.
  * Communicates with FastAPI auth endpoints on the AI Agent microservice.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const TOKEN_KEY = 'satquery_token';
-const USER_KEY = 'satquery_user';
+const TOKEN_KEY = 'stellar_token';
+const USER_KEY = 'stellar_user';
 
 /**
  * Store auth data in localStorage

@@ -1,5 +1,5 @@
 """
-SatQuery AI - Authentication Test Suite
+Stellar AI - Authentication Test Suite
 Tests password hashing, JWT encoding/decoding, user registration (/signup),
 login authentication (/login), and user profile fetching (/me).
 """
@@ -27,7 +27,7 @@ def test_auth_pipeline():
     print("[PASS] Password hashing and verification working cleanly.")
 
     print("\n--- 2. Testing JWT Token Encoding & Decoding ---")
-    token_data = {"sub": "testuser", "user_id": 999, "email": "testuser@satquery.ai"}
+    token_data = {"sub": "testuser", "user_id": 999, "email": "testuser@stellar.ai"}
     token = create_access_token(token_data)
     assert isinstance(token, str) and len(token) > 20, "JWT token generation failed"
 
@@ -40,10 +40,10 @@ def test_auth_pipeline():
     print("\n--- 3. Testing POST /signup (User Registration) ---")
     unique_id = str(uuid.uuid4())[:8]
     signup_payload = {
-        "email": f"astro_{unique_id}@satquery.ai",
+        "email": f"astro_{unique_id}@stellar.ai",
         "username": f"astro_user_{unique_id}",
-        "password": "SatQueryPassword2026!",
-        "full_name": "SatQuery Analyst"
+        "password": "StellarPassword2026!",
+        "full_name": "Stellar Analyst"
     }
 
     res_signup = client.post("/signup", json=signup_payload)

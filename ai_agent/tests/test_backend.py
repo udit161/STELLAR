@@ -1,5 +1,5 @@
 """
-SatQuery AI - FastAPI Backend Verification Test Suite
+Stellar AI - FastAPI Backend Verification Test Suite
 Verifies CORS configuration, health check, text query, standalone image upload,
 and combined query-with-image endpoints.
 """

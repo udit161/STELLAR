@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { translations } from '../utils/translations';
 
-const LS_KEY = 'satquery_language';
+const LS_KEY = 'stellar_language';
 
 export const LanguageContext = createContext({
   language: 'en',

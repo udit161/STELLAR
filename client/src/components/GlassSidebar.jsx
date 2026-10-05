@@ -146,7 +146,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
   // Note Taking State with LocalStorage Persistence
   const [notesList, setNotesList] = useState(() => {
     try {
-      const saved = localStorage.getItem('satquery_orbit_notes');
+      const saved = localStorage.getItem('stellar_orbit_notes');
       if (saved) {
         return JSON.parse(saved);
       }
@@ -188,7 +188,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
 
   useEffect(() => {
     try {
-      localStorage.setItem('satquery_orbit_notes', JSON.stringify(notesList));
+      localStorage.setItem('stellar_orbit_notes', JSON.stringify(notesList));
     } catch (e) {
       console.error('Failed to persist notes:', e);
     }
@@ -333,7 +333,7 @@ function GlassSidebar({ activeNav, onNavChange, onSelectQuery, currentUser, onLo
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `satquery_notes_${Date.now()}.json`;
+    a.download = `stellar_notes_${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

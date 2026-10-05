@@ -1,10 +1,10 @@
-# render.yaml — Root-level config for all 3 SatQueryAI services on Render
+# render.yaml — Root-level config for all 3 StellarAI services on Render
 # Deploy at: https://dashboard.render.com → New → Blueprint → connect repo
 
 services:
   # ── 1. React/Vite Frontend (Static Site) ────────────────────────────────────
   - type: web
-    name: satquery-client
+    name: stellar-client
     env: static
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: ./client/dist
@@ -14,11 +14,11 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        sync: false   # Set to your satquery-api-gateway Render URL after deploy
+        sync: false   # Set to your stellar-api-gateway Render URL after deploy
 
   # ── 2. Node.js API Gateway ──────────────────────────────────────────────────
   - type: web
-    name: satquery-api-gateway
+    name: stellar-api-gateway
     env: node
     region: oregon
     plan: free
@@ -31,10 +31,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: PYTHON_API_URL
-        sync: false   # Set to your satquery-ai-agent Render URL after deploy
+        sync: false   # Set to your stellar-ai-agent Render URL after deploy
       - key: DATABASE_URL
         fromDatabase:
-          name: satquery-postgres
+          name: stellar-postgres
           property: connectionString
       - key: DATABASE_SSL
         value: "true"
@@ -49,7 +49,7 @@ services:
 
   # ── 3. Python FastAPI AI Agent ──────────────────────────────────────────────
   - type: web
-    name: satquery-ai-agent
+    name: stellar-ai-agent
     env: python
     region: oregon
     plan: free
@@ -68,7 +68,7 @@ services:
         sync: false
       - key: DATABASE_URL
         fromDatabase:
-          name: satquery-postgres
+          name: stellar-postgres
           property: connectionString
       - key: DATABASE_SSL
         value: "true"
@@ -77,8 +77,8 @@ services:
 
 # ── PostgreSQL Database ────────────────────────────────────────────────────────
 databases:
-  - name: satquery-postgres
-    databaseName: satquery
-    user: satquery_user
+  - name: stellar-postgres
+    databaseName: stellar
+    user: stellar_user
     plan: free
     region: oregon

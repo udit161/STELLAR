@@ -1,5 +1,5 @@
 """
-SatQuery AI - VRSBench & RSVQA Benchmark Evaluation Framework
+Stellar AI - VRSBench & RSVQA Benchmark Evaluation Framework
 ===============================================================
 Evaluates the consolidated merged Vision-Language Model (VLM) on remote sensing
 Visual Question Answering (RSVQA) and Visual Grounding (VRSBench) test splits.
@@ -313,7 +313,7 @@ def evaluate_merged_model_on_benchmarks(
     Measures VQA accuracies, visual grounding mIoU/precision, BLEU scores, and latency.
     """
     print("================================================================")
-    print("🛰️ SatQuery AI - RSVQA & VRSBench Benchmark Evaluation")
+    print("🛰️ Stellar AI - RSVQA & VRSBench Benchmark Evaluation")
     print("================================================================")
     print("• Model Architecture : SatelliteVLMBackbone (Consolidated Merged)")
     print("• Evaluation Targets : RSVQA (VQA) + VRSBench (Visual Grounding)")

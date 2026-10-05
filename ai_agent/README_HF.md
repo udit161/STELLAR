@@ -1,5 +1,5 @@
 ---
-title: SatQuery AI Agent
+title: Stellar AI Agent
 emoji: 🛰️
 colorFrom: blue
 colorTo: indigo
@@ -9,7 +9,7 @@ pinned: false
 license: mit
 ---
 
-# SatQuery AI Agent
+# Stellar AI Agent
 
 FastAPI-based AI microservice for satellite imagery intelligence.
 

@@ -1,5 +1,5 @@
 """
-SatQuery AI - Google Colab Environment Setup & Hugging Face Authentication
+Stellar AI - Google Colab Environment Setup & Hugging Face Authentication
 """
 
 import os
@@ -29,7 +29,7 @@ def setup_huggingface_environment(
         print("[!] WARNING: No HuggingFace token found. Set HF_TOKEN or HF_WRITE_TOKEN in your environment.")
         return
 
-    print("[+] Initializing SatQuery AI Google Colab Environment...")
+    print("[+] Initializing Stellar AI Google Colab Environment...")
 
     # 1. Install required Hugging Face ecosystem libraries
     print("[*] Ensuring transformers, datasets, peft, bitsandbytes, accelerate, and huggingface_hub are installed...")

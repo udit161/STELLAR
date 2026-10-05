@@ -1,5 +1,5 @@
 /**
- * SatQuery AI - API Service Layer
+ * Stellar AI - API Service Layer
  * Communication module connecting frontend React client to FastAPI AI agent microservice.
  */
 
@@ -14,7 +14,7 @@ export async function checkBackendHealth() {
     if (!res.ok) throw new Error(`Health check status: ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('[SatQuery API] Microservice offline or unreachable:', err.message);
+    console.warn('[Stellar API] Microservice offline or unreachable:', err.message);
     return { status: 'offline', error: err.message };
   }
 }

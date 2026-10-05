@@ -1,5 +1,5 @@
 """
-SatQuery AI - Optical-SAR Cross-Modal Fusion Specialist Model
+Stellar AI - Optical-SAR Cross-Modal Fusion Specialist Model
 Performs multi-sensor coregistration, cross-attention alignment, and all-weather feature fusion.
 Supports raw raster tensors (GeoTIFF/COG) and synchronized multi-modal BigEarthNet arrays.
 """

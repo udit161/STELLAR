@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "satquery_audit.db"
+DB_PATH = BASE_DIR / "stellar_audit.db"
 
 
 def get_connection():

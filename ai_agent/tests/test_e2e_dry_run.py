@@ -1,5 +1,5 @@
 """
-End-to-end dry run script testing execute_satquery_agent across 3 scenarios:
+End-to-end dry run script testing execute_stellar_agent across 3 scenarios:
 1. Single-image VQA / Grounding query
 2. Bi-temporal change detection pair query
 3. Cross-modal Optical-SAR fusion query
@@ -11,7 +11,7 @@ import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from run_agent import execute_satquery_agent
+from run_agent import execute_stellar_agent
 
 REQUIRED_TOP_LEVEL_KEYS = {
     "request_id",
@@ -69,10 +69,10 @@ def verify_result_schema(scenario_name: str, res: dict):
 
 
 def main():
-    print("[DRY RUN] Starting end-to-end execution of execute_satquery_agent...")
+    print("[DRY RUN] Starting end-to-end execution of execute_stellar_agent...")
 
     # Scenario 1: Single-image VQA / Grounding
-    res1 = execute_satquery_agent(
+    res1 = execute_stellar_agent(
         query="Locate aircraft and describe the hangar area.",
         image_paths=["/data/airport_scene_01.tif"],
         metadata={"latitude": 13.0827, "longitude": 80.2707}
@@ -80,7 +80,7 @@ def main():
     verify_result_schema("Scenario 1: Single-Image Query", res1)
 
     # Scenario 2: Bi-temporal Change Detection
-    res2 = execute_satquery_agent(
+    res2 = execute_stellar_agent(
         query="What changed between pre-event T1 and post-event T2 rasters?",
         image_paths=["/data/baseline_t1_2023.tif", "/data/comparison_t2_2024.tif"],
         metadata={"task_hint": "change_detection"}
@@ -88,7 +88,7 @@ def main():
     verify_result_schema("Scenario 2: Bi-Temporal Pair Query", res2)
 
     # Scenario 3: Cross-Modal Optical-SAR Fusion
-    res3 = execute_satquery_agent(
+    res3 = execute_stellar_agent(
         query="Fuse optical and SAR radar imagery for cloud penetration and target detection.",
         image_paths=["/data/optical_cloudy.tif", "/data/sar_radar.tif"],
         metadata={"sensor_types": ["optical", "sar"]}

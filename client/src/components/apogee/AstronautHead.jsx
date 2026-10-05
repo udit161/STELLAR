@@ -120,7 +120,7 @@ export function AstronautHead() {
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             role="img"
-            aria-label="SatQuery AI Interactive Astronaut Helmet with 3D Tilt & Eye Tracking"
+            aria-label="Stellar AI Interactive Astronaut Helmet with 3D Tilt & Eye Tracking"
           >
             {/* Dashed Outer Orbit Ring & Satellite Dot */}
             <g className="orbit-ring-svg">

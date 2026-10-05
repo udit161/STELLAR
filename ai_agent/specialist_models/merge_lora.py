@@ -1,5 +1,5 @@
 """
-SatQuery AI - LoRA Adapter Merge & Model Consolidation
+Stellar AI - LoRA Adapter Merge & Model Consolidation
 Merges fine-tuned LoRA adapter weights back into the base Vision-Language backbone,
 producing a single consolidated model that requires no PEFT configuration at inference.
 """

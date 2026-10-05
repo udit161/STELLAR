@@ -1,5 +1,5 @@
 /**
- * SatQuery AI — Translation Utility
+ * Stellar AI — Translation Utility
  * Uses MyMemory free API (https://mymemory.translated.net)
  * No API key required. Limit: ~10 000 chars/day per IP (ample for demo).
  */

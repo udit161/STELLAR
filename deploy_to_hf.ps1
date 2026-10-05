@@ -1,9 +1,9 @@
 $HF_USERNAME = "uditkumar16"
-$SPACE_NAME = "satquery-ai-agent"
+$SPACE_NAME = "stellar-ai-agent"
 $TMP_DIR = "hf-space-deploy"
 
 Write-Host ""
-Write-Host "SatQuery AI Agent -- HF Spaces Deployment" -ForegroundColor Cyan
+Write-Host "Stellar AI Agent -- HF Spaces Deployment" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 
 if (Test-Path $TMP_DIR) {
@@ -51,7 +51,7 @@ Write-Host "[5/5] Committing and pushing to HF Spaces..." -ForegroundColor Yello
 Set-Location $TMP_DIR
 
 git add .
-git commit -m "Deploy SatQuery AI Agent (FastAPI + Docker)"
+git commit -m "Deploy Stellar AI Agent (FastAPI + Docker)"
 
 Write-Host "      Pushing... enter HF token when prompted for password" -ForegroundColor Gray
 git push

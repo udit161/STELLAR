@@ -1,4 +1,4 @@
-# SatQuery AI Agent — Render.com Demo Requirements
+# Stellar AI Agent — Render.com Demo Requirements
 # Stripped-down for Render free tier (512MB RAM limit)
 # Heavy ML models (TF, Transformers) are omitted — agent runs with mock LLM
 # The orchestrator already handles missing langgraph/langchain gracefully (try/except)

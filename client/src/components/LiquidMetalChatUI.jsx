@@ -16,7 +16,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import LiquidGlassCard from './LiquidGlassCard';
-import SatQueryLogo from './SatQueryLogo';
+import StellarLogo from './StellarLogo';
 import LanguageSwitcher from './LanguageSwitcher';
 import AboutModal from './AboutModal';
 import { useLanguage } from '../context/LanguageContext';
@@ -801,7 +801,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     );
     const a = document.createElement('a');
     a.href = dataStr;
-    a.download = `satquery_${Date.now()}.json`;
+    a.download = `stellar_${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -821,7 +821,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     <div className="liquid-chat-container">
       {/* ── Top Header ── */}
       <div className="liquid-chat-header-row">
-        <SatQueryLogo onClick={onResetQuery} size="small" />
+        <StellarLogo onClick={onResetQuery} size="small" />
         <LiquidGlassCard pill className="top-query-bar">
           <span className="query-label">{t.activeQuery}</span>
           <span className="current-query-text" title={displayQueryText}>"{displayQueryText}"</span>
@@ -877,7 +877,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                     </div>
                     <div className="message-content-box">
                       <div className={`message-author ${msg.sender === 'user' ? 'user-author' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{msg.sender === 'user' ? t.you : t.satqueryAI}</span>
+                        <span>{msg.sender === 'user' ? t.you : t.stellarAI}</span>
                         {msg.sender === 'ai' && msg.translating && (
                           <span className="translating-indicator">
                             <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
@@ -940,7 +940,7 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
                   <div className="chat-message">
                     <div className="chat-avatar">SQ</div>
                     <div className="message-content-box">
-                      <div className="message-author">{t.satqueryAI}</div>
+                      <div className="message-author">{t.stellarAI}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00F2FE' }}>
                         <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                         <span style={{ fontSize: '0.9rem' }}>

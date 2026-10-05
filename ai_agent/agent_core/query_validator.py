@@ -1,5 +1,5 @@
 """
-SatQuery AI - Query Quality & Input Validation Module
+Stellar AI - Query Quality & Input Validation Module
 Detects empty, gibberish, keyboard mash, nonsensical, or invalid user queries.
 Prevents model hallucination on invalid inputs.
 """
@@ -31,7 +31,7 @@ COMMON_VALID_TOKENS = {
     "resourcesat", "risat", "isro", "eo", "vqa", "bbox", "bounding", "box", "coordinates", "lat",
     "lon", "latitude", "longitude", "iss", "orbit", "norad", "tle", "polarization", "reflectance",
     "nir", "swir", "rgb", "pixel", "resolution", "spatial", "temporal", "modality", "fusion",
-    "active", "query", "tosat", "satquery", "analysis", "evidence"
+    "active", "query", "tosat", "stellar", "analysis", "evidence"
 }
 
 # Keyboard mash patterns

@@ -1,6 +1,6 @@
 {
   "model_evaluated": "SatelliteVLMBackbone (Consolidated Merged)",
-  "model_file": "C:\\SIH\\SatQueryAI\\ai_agent\\checkpoints\\merged_vlm\\merged_vlm_final.pt",
+  "model_file": "C:\\SIH\\StellarAI\\ai_agent\\checkpoints\\merged_vlm\\merged_vlm_final.pt",
   "status": "success",
   "benchmark_metrics": {
     "rsvqa": {

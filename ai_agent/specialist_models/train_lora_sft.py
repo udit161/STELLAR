@@ -1,5 +1,5 @@
 """
-SatQuery AI - BigEarthNet LoRA Supervised Fine-Tuning (SFT) Trainer
+Stellar AI - BigEarthNet LoRA Supervised Fine-Tuning (SFT) Trainer
 Trains the 4-bit LoRA Vision-Language Model on 14-band aligned satellite data & text annotations.
 Monitors training loss trajectory and persists intermediate checkpoint artifacts.
 """

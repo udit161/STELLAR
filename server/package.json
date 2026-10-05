@@ -1,5 +1,5 @@
 {
-  "name": "satquery-ai-server",
+  "name": "stellar-ai-server",
   "version": "1.0.0",
   "description": "Primary API Gateway (Node.js + Express.js)",
   "main": "server.js",

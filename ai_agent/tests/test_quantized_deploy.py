@@ -1,5 +1,5 @@
 """
-SatQuery AI - Backend Quantized Merged VLM Deployment Verification
+Stellar AI - Backend Quantized Merged VLM Deployment Verification
 ===================================================================
 Verifies backend orchestrator tool deployment with the 4-bit / 8-bit quantized
 merged Vision-Language Model (VLM):

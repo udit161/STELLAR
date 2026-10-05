@@ -1,8 +1,8 @@
 """
-run_agent.py — Standalone High-Level Interface for SatQuery AI Agent
+run_agent.py — Standalone High-Level Interface for Stellar AI Agent
 ===================================================================
 
-Provides execute_satquery_agent(...) to execute satellite intelligence query workflows
+Provides execute_stellar_agent(...) to execute satellite intelligence query workflows
 over input imagery using the compiled LangGraph orchestrator.
 Returns a clean dictionary containing the final natural language answer,
 spatial visual evidence (bounding box coordinates / mask paths), and the auditable ISRO evaluation trace.
@@ -20,13 +20,13 @@ from agent_core.orchestrator import Orchestrator
 from agent_core.state import TaskType, RequestStatus
 
 
-def execute_satquery_agent(
+def execute_stellar_agent(
     query: str,
     image_paths: List[str],
     metadata: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
-    Executes the SatQuery AI agent pipeline on a given text query and list of satellite image paths.
+    Executes the Stellar AI agent pipeline on a given text query and list of satellite image paths.
 
     Parameters:
       query (str): User natural language prompt / question.
@@ -154,10 +154,10 @@ def execute_satquery_agent(
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="SatQuery AI Agent Execution Entrypoint")
+    parser = argparse.ArgumentParser(description="Stellar AI Agent Execution Entrypoint")
     parser.add_argument("--query", type=str, required=True, help="User text query")
     parser.add_argument("--images", nargs="*", default=[], help="Image paths")
     args = parser.parse_args()
 
-    res = execute_satquery_agent(query=args.query, image_paths=args.images)
+    res = execute_stellar_agent(query=args.query, image_paths=args.images)
     print(json.dumps(res, indent=2))

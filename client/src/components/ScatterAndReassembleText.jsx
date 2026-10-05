@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
-const TEXT = "SatQuery AI.".toUpperCase();
+const TEXT = "Stellar AI.".toUpperCase();
 
 // Color palette matching brand design
 const PALETTE = [
@@ -10,7 +10,7 @@ const PALETTE = [
   "#454040", "#D8D365", "#E6F082", "#E6F082"
 ];
 
-// Multilingual SatQuery AI translations positioned OUTSIDE the main logo bounding box
+// Multilingual Stellar AI translations positioned OUTSIDE the main logo bounding box
 const MULTILINGUAL_TEXTS = [
   { text: "सत्क्वेरी एआई", lang: "Hindi", top: "-4%", left: "50%", color: "rgb(190, 123, 114)", delay: "0s" },
   { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam", top: "3%", left: "76%", color: "rgb(253, 175, 123)", delay: "0.2s" },

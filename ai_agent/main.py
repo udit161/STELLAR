@@ -1,5 +1,5 @@
 """
-SatQuery AI - FastAPI Agentic Microservice Entrypoint
+Stellar AI - FastAPI Agentic Microservice Entrypoint
 Exposes REST endpoints for satellite intelligence state graph orchestration,
 image uploads, cross-modal analysis, bi-temporal change detection,
 and user authentication (Signup, Login, JWT verification).
@@ -119,7 +119,7 @@ UPLOAD_DIR = Path(__file__).parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
-    title="SatQuery AI Agent Microservice",
+    title="Stellar AI Agent Microservice",
     description="Agentic AI Microservice for Earth Observation & Satellite Intelligence (Python 3 + FastAPI + LangGraph)",
     version="1.0.0"
 )
@@ -484,7 +484,7 @@ def read_root():
     """Service status and system info endpoint."""
     return {
         "status": "online",
-        "service": "SatQuery AI Microservice",
+        "service": "Stellar AI Microservice",
         "engine": "LangGraph Multi-Agent State Graph",
         "version": "1.0.0",
         "capabilities": [
@@ -502,7 +502,7 @@ def health_check():
     """Health check endpoint for container orchestrators and load balancers."""
     return {
         "status": "healthy",
-        "service": "satquery-agent",
+        "service": "stellar-agent",
         "uploads_writable": os.access(UPLOAD_DIR, os.W_OK)
     }
 
@@ -511,7 +511,7 @@ def system_status():
     """Return backend service and model status."""
     return {
         "status": "operational",
-        "service": "satquery-agent",
+        "service": "stellar-agent",
         "version": "1.0.0",
         "components": {
             "api": "operational",
@@ -596,7 +596,7 @@ def generate_job_report(job_id: str):
         file_path=report_result["path"],
         metadata={
             "format": "pdf",
-            "description": "SatQuery AI execution audit report",
+            "description": "Stellar AI execution audit report",
         },
     )
 

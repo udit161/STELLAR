@@ -1,5 +1,5 @@
 """
-SatQuery AI - Authentication Module
+Stellar AI - Authentication Module
 Provides PostgreSQL User model (with SQLite fallback), password hashing via passlib/bcrypt,
 and JWT access token generation and validation.
 """
@@ -39,7 +39,7 @@ def hash_password(password: str) -> str:
         except Exception:
             pass
     # Fallback secure hash
-    salt = "satquery_salt_2026"
+    salt = "stellar_salt_2026"
     return hmac.new(salt.encode(), password.encode(), hashlib.sha256).hexdigest()
 
 
@@ -59,7 +59,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # JWT Configuration & Utilities
 # ---------------------------------------------------------------------------
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "satquery_ai_super_secret_jwt_key_2026")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "stellar_ai_super_secret_jwt_key_2026")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 Hours
 
@@ -116,7 +116,7 @@ class User(Base):
 
 
 # Database Connection Initialization (PostgreSQL with SQLite Fallback)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/satquery_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/stellar_db")
 
 def init_db():
     """Attempt connecting to PostgreSQL, falling back to SQLite if offline."""
@@ -131,7 +131,7 @@ def init_db():
         print(f"[AUTH DB] Successfully connected to PostgreSQL at {DATABASE_URL}")
     except Exception as e:
         print(f"[AUTH DB] PostgreSQL unavailable ({e}). Falling back to local SQLite database.")
-        sqlite_url = "sqlite:///./satquery_auth.db"
+        sqlite_url = "sqlite:///./stellar_auth.db"
         engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
         Base.metadata.create_all(bind=engine)
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

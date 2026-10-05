@@ -1,5 +1,5 @@
 """
-SatQuery AI - Vision VQA Specialist Model & Quantized Deployment Loader
+Stellar AI - Vision VQA Specialist Model & Quantized Deployment Loader
 Fine-tuned Vision-Language understanding for multi-spectral satellite imagery (Sentinel-1 / Sentinel-2).
 Configured with 4-bit NormalFloat4 (NF4) / 8-bit Quantization and Consolidated Merged LoRA Weights.
 """
@@ -275,7 +275,7 @@ class QuantizedMergedVLM(nn.Module):
 
 class VisionVQAModel:
     """
-    Production-ready Vision VQA & Grounding Inference Model for SatQuery AI Backend.
+    Production-ready Vision VQA & Grounding Inference Model for Stellar AI Backend.
 
     Loads a fine-tuned, 4-bit NF4-quantized satellite Vision-Language Model (VLM)
     and exposes three inference interfaces:
@@ -1121,7 +1121,7 @@ class VisionVQAModel:
 # ==========================================================
 if __name__ == "__main__":
     print("================================================================")
-    print("SatQuery AI - Quantized Merged VLM Deployment Verification")
+    print("Stellar AI - Quantized Merged VLM Deployment Verification")
     print("================================================================")
 
     vlm = VisionVQAModel(quantization="4bit")

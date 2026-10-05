@@ -1,6 +1,6 @@
 """
 Geospatial ingestion, validation, metadata extraction and raster preprocessing
-utilities for SatQuery AI.
+utilities for Stellar AI.
 
 Supported formats:
 - GeoTIFF / TIFF

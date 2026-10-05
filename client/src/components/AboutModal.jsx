@@ -239,7 +239,7 @@ export function AboutModal({ isOpen, onClose }) {
           <div className="about-modal-brand">
             <div>
               <div className="about-title-row">
-                <span className="lime-brand-title">{t.aboutSatQuery || 'SatQuery AI'}</span>
+                <span className="lime-brand-title">{t.aboutStellar || 'Stellar AI'}</span>
               </div>
               <p className="about-sub-heading">
                 {isHindi ? 'स्वायत्त उपग्रह बहु-एजेंट खुफिया मंच' : 'Autonomous Satellite Intelligence & Multi-Agent Platform'}
@@ -283,12 +283,12 @@ export function AboutModal({ isOpen, onClose }) {
               {/* App Overview Card */}
               <div className="about-section-card app-overview-lime">
                 <div className="about-section-title">
-                  <h3>{isHindi ? 'सैटक्वेरी एआई के बारे में' : 'About SatQuery AI'}</h3>
+                  <h3>{isHindi ? 'सैटक्वेरी एआई के बारे में' : 'About Stellar AI'}</h3>
                 </div>
 
                 <p className="about-description-text">
                   {t.aboutDescription ||
-                    'SatQuery AI is a state-of-the-art earth observation intelligence platform powered by a compiled LangGraph multi-agent orchestrator. It routes queries through specialist VQA, spatial grounding, change detection, and cross-modal SAR-optical fusion models.'}
+                    'Stellar AI is a state-of-the-art earth observation intelligence platform powered by a compiled LangGraph multi-agent orchestrator. It routes queries through specialist VQA, spatial grounding, change detection, and cross-modal SAR-optical fusion models.'}
                 </p>
 
                 <div className="about-feature-chips">

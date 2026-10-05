@@ -1,5 +1,5 @@
 """
-SatQuery AI - BigEarthNet Multimodal Data Pipeline
+Stellar AI - BigEarthNet Multimodal Data Pipeline
 Tokenizes text annotations and aligns Sentinel-1 SAR + Sentinel-2 Optical bands.
 
 Features:
@@ -313,7 +313,7 @@ def create_bigearthnet_dataloader(
 # ==========================================================
 if __name__ == "__main__":
     print("================================================================")
-    print("🛰️ SatQuery AI - BigEarthNet Multimodal Pipeline Verification")
+    print("🛰️ Stellar AI - BigEarthNet Multimodal Pipeline Verification")
     print("================================================================")
 
     # 1. Initialize Aligner & Tokenizer
