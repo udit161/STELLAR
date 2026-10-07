@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LaserCollection } from './components/effects/matrix-field/laser/LaserCollection';
 import './components/effects/matrix-field/threeui.css';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
-import ShootingStars from './components/ShootingStars';
+import TwinklingStars from './components/TwinklingStars';
 import GlassSidebar from './components/GlassSidebar';
 import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
 import LiquidMetalChatUI from './components/LiquidMetalChatUI';
@@ -66,7 +66,7 @@ function App() {
           brightness={1.00}
         />
       </div>
-      <ShootingStars />
+      <TwinklingStars />
 
       {/* Floating Language Switcher button in top-right when on home stage */}
       {!querySubmitted && (

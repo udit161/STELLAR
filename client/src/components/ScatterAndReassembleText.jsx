@@ -5,9 +5,9 @@ const TEXT = "Stellar AI.".toUpperCase();
 
 // Color palette matching brand design
 const PALETTE = [
-  "#D8D365", "#E6F082", "#D8D365", "#605B51",
-  "#D8D365", "#E6F082", "#D8D365", "#605B51",
-  "#454040", "#D8D365", "#E6F082", "#E6F082"
+  "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF",
+  "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF",
+  "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"
 ];
 
 // Multilingual Stellar AI translations positioned OUTSIDE the main logo bounding box
@@ -349,12 +349,13 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
               key={`${char}-${i}`}
               style={{
                 display: "inline-block",
-                fontSize: "clamp(2.4rem, 5.8vw, 5.6rem)",
+                fontSize: "clamp(3.5rem, 8vw, 7.5rem)",
                 fontWeight: 900,
                 fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
                 letterSpacing: "-0.02em",
                 userSelect: "none",
-                color: isSpace ? "transparent" : (PALETTE[i] ?? "#D8D365"),
+                color: isSpace ? "transparent" : (PALETTE[i] ?? "#FFFFFF"),
+                textShadow: isSpace ? "none" : "0 0 15px rgba(255, 255, 255, 0.6), 0 0 30px rgba(255, 255, 255, 0.3)",
                 marginLeft: isDot ? "-0.05em" : "0",
                 lineHeight: 1,
                 willChange: "transform, opacity",
