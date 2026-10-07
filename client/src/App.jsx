@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { TopologyBackground } from './components/TopologyBackground';
-import TwinklingStars from './components/TwinklingStars';
+import { LaserCollection } from './components/effects/matrix-field/laser/LaserCollection';
+import './components/effects/matrix-field/threeui.css';
 import ScatterAndReassembleText from './components/ScatterAndReassembleText';
 import GlassSidebar from './components/GlassSidebar';
 import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
@@ -52,8 +52,19 @@ function App() {
 
   return (
     <>
-      <TopologyBackground />
-      <TwinklingStars />
+      <div style={{ position: 'fixed', inset: 0, zIndex: -1 }}>
+        <LaserCollection
+          variant="matrix-field"
+          speed={1.00}
+          size={1.00}
+          length={1.00}
+          density={1.00}
+          opacity={1.00}
+          hue={0}
+          saturation={1.00}
+          brightness={1.00}
+        />
+      </div>
 
       {/* Floating Language Switcher button in top-right when on home stage */}
       {!querySubmitted && (

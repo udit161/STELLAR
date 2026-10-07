@@ -11,20 +11,7 @@ const PALETTE = [
 ];
 
 // Multilingual Stellar AI translations positioned OUTSIDE the main logo bounding box
-const MULTILINGUAL_TEXTS = [
-  { text: "सत्क्वेरी एआई", lang: "Hindi", top: "-4%", left: "50%", color: "rgb(190, 123, 114)", delay: "0s" },
-  { text: "സാറ്റ് ക്വറി എഐ", lang: "Malayalam", top: "3%", left: "76%", color: "rgb(253, 175, 123)", delay: "0.2s" },
-  { text: "சாட்கொரி ஏஐ", lang: "Tamil", top: "24%", left: "95%", color: "rgb(190, 123, 114)", delay: "0.4s" },
-  { text: "সৎকোয়েরি এআই", lang: "Bengali", top: "50%", left: "101%", color: "rgb(253, 175, 123)", delay: "0.6s" },
-  { text: "સમયાનુસાર એઆઈ", lang: "Gujarati", top: "76%", left: "95%", color: "rgb(190, 123, 114)", delay: "0.8s" },
-  { text: "ସାଟ୍କ୍ୱେରୀ ଏଆଇ", lang: "Odia", top: "97%", left: "76%", color: "rgb(253, 175, 123)", delay: "1.0s" },
-  { text: "సాట్ క్వెరీ ఏఐ", lang: "Telugu", top: "104%", left: "50%", color: "rgb(190, 123, 114)", delay: "1.2s" },
-  { text: "ਸੈਟਕੁਏਰੀ ਏਆਈ", lang: "Punjabi", top: "97%", left: "24%", color: "rgb(253, 175, 123)", delay: "1.4s" },
-  { text: "सटक्वेरी एआय", lang: "Marathi", top: "76%", left: "5%", color: "rgb(190, 123, 114)", delay: "1.6s" },
-  { text: "ست کوئری اے آئی", lang: "Urdu", top: "50%", left: "-1%", color: "rgb(253, 175, 123)", delay: "1.8s" },
-  { text: "ಸ್ಯಾಟ್‌ಕ್ವೆರಿ ಏಐ", lang: "Kannada", top: "24%", left: "5%", color: "rgb(190, 123, 114)", delay: "2.0s" },
-  { text: "চেটকোৱেৰী এআই", lang: "Assamese", top: "3%", left: "24%", color: "rgb(253, 175, 123)", delay: "2.2s" },
-];
+// MULTILINGUAL_TEXTS removed as per user request
 
 const FLOAT_HOLD_MS = 3600;
 const SCATTER_TRANSITION_MS = 1400;
@@ -279,35 +266,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
         }
       `}</style>
 
-      {/* Multilingual Floating Texts Positioned Symmetrically OUTSIDE the Main Title */}
-      {showMultilingual && MULTILINGUAL_TEXTS.map((item, idx) => (
-        <span
-          key={idx}
-          style={{
-            position: "absolute",
-            top: item.top,
-            bottom: item.bottom,
-            left: item.left,
-            transform: "translate(-50%, -50%)",
-            fontSize: "16px",
-            fontWeight: 800,
-            fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-            color: item.color,
-            textShadow: `0 0 16px rgba(253, 175, 123, 0.4), 0 0 3px ${item.color}`,
-            letterSpacing: "0.02em",
-            whiteSpace: "nowrap",
-            pointerEvents: "none",
-            userSelect: "none",
-            zIndex: 14,
-            animation: `langTwinkleFloat 3.2s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate ${item.delay}`,
-            willChange: "transform, opacity",
-            backfaceVisibility: "hidden",
-          }}
-        >
-          {item.text}
-        </span>
-      ))}
-
+      {/* Multilingual Floating Texts Positioned Symmetrically OUTSIDE the Main Title (Removed) */}
       {/* Glowing 3D Orbit Trajectory Line */}
       <svg width="100%" height="100%" viewBox="0 0 1000 350"
         style={{
