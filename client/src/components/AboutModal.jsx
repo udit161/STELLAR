@@ -96,6 +96,11 @@ const TEAM_MEMBERS = [
     bgGradient: 'linear-gradient(135deg, rgba(132, 204, 22, 0.22), rgba(15, 23, 42, 0.9))',
     borderColor: 'rgba(132, 204, 22, 0.55)',
     highlight: true,
+    socials: {
+      instagram: 'https://www.instagram.com/the.sketch.man66',
+      github: 'https://github.com/udit161',
+      linkedin: 'https://www.linkedin.com/in/udit-kumar-9aa031376/',
+    },
   },
   {
     name: 'Aadhya',
@@ -279,11 +284,7 @@ export function AboutModal({ isOpen, onClose }) {
                           >
                             <IconComponent size={20} />
                           </div>
-                          {member.tag && (
-                            <span className="team-member-tag" style={{ color: member.color, borderColor: `${member.color}44` }}>
-                              #{member.tag}
-                            </span>
-                          )}
+
                           {member.socials && (
                             <div className="team-social-links">
                               {member.socials.instagram && (
