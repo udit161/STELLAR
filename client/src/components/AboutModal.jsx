@@ -113,6 +113,11 @@ const TEAM_MEMBERS = [
     color: '#38bdf8', // Sky Blue
     bgGradient: 'linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.9))',
     borderColor: 'rgba(56, 189, 248, 0.4)',
+    socials: {
+      instagram: 'https://www.instagram.com/aadhya_singh006',
+      github: 'https://github.com/aadhya-devcode',
+      linkedin: 'https://www.linkedin.com/in/aadhya-singh-1b50403b8/',
+    },
   },
   {
     name: 'Aman Deep',
