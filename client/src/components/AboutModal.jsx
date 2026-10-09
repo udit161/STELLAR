@@ -122,30 +122,6 @@ const TEAM_MEMBERS = [
     borderColor: 'rgba(16, 185, 129, 0.4)',
   },
   {
-    name: 'Swastika',
-    roleKey: 'memberSwastikaRole',
-    defaultRole: 'Visual Content Designer',
-    roleKeyHi: 'memberSwastikaRoleHi',
-    defaultRoleHi: 'विजुअल कंटेंट डिजाइनर',
-    tag: 'UI/UX & Assets',
-    icon: Palette,
-    color: '#ec4899', // Pink / Rose
-    bgGradient: 'linear-gradient(135deg, rgba(236, 72, 153, 0.18), rgba(15, 23, 42, 0.9))',
-    borderColor: 'rgba(236, 72, 153, 0.4)',
-  },
-  {
-    name: 'Akash',
-    roleKey: 'memberAkashRole',
-    defaultRole: 'Backend Dev',
-    roleKeyHi: 'memberAkashRoleHi',
-    defaultRoleHi: 'बैकएंड डेवलपर',
-    tag: 'Database & API',
-    icon: Code,
-    color: '#a855f7', // Purple
-    bgGradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(15, 23, 42, 0.9))',
-    borderColor: 'rgba(168, 85, 247, 0.4)',
-  },
-  {
     name: 'Nishant',
     roleKey: 'memberNishantRole',
     defaultRole: 'Frontend Dev',
@@ -276,7 +252,7 @@ export function AboutModal({ isOpen, onClose }) {
                       {isHindi ? 'टीम डिबग राजवंश से मिलें' : 'Meet Team Debugg Dynasty'}
                     </h3>
                   </div>
-                  <span className="team-count-pill lime">6 {isHindi ? 'इंजीनियर' : 'Engineers'}</span>
+                  <span className="team-count-pill lime">4 {isHindi ? 'इंजीनियर' : 'Engineers'}</span>
                 </div>
 
                 {/* Team Grid: 6 Member Cards (Udit, Aadhya, Aman, Swastika, Akash, Nishant) */}
