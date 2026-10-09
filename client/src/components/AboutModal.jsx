@@ -82,23 +82,6 @@ function DebuggDynastyIsroBadge({ onClick }) {
   );
 }
 
-/**
- * Inline Official ISRO Logo Badge for About Modal (Right Side of Team Logo)
- */
-function IsroBadgeInline() {
-  const t = useT();
-  return (
-    <div className="isro-official-badge-inline-wrap">
-      <div className="isro-official-blob-frame">
-        <div className="isro-official-blob-ring" />
-        <div className="isro-official-blob-inset">
-          <img src="/isro_official.svg" alt="ISRO" className="isro-official-img" />
-        </div>
-      </div>
-      <span className="badge-sublabel isro-label">{t.isroBadge || 'ISRO'}</span>
-    </div>
-  );
-}
 
 const TEAM_MEMBERS = [
   {
@@ -269,13 +252,10 @@ export function AboutModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              {/* ── DUO BADGES ROW: DEBUGG DYNASTY (CENTER) | ISRO (RIGHT) ── */}
+              {/* ── SOLO BADGE: DEBUGG DYNASTY (CENTER) ── */}
               <div className="about-badges-trio-row">
-                {/* Center: Debugg Dynasty Team Logo Badge */}
+                {/* Debugg Dynasty Team Logo Badge */}
                 <DebuggDynastyIsroBadge onClick={() => setActiveTab('team')} />
-
-                {/* Right: ISRO Official Badge */}
-                <IsroBadgeInline />
               </div>
 
             </div>

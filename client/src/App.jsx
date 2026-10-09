@@ -6,7 +6,7 @@ import TwinklingStars from './components/TwinklingStars';
 import GlassSidebar from './components/GlassSidebar';
 import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
 import LiquidMetalChatUI from './components/LiquidMetalChatUI';
-import ISROBadge from './components/ISROBadge';
+
 import LanguageSwitcher from './components/LanguageSwitcher';
 
 import Scene from './pages/Scene';
@@ -107,12 +107,7 @@ function App() {
         <LiquidMetalQueryBar onLaunchQuery={handleLaunchQuery} />
       )}
 
-      {/* Badges shown only on initial home stage */}
-      {!querySubmitted && (
-        <>
-          <ISROBadge />
-        </>
-      )}
+
     </>
   );
 }
