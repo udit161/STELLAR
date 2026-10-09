@@ -125,6 +125,10 @@ const TEAM_MEMBERS = [
     color: '#10b981', // Emerald Green
     bgGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(15, 23, 42, 0.9))',
     borderColor: 'rgba(16, 185, 129, 0.4)',
+    socials: {
+      instagram: 'https://www.instagram.com/deep_aman_4610',
+      github: 'https://github.com/ADSingh-alpha',
+    },
   },
   {
     name: 'Nishant',
@@ -137,6 +141,11 @@ const TEAM_MEMBERS = [
     color: '#00f2fe', // Cyan Liquid
     bgGradient: 'linear-gradient(135deg, rgba(0, 242, 254, 0.18), rgba(15, 23, 42, 0.9))',
     borderColor: 'rgba(0, 242, 254, 0.4)',
+    socials: {
+      instagram: 'https://www.instagram.com/nishant____thakur_',
+      github: 'https://github.com/singhnishant8688-code',
+      linkedin: 'https://www.linkedin.com/in/nishant-singh-a8927b253/',
+    },
   },
 ];
 
