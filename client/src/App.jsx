@@ -7,7 +7,6 @@ import GlassSidebar from './components/GlassSidebar';
 import LiquidMetalQueryBar from './components/LiquidMetalQueryBar';
 import LiquidMetalChatUI from './components/LiquidMetalChatUI';
 import ISROBadge from './components/ISROBadge';
-import IndiaFlagBadge from './components/IndiaFlagBadge';
 import LanguageSwitcher from './components/LanguageSwitcher';
 
 import Scene from './pages/Scene';
@@ -112,7 +111,6 @@ function App() {
       {!querySubmitted && (
         <>
           <ISROBadge />
-          <IndiaFlagBadge />
         </>
       )}
     </>

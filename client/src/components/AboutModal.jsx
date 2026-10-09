@@ -60,44 +60,6 @@ function DebuggDynastyLogo({ size = 'medium' }) {
   );
 }
 
-/**
- * Inline India Flag Badge for About Modal (Left Side of Team Logo)
- */
-function IndiaBadgeInline() {
-  const t = useT();
-  const spokes = Array.from({ length: 24 }).map((_, i) => {
-    const angle = (i * 360) / 24;
-    const rad = (angle * Math.PI) / 180;
-    return {
-      x1: 50 + 6 * Math.cos(rad),
-      y1: 50 + 6 * Math.sin(rad),
-      x2: 50 + 43 * Math.cos(rad),
-      y2: 50 + 43 * Math.sin(rad),
-    };
-  });
-
-  return (
-    <div className="india-badge-inline-wrap">
-      <div className="india-blob-frame">
-        <div className="india-blob-halo" />
-        <div className="india-blob-ring" />
-        <div className="india-blob-ring-mask" />
-        <div className="india-blob-inset">
-          <div className="india-chakra-container">
-            <svg className="india-chakra-svg" viewBox="0 0 100 100" width="24" height="24" aria-label="Ashoka Chakra">
-              <circle cx="50" cy="50" r="46" fill="none" stroke="#000080" strokeWidth="4" />
-              <circle cx="50" cy="50" r="6" fill="#000080" />
-              {spokes.map((s, i) => (
-                <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#000080" strokeWidth="2.8" strokeLinecap="round" />
-              ))}
-            </svg>
-          </div>
-        </div>
-      </div>
-      <span className="badge-sublabel india-label">{t.indiaBadge || 'INDIA'}</span>
-    </div>
-  );
-}
 
 /**
  * ISRO-Style Abstract Morphing Blob Badge for Debugg DYNASTY (Center)
@@ -307,11 +269,8 @@ export function AboutModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              {/* ── TRIO BADGES ROW: INDIA (LEFT) | DEBUGG DYNASTY (CENTER) | ISRO (RIGHT) ── */}
+              {/* ── DUO BADGES ROW: DEBUGG DYNASTY (CENTER) | ISRO (RIGHT) ── */}
               <div className="about-badges-trio-row">
-                {/* Left: India Flag Badge */}
-                <IndiaBadgeInline />
-
                 {/* Center: Debugg Dynasty Team Logo Badge */}
                 <DebuggDynastyIsroBadge onClick={() => setActiveTab('team')} />
 
