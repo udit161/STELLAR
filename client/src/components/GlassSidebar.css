@@ -16,24 +16,25 @@
 .glass-sidebar-wrapper {
   position: fixed;
   left: 24px;
-  top: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 100;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   gap: 12px;
   animation: glassFloat 3.5s ease-in-out infinite;
 }
 
 @keyframes glassFloat {
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-4px); }
+  0%, 100% { transform: translateY(calc(-50% + 0px)); }
+  50%      { transform: translateY(calc(-50% - 4px)); }
 }
 
 /* ── Main Sidebar Panel (Container box removed — pure floating items) ── */
 .glass-sidebar {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
   user-select: none;
@@ -42,7 +43,7 @@
 /* ── Navigation Items Container ── */
 .glass-sidebar-nav {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
   position: relative;
