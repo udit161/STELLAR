@@ -92,9 +92,9 @@ const TEAM_MEMBERS = [
     defaultRoleHi: 'टीम लीडर और AI & UI लीड',
     tag: 'Leader & AI/UI',
     icon: Crown,
-    color: '#84cc16', // Team Lime Primary
-    bgGradient: 'linear-gradient(135deg, rgba(132, 204, 22, 0.22), rgba(15, 23, 42, 0.9))',
-    borderColor: 'rgba(132, 204, 22, 0.55)',
+    color: '#ffffff', // High Contrast White
+    bgGradient: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(15, 23, 42, 0.95))',
+    borderColor: 'rgba(255, 255, 255, 0.45)',
     highlight: true,
     socials: {
       instagram: 'https://www.instagram.com/the.sketch.man66',
@@ -110,9 +110,9 @@ const TEAM_MEMBERS = [
     defaultRoleHi: 'शोधकर्ता (Researcher)',
     tag: 'Research & EO',
     icon: Search,
-    color: '#38bdf8', // Sky Blue
-    bgGradient: 'linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.9))',
-    borderColor: 'rgba(56, 189, 248, 0.4)',
+    color: '#e2e8f0', // Silver White
+    bgGradient: 'linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(15, 23, 42, 0.95))',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     socials: {
       instagram: 'https://www.instagram.com/aadhya_singh006',
       github: 'https://github.com/aadhya-devcode',
@@ -127,9 +127,9 @@ const TEAM_MEMBERS = [
     defaultRoleHi: 'बैकएंड लीड (Backend Lead)',
     tag: 'Backend Arch',
     icon: Server,
-    color: '#10b981', // Emerald Green
-    bgGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(15, 23, 42, 0.9))',
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    color: '#cbd5e1', // Light Gray
+    bgGradient: 'linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(15, 23, 42, 0.95))',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     socials: {
       instagram: 'https://www.instagram.com/deep_aman_4610',
       github: 'https://github.com/ADSingh-alpha',
@@ -143,9 +143,9 @@ const TEAM_MEMBERS = [
     defaultRoleHi: 'फ्रंटएंड डेवलपर',
     tag: 'Client Engineer',
     icon: Monitor,
-    color: '#00f2fe', // Cyan Liquid
-    bgGradient: 'linear-gradient(135deg, rgba(0, 242, 254, 0.18), rgba(15, 23, 42, 0.9))',
-    borderColor: 'rgba(0, 242, 254, 0.4)',
+    color: '#ffffff', // Crisp White
+    bgGradient: 'linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(15, 23, 42, 0.95))',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     socials: {
       instagram: 'https://www.instagram.com/nishant____thakur_',
       github: 'https://github.com/singhnishant8688-code',
@@ -264,7 +264,7 @@ export function AboutModal({ isOpen, onClose }) {
                 <div className="team-header-row">
                   <div className="team-title-wrap">
                     <div className="team-dynasty-badge lime">
-                      <Users size={18} color="#84cc16" />
+                      <Users size={18} color="#ffffff" />
                       <span>{t.teamName || 'DEBUGG DYNASTY'}</span>
                     </div>
                     <h3 className="team-main-heading">
@@ -344,7 +344,7 @@ export function AboutModal({ isOpen, onClose }) {
                         <div className="team-card-info">
                           <h4 className="team-member-name">
                             {member.name}
-                            {member.highlight && <Crown size={15} className="leader-crown-icon" color="#84cc16" />}
+                            {member.highlight && <Crown size={15} className="leader-crown-icon" color="#ffffff" />}
                           </h4>
                           <p className="team-member-role">{roleText}</p>
                         </div>

@@ -1,4 +1,4 @@
-/* ── AboutModal ISRO & India Morphing Badges Trio Styling ── */
+/* ── AboutModal Black & White Monochrome Theme Styling ── */
 .about-modal-backdrop.lime-theme {
   position: fixed;
   inset: 0;
@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(3, 7, 18, 0.85);
+  background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   padding: 20px;
@@ -24,13 +24,13 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  background: rgba(9, 14, 23, 0.94);
-  border: 1px solid rgba(132, 204, 22, 0.35);
+  background: rgba(12, 12, 12, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 24px;
   box-shadow: 
-    0 24px 70px rgba(0, 0, 0, 0.75),
-    0 0 50px rgba(132, 204, 22, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 24px 70px rgba(0, 0, 0, 0.95),
+    0 0 50px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   overflow: hidden;
   color: #f8fafc;
   animation: popInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -53,8 +53,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(13, 20, 32, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 20, 20, 0.8);
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -75,7 +75,7 @@
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #ffffff 0%, #84cc16 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -83,17 +83,17 @@
 .about-sub-heading {
   margin: 2px 0 0 0;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 
 /* Sub-Tab Navigation Bar */
 .about-subtab-bar {
   display: flex;
   align-items: center;
-  background: rgba(9, 14, 23, 0.8);
+  background: rgba(18, 18, 18, 0.9);
   padding: 4px;
   border-radius: 30px;
-  border: 1px solid rgba(132, 204, 22, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   gap: 4px;
 }
 
@@ -105,7 +105,7 @@
   border-radius: 20px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: #a1a1aa;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
@@ -113,21 +113,21 @@
 }
 
 .subtab-btn:hover {
-  color: #f8fafc;
-  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .subtab-btn.active {
-  background: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
-  color: #030712;
+  background: linear-gradient(135deg, #ffffff 0%, #e4e4e7 100%);
+  color: #000000;
   font-weight: 800;
-  box-shadow: 0 4px 12px rgba(132, 204, 22, 0.35);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
 }
 
 .about-close-btn {
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e4e4e7;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -139,9 +139,9 @@
 }
 
 .about-close-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #f87171;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
   transform: rotate(90deg);
 }
 
@@ -159,7 +159,7 @@
 }
 
 .about-modal-body::-webkit-scrollbar-thumb {
-  background: rgba(132, 204, 22, 0.3);
+  background: rgba(255, 255, 255, 0.25);
   border-radius: 10px;
 }
 
@@ -179,8 +179,8 @@
 .app-overview-lime {
   padding: 22px;
   border-radius: 20px;
-  background: rgba(11, 18, 29, 0.7);
-  border: 1px solid rgba(132, 204, 22, 0.25);
+  background: rgba(20, 20, 20, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .about-section-title {
@@ -194,14 +194,14 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 .about-description-text {
   margin: 0 0 16px 0;
   font-size: 0.9rem;
   line-height: 1.65;
-  color: #cbd5e1;
+  color: #d4d4d8;
 }
 
 .about-feature-chips {
@@ -217,13 +217,13 @@
   font-size: 0.78rem;
   padding: 5px 12px;
   border-radius: 30px;
-  background: rgba(132, 204, 22, 0.1);
-  border: 1px solid rgba(132, 204, 22, 0.28);
-  color: #bef264;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
   font-weight: 600;
 }
 
-/* ── 2. TRIO BADGES ROW: INDIA (LEFT) | DEBUGG DYNASTY (CENTER) | ISRO (RIGHT) ── */
+/* ── 2. TRIO BADGES ROW ── */
 .about-badges-trio-row {
   display: flex;
   align-items: center;
@@ -234,7 +234,6 @@
   width: 100%;
 }
 
-/* Keyframe Animations matching ISROBadge & IndiaFlagBadge */
 @keyframes isroBlobMorph {
   0%   { border-radius: 62% 38% 46% 54% / 60% 44% 56% 40%; }
   10%  { border-radius: 38% 62% 60% 40% / 42% 58% 42% 58%; }
@@ -281,7 +280,7 @@
 .debugg-isro-badge-wrap:hover,
 .india-badge-inline-wrap:hover,
 .isro-official-badge-inline-wrap:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 /* Center Team Logo Blob Container Frame */
@@ -297,120 +296,21 @@
 .isro-blob-ring {
   position: absolute;
   inset: -4px;
-  background: linear-gradient(135deg, #84cc16 0%, #a3e635 30%, #4338ca 70%, #84cc16 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 40%, #3f3f46 70%, #ffffff 100%);
   animation: isroBlobMorph 8s ease-in-out infinite;
-  box-shadow: 0 0 25px rgba(132, 204, 22, 0.35);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.22);
 }
 
 .isro-blob-inset {
   position: absolute;
   inset: 2px;
-  background: #070c14;
+  background: #09090b;
   animation: isroBlobMorph 8s ease-in-out infinite;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 8px 16px;
-}
-
-/* Left India Badge Blob Container */
-.india-blob-frame {
-  position: relative;
-  width: 84px;
-  height: 84px;
-}
-
-.india-blob-ring {
-  position: absolute;
-  inset: -4px;
-  background: linear-gradient(180deg, #FF9933 0%, #FF9933 33.3%, #ffffff 33.3%, #ffffff 66.6%, #138808 66.6%, #138808 100%);
-  animation: indiaBlobMorph 9s ease-in-out infinite;
-  z-index: 1;
-}
-
-.india-blob-ring-mask {
-  position: absolute;
-  inset: -1px;
-  background: rgba(4, 6, 14, 0.96);
-  animation: indiaBlobMorph 9s ease-in-out infinite;
-  z-index: 2;
-}
-
-.india-blob-inset {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  animation: indiaBlobMorph 9s ease-in-out infinite;
-  z-index: 3;
-  background: linear-gradient(180deg, #FF9933 0%, #FF9933 33.3%, #f0f0f0 33.3%, #f0f0f0 66.6%, #138808 66.6%, #138808 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.india-chakra-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.india-chakra-svg {
-  animation: chakraSpin 8s linear infinite;
-  transform-origin: center center;
-}
-
-/* Right ISRO Official Badge Blob Container */
-.isro-official-blob-frame {
-  position: relative;
-  width: 84px;
-  height: 84px;
-}
-
-.isro-official-blob-ring {
-  position: absolute;
-  inset: -4px;
-  background: linear-gradient(135deg, #e6641e 0%, #E6F082 40%, #D8D365 60%, #e6641e 100%);
-  animation: isroBlobMorph 8s ease-in-out infinite;
-  z-index: 1;
-}
-
-.isro-official-blob-inset {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  animation: isroBlobMorph 8s ease-in-out infinite;
-  z-index: 3;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-}
-
-.isro-official-img {
-  width: 85%;
-  height: 85%;
-  object-fit: contain;
-}
-
-/* Sub-labels under badges */
-.badge-sublabel {
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  user-select: none;
-}
-
-.badge-sublabel.india-label {
-  color: rgba(255, 153, 51, 0.9);
-  text-shadow: 0 0 8px rgba(255, 153, 51, 0.4);
-}
-
-.badge-sublabel.isro-label {
-  color: rgba(230, 100, 30, 0.9);
-  text-shadow: 0 0 8px rgba(230, 100, 30, 0.4);
 }
 
 /* Original Logo Typography inside Center Badge */
@@ -426,16 +326,16 @@
   font-family: 'Inter', 'Outfit', system-ui, sans-serif;
   font-size: 2.0rem;
   font-weight: 950;
-  color: #84cc16;
+  color: #ffffff;
   letter-spacing: -0.03em;
-  text-shadow: 0 0 20px rgba(132, 204, 22, 0.5);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
 }
 
 .debugg-logo-original.small .text-dynasty {
   font-family: 'Inter', 'Outfit', system-ui, sans-serif;
   font-size: 0.88rem;
   font-weight: 900;
-  color: #ffffff;
+  color: #e4e4e7;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   margin-top: 2px;
@@ -452,8 +352,8 @@
 .team-section-lime {
   padding: 22px;
   border-radius: 20px;
-  background: rgba(11, 18, 29, 0.75);
-  border: 1px solid rgba(132, 204, 22, 0.35);
+  background: rgba(20, 20, 20, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .team-header-row {
@@ -475,7 +375,7 @@
   gap: 6px;
   font-size: 0.8rem;
   font-weight: 800;
-  color: #84cc16;
+  color: #ffffff;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -491,13 +391,13 @@
   font-size: 0.75rem;
   padding: 4px 12px;
   border-radius: 20px;
-  background: rgba(132, 204, 22, 0.15);
-  border: 1px solid rgba(132, 204, 22, 0.35);
-  color: #bef264;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
   font-weight: 700;
 }
 
-/* ── Team Grid (Matching Image 1 Structure) ── */
+/* ── Team Grid ── */
 .team-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -518,12 +418,12 @@
 
 .team-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
 }
 
 .team-card.highlight-leader-lime {
-  box-shadow: 0 0 24px rgba(132, 204, 22, 0.22);
-  border-color: rgba(132, 204, 22, 0.6) !important;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
 .team-card-top {
@@ -548,7 +448,7 @@
   padding: 4px 9px;
   border-radius: 14px;
   border: 1px solid;
-  background: rgba(9, 14, 23, 0.6);
+  background: rgba(18, 18, 18, 0.6);
 }
 
 .team-card-info {
@@ -568,13 +468,13 @@
 }
 
 .leader-crown-icon {
-  filter: drop-shadow(0 0 4px rgba(132, 204, 22, 0.8));
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
 }
 
 .team-member-role {
   margin: 0;
   font-size: 0.82rem;
-  color: #cbd5e1;
+  color: #d4d4d8;
   font-weight: 500;
   line-height: 1.35;
 }
@@ -609,33 +509,34 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 26px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 18, 29, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 18, 0.95);
 }
 
 .about-footer-text {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 
 .lime-highlight {
-  color: #84cc16;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .about-done-btn.lime-btn {
   padding: 8px 22px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #84cc16 0%, #65a30d 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #e4e4e7 100%);
   border: none;
-  color: #030712;
+  color: #000000;
   font-size: 0.85rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(132, 204, 22, 0.3);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
   transition: all 0.2s ease;
 }
 
 .about-done-btn.lime-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(132, 204, 22, 0.45);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4);
 }
