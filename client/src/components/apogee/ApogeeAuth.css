@@ -292,8 +292,8 @@
 }
 
 @keyframes antennaPulse {
-  0% { fill: #eab308; filter: drop-shadow(0 0 4px #eab308); }
-  100% { fill: #38bdf8; filter: drop-shadow(0 0 8px #38bdf8); }
+  0% { fill: #ffffff; filter: drop-shadow(0 0 4px #ffffff); }
+  100% { fill: #aaaaaa; filter: drop-shadow(0 0 8px #aaaaaa); }
 }
 
 .orbit-ring-svg {

@@ -125,23 +125,23 @@ export function AstronautHead() {
             {/* Dashed Outer Orbit Ring & Satellite Dot */}
             <g className="orbit-ring-svg">
               <circle cx="150" cy="150" r="142" stroke="url(#orbitGrad)" strokeWidth="1.5" strokeDasharray="8 12" opacity="0.6" />
-              <circle cx="292" cy="150" r="4.5" fill="#3fe7c8" filter="drop-shadow(0 0 6px #3fe7c8)" />
+              <circle cx="292" cy="150" r="4.5" fill="#ffffff" filter="drop-shadow(0 0 6px #ffffff)" />
             </g>
 
             {/* Antenna Assembly */}
-            <path d="M150 52V22" stroke="#d9e1ff" strokeWidth="3" strokeLinecap="round" />
+            <path d="M150 52V22" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
             <circle cx="150" cy="18" r="6" className="antenna-led" />
 
             {/* Main Helmet Silver Shell */}
-            <path d="M150 48C90 48 56 88 56 150C56 215 92 245 150 245C208 245 244 215 244 150C244 88 210 48 150 48Z" fill="url(#shellGrad)" stroke="#d9e1ff" strokeWidth="2" />
+            <path d="M150 48C90 48 56 88 56 150C56 215 92 245 150 245C208 245 244 215 244 150C244 88 210 48 150 48Z" fill="url(#shellGrad)" stroke="#ffffff" strokeWidth="2" />
 
             {/* Helmet Metallic Collars & Side Bolts */}
-            <path d="M72 232C90 252 118 262 150 262C182 262 210 252 228 232V250C228 264 192 274 150 274C108 274 72 264 72 250V232Z" fill="url(#collarGrad)" stroke="#98a1c7" strokeWidth="1.5" />
-            <circle cx="82" cy="244" r="3.5" fill="#131a3d" stroke="#d9e1ff" strokeWidth="1" />
-            <circle cx="218" cy="244" r="3.5" fill="#131a3d" stroke="#d9e1ff" strokeWidth="1" />
+            <path d="M72 232C90 252 118 262 150 262C182 262 210 252 228 232V250C228 264 192 274 150 274C108 274 72 264 72 250V232Z" fill="url(#collarGrad)" stroke="#aaaaaa" strokeWidth="1.5" />
+            <circle cx="82" cy="244" r="3.5" fill="#000000" stroke="#ffffff" strokeWidth="1" />
+            <circle cx="218" cy="244" r="3.5" fill="#000000" stroke="#ffffff" strokeWidth="1" />
 
             {/* Deep Visor Outer Frame */}
-            <path d="M78 120C78 95 105 84 150 84C195 84 222 95 222 120C222 170 200 205 150 205C100 205 78 170 78 120Z" fill="#05060d" stroke="#8b6bff" strokeWidth="2" />
+            <path d="M78 120C78 95 105 84 150 84C195 84 222 95 222 120C222 170 200 205 150 205C100 205 78 170 78 120Z" fill="#000000" stroke="#ffffff" strokeWidth="2" />
 
             {/* Visor Background & Dynamic Reflection */}
             <g>
@@ -150,15 +150,15 @@ export function AstronautHead() {
               {/* Enlarged Dynamic Cursor-Tracking Glowing Cybernetic Eyes */}
               <g id="astronautEyes">
                 {/* Left Eye Socket */}
-                <ellipse cx="123" cy="135" rx="20" ry="16" fill="#020617" stroke="rgba(63, 231, 200, 0.85)" strokeWidth="1.6" filter="drop-shadow(0 0 4px rgba(63, 231, 200, 0.3))" />
-                <circle cx="123" cy="135" r="11" fill="#3fe7c8" opacity="0.22" />
-                <circle ref={leftPupilRef} cx="123" cy="135" r="7" fill="#3fe7c8" filter="drop-shadow(0 0 8px #3fe7c8)" />
+                <ellipse cx="123" cy="135" rx="20" ry="16" fill="#000000" stroke="rgba(255, 255, 255, 0.85)" strokeWidth="1.6" filter="drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))" />
+                <circle cx="123" cy="135" r="11" fill="#ffffff" opacity="0.22" />
+                <circle ref={leftPupilRef} cx="123" cy="135" r="7" fill="#ffffff" filter="drop-shadow(0 0 8px #ffffff)" />
                 <circle ref={leftSparkleRef} cx="120" cy="132" r="2.4" fill="#ffffff" />
 
                 {/* Right Eye Socket */}
-                <ellipse cx="177" cy="135" rx="20" ry="16" fill="#020617" stroke="rgba(63, 231, 200, 0.85)" strokeWidth="1.6" filter="drop-shadow(0 0 4px rgba(63, 231, 200, 0.3))" />
-                <circle cx="177" cy="135" r="11" fill="#3fe7c8" opacity="0.22" />
-                <circle ref={rightPupilRef} cx="177" cy="135" r="7" fill="#3fe7c8" filter="drop-shadow(0 0 8px #3fe7c8)" />
+                <ellipse cx="177" cy="135" rx="20" ry="16" fill="#000000" stroke="rgba(255, 255, 255, 0.85)" strokeWidth="1.6" filter="drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))" />
+                <circle cx="177" cy="135" r="11" fill="#ffffff" opacity="0.22" />
+                <circle ref={rightPupilRef} cx="177" cy="135" r="7" fill="#ffffff" filter="drop-shadow(0 0 8px #ffffff)" />
                 <circle ref={rightSparkleRef} cx="174" cy="132" r="2.4" fill="#ffffff" />
               </g>
 
@@ -167,40 +167,40 @@ export function AstronautHead() {
             </g>
 
             {/* Audio Comm Ports */}
-            <rect x="50" y="142" width="12" height="24" rx="4" fill="#131a3d" stroke="#98a1c7" strokeWidth="1.5" />
-            <rect x="238" y="142" width="12" height="24" rx="4" fill="#131a3d" stroke="#98a1c7" strokeWidth="1.5" />
+            <rect x="50" y="142" width="12" height="24" rx="4" fill="#000000" stroke="#cccccc" strokeWidth="1.5" />
+            <rect x="238" y="142" width="12" height="24" rx="4" fill="#000000" stroke="#cccccc" strokeWidth="1.5" />
 
             {/* SVG Gradients */}
             <defs>
               <linearGradient id="shellGrad" x1="56" y1="48" x2="244" y2="245" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="30%" stopColor="#d9e1ff" />
-                <stop offset="70%" stopColor="#98a1c7" />
-                <stop offset="100%" stopColor="#131a3d" />
+                <stop offset="30%" stopColor="#cccccc" />
+                <stop offset="70%" stopColor="#777777" />
+                <stop offset="100%" stopColor="#000000" />
               </linearGradient>
 
               <linearGradient id="collarGrad" x1="72" y1="232" x2="228" y2="274" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#d9e1ff" />
-                <stop offset="50%" stopColor="#5b3bff" />
-                <stop offset="100%" stopColor="#0a0f26" />
+                <stop offset="0%" stopColor="#cccccc" />
+                <stop offset="50%" stopColor="#888888" />
+                <stop offset="100%" stopColor="#000000" />
               </linearGradient>
 
               <radialGradient id="visorShine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(130 110) scale(110 90)">
-                <stop offset="0%" stopColor="#131a3d" />
-                <stop offset="60%" stopColor="#0a0f26" />
-                <stop offset="100%" stopColor="#05060d" />
+                <stop offset="0%" stopColor="#333333" />
+                <stop offset="60%" stopColor="#111111" />
+                <stop offset="100%" stopColor="#000000" />
               </radialGradient>
 
               <linearGradient id="reflGrad" x1="85" y1="95" x2="155" y2="135" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#3fe7c8" stopOpacity="0.8" />
-                <stop offset="50%" stopColor="#8b6bff" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#8b6bff" stopOpacity="0" />
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                <stop offset="50%" stopColor="#888888" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#888888" stopOpacity="0" />
               </linearGradient>
 
               <linearGradient id="orbitGrad" x1="8" y1="150" x2="292" y2="150" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#8b6bff" />
-                <stop offset="50%" stopColor="#3fe7c8" />
-                <stop offset="100%" stopColor="#8b6bff" />
+                <stop offset="0%" stopColor="#aaaaaa" />
+                <stop offset="50%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#aaaaaa" />
               </linearGradient>
             </defs>
           </svg>
