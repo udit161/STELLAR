@@ -289,8 +289,11 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
         previews.push({ name: f.name || 'Satellite Image', url: f.url });
       }
     });
-    setInitImagePreviews(previews);
-    setAllUploadedPreviews(previews);
+    const uniquePreviews = previews.filter((img, idx, arr) =>
+      arr.findIndex(item => (item.url && item.url === img.url) || (item.name && item.name === img.name)) === idx
+    );
+    setInitImagePreviews(uniquePreviews);
+    setAllUploadedPreviews(uniquePreviews);
     return () => previews.forEach(p => p.url?.startsWith('blob:') && URL.revokeObjectURL(p.url));
   }, [attachments]);
 
@@ -747,7 +750,10 @@ export function LiquidMetalChatUI({ queryText, attachments = [], onResetQuery })
     // Keep Uploaded Image tab in sync — show latest image(s), scrolling to new ones
     if (filePreviews.length > 0) {
       setAllUploadedPreviews(prev => {
-        const updated = [...prev, ...filePreviews];
+        const combined = [...prev, ...filePreviews];
+        const updated = combined.filter((img, idx, arr) =>
+          arr.findIndex(item => (item.url && item.url === img.url) || (item.name && item.name === img.name)) === idx
+        );
         // Auto-select the newly added image
         setRightImgIdx(updated.length - 1);
         return updated;
