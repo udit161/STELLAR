@@ -17,34 +17,34 @@ const MULTILINGUAL_STELLAR = [
     text: "स्टेलर एआई",
     lang: "Hindi",
     script: "हिन्दी",
-    top: "3%",
+    top: "-18%",
     left: "50%",
     color: "#FFFFFF",
     glowColor: "rgba(255, 255, 255, 0.5)",
     delay: "0s",
     duration: "4.2s",
-    amplitude: "7px",
+    amplitude: "6px",
     sparkle: "✦"
   },
   {
     text: "স্টেলার এআই",
     lang: "Bengali",
     script: "বাংলা",
-    top: "-3%",
-    left: "76%",
+    top: "-14%",
+    left: "78%",
     color: "#CBD5E1",
     glowColor: "rgba(203, 213, 225, 0.45)",
     delay: "0.7s",
     duration: "4.6s",
-    amplitude: "8px",
+    amplitude: "7px",
     sparkle: "✧"
   },
   {
     text: "స్టెల్లార్ ఏఐ",
     lang: "Telugu",
     script: "తెలుగు",
-    top: "16%",
-    left: "94%",
+    top: "10%",
+    left: "108%",
     color: "#E2E8F0",
     glowColor: "rgba(226, 232, 240, 0.45)",
     delay: "1.3s",
@@ -56,47 +56,47 @@ const MULTILINGUAL_STELLAR = [
     text: "സ്റ്റെല്ലാർ എഐ",
     lang: "Malayalam",
     script: "മലയാളം",
-    top: "60%",
-    left: "95%",
+    top: "84%",
+    left: "110%",
     color: "#94A3B8",
     glowColor: "rgba(148, 163, 184, 0.45)",
     delay: "2.1s",
     duration: "4.4s",
-    amplitude: "8px",
+    amplitude: "7px",
     sparkle: "✧"
   },
   {
     text: "ஸ்டெல்லார் ஏஐ",
     lang: "Tamil",
     script: "தமிழ்",
-    top: "98%",
-    left: "75%",
+    top: "116%",
+    left: "78%",
     color: "#F8FAFC",
     glowColor: "rgba(248, 250, 252, 0.5)",
     delay: "0.4s",
     duration: "4.8s",
-    amplitude: "7px",
+    amplitude: "6px",
     sparkle: "✦"
   },
   {
     text: "ಸ್ಟೆಲ್ಲಾರ್ ಏಐ",
     lang: "Kannada",
     script: "ಕನ್ನಡ",
-    top: "103%",
-    left: "48%",
+    top: "120%",
+    left: "50%",
     color: "#CBD5E1",
     glowColor: "rgba(203, 213, 225, 0.45)",
     delay: "1.8s",
     duration: "4.1s",
-    amplitude: "9px",
+    amplitude: "8px",
     sparkle: "✧"
   },
   {
     text: "ਸਟੈਲਰ ਏਆਈ",
     lang: "Punjabi",
     script: "ਪੰਜਾਬੀ",
-    top: "97%",
-    left: "20%",
+    top: "114%",
+    left: "22%",
     color: "#E2E8F0",
     glowColor: "rgba(226, 232, 240, 0.45)",
     delay: "2.6s",
@@ -108,39 +108,40 @@ const MULTILINGUAL_STELLAR = [
     text: "સ્ટેલર એઆઈ",
     lang: "Gujarati",
     script: "ગુજરાતી",
-    top: "64%",
-    left: "4%",
+    top: "84%",
+    left: "-10%",
     color: "#94A3B8",
     glowColor: "rgba(148, 163, 184, 0.45)",
     delay: "1.1s",
     duration: "3.7s",
-    amplitude: "7px",
+    amplitude: "6px",
     sparkle: "✧"
   },
   {
     text: "स्टेलर एआय",
     lang: "Marathi",
     script: "मराठी",
-    top: "18%",
-    left: "5%",
+    top: "10%",
+    left: "-8%",
     color: "#F1F5F9",
     glowColor: "rgba(241, 245, 249, 0.5)",
     delay: "2.8s",
     duration: "4.3s",
-    amplitude: "8px",
+    amplitude: "7px",
     sparkle: "✦"
   },
   {
     text: "اسٹیلر اے آئی",
     lang: "Urdu",
     script: "اردو",
-    top: "-2%",
+    top: "-14%",
     left: "22%",
     color: "#CBD5E1",
     glowColor: "rgba(203, 213, 225, 0.45)",
     delay: "1.5s",
     duration: "5.0s",
     amplitude: "6px",
+    sparkle: "✧"
   }
 ];
 
@@ -435,33 +436,7 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
           transform: translate(-50%, -50%) scale(1.15) !important;
           opacity: 1 !important;
           z-index: 30 !important;
-          filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85)) brightness(1.35) !important;
-        }
-
-        .stellar-lang-tooltip {
-          position: absolute;
-          bottom: calc(100% + 6px);
-          left: 50%;
-          transform: translateX(-50%) translateY(4px);
-          padding: 2px 7px;
-          border-radius: 4px;
-          font-size: 0.65rem;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          color: #e2e8f0;
-          background: rgba(10, 15, 25, 0.92);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-          white-space: nowrap;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-
-        .stellar-lang-item:hover .stellar-lang-tooltip {
-          opacity: 1;
-          transform: translateX(-50%) translateY(0);
+          filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) brightness(1.4) !important;
         }
       `}</style>
 
@@ -480,16 +455,12 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
             "--lang-glow": item.glowColor,
           }}
         >
-          {/* Tooltip on Hover */}
-          <span className="stellar-lang-tooltip">
-            {item.lang} • {item.script}
-          </span>
-
           {/* Twinkling Star Sparkle */}
           <span
             style={{
-              fontSize: "0.75rem",
+              fontSize: "0.72rem",
               color: item.color,
+              opacity: 0.75,
               animation: `langSparkleTwinkle 2.8s ease-in-out infinite alternate ${item.delay}`,
               lineHeight: 1,
             }}
@@ -500,11 +471,11 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
           {/* Stellar AI Text in Indian Language */}
           <span
             style={{
-              fontSize: "clamp(0.85rem, 1.25vw, 1.08rem)",
-              fontWeight: 800,
+              fontSize: "clamp(0.78rem, 1.15vw, 1.02rem)",
+              fontWeight: 700,
               fontFamily: "'Nirmala UI', 'Noto Sans', 'Segoe UI', system-ui, sans-serif",
               color: item.color,
-              textShadow: `0 0 12px ${item.glowColor}, 0 0 2px ${item.color}`,
+              textShadow: `0 0 10px ${item.glowColor}, 0 0 2px ${item.color}`,
               letterSpacing: "0.02em",
               whiteSpace: "nowrap",
               lineHeight: 1.2,
