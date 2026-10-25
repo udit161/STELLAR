@@ -10,8 +10,139 @@ const PALETTE = [
   "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"
 ];
 
-// Multilingual Stellar AI translations positioned OUTSIDE the main logo bounding box
-// MULTILINGUAL_TEXTS removed as per user request
+// Multilingual Stellar AI in the 10 most popular Indian languages
+// Positioned in varied organic locations around the main logo
+const MULTILINGUAL_STELLAR = [
+  {
+    text: "स्टेलर एआई",
+    lang: "Hindi",
+    script: "हिन्दी",
+    top: "3%",
+    left: "50%",
+    color: "#FFFFFF",
+    glowColor: "rgba(255, 255, 255, 0.5)",
+    delay: "0s",
+    duration: "4.2s",
+    amplitude: "7px",
+    sparkle: "✦"
+  },
+  {
+    text: "স্টেলার এআই",
+    lang: "Bengali",
+    script: "বাংলা",
+    top: "-3%",
+    left: "76%",
+    color: "#CBD5E1",
+    glowColor: "rgba(203, 213, 225, 0.45)",
+    delay: "0.7s",
+    duration: "4.6s",
+    amplitude: "8px",
+    sparkle: "✧"
+  },
+  {
+    text: "స్టెల్లార్ ఏఐ",
+    lang: "Telugu",
+    script: "తెలుగు",
+    top: "16%",
+    left: "94%",
+    color: "#E2E8F0",
+    glowColor: "rgba(226, 232, 240, 0.45)",
+    delay: "1.3s",
+    duration: "3.9s",
+    amplitude: "6px",
+    sparkle: "✦"
+  },
+  {
+    text: "സ്റ്റെല്ലാർ എഐ",
+    lang: "Malayalam",
+    script: "മലയാളം",
+    top: "60%",
+    left: "95%",
+    color: "#94A3B8",
+    glowColor: "rgba(148, 163, 184, 0.45)",
+    delay: "2.1s",
+    duration: "4.4s",
+    amplitude: "8px",
+    sparkle: "✧"
+  },
+  {
+    text: "ஸ்டெல்லார் ஏஐ",
+    lang: "Tamil",
+    script: "தமிழ்",
+    top: "98%",
+    left: "75%",
+    color: "#F8FAFC",
+    glowColor: "rgba(248, 250, 252, 0.5)",
+    delay: "0.4s",
+    duration: "4.8s",
+    amplitude: "7px",
+    sparkle: "✦"
+  },
+  {
+    text: "ಸ್ಟೆಲ್ಲಾರ್ ಏಐ",
+    lang: "Kannada",
+    script: "ಕನ್ನಡ",
+    top: "103%",
+    left: "48%",
+    color: "#CBD5E1",
+    glowColor: "rgba(203, 213, 225, 0.45)",
+    delay: "1.8s",
+    duration: "4.1s",
+    amplitude: "9px",
+    sparkle: "✧"
+  },
+  {
+    text: "ਸਟੈਲਰ ਏਆਈ",
+    lang: "Punjabi",
+    script: "ਪੰਜਾਬੀ",
+    top: "97%",
+    left: "20%",
+    color: "#E2E8F0",
+    glowColor: "rgba(226, 232, 240, 0.45)",
+    delay: "2.6s",
+    duration: "4.5s",
+    amplitude: "6px",
+    sparkle: "✦"
+  },
+  {
+    text: "સ્ટેલર એઆઈ",
+    lang: "Gujarati",
+    script: "ગુજરાતી",
+    top: "64%",
+    left: "4%",
+    color: "#94A3B8",
+    glowColor: "rgba(148, 163, 184, 0.45)",
+    delay: "1.1s",
+    duration: "3.7s",
+    amplitude: "7px",
+    sparkle: "✧"
+  },
+  {
+    text: "स्टेलर एआय",
+    lang: "Marathi",
+    script: "मराठी",
+    top: "18%",
+    left: "5%",
+    color: "#F1F5F9",
+    glowColor: "rgba(241, 245, 249, 0.5)",
+    delay: "2.8s",
+    duration: "4.3s",
+    amplitude: "8px",
+    sparkle: "✦"
+  },
+  {
+    text: "اسٹیلر اے آئی",
+    lang: "Urdu",
+    script: "اردو",
+    top: "-2%",
+    left: "22%",
+    color: "#CBD5E1",
+    glowColor: "rgba(203, 213, 225, 0.45)",
+    delay: "1.5s",
+    duration: "5.0s",
+    amplitude: "6px",
+  }
+];
 
 const FLOAT_HOLD_MS = 3600;
 const SCATTER_TRANSITION_MS = 1400;
@@ -253,20 +384,136 @@ export default function ScatterAndReassembleText({ showMultilingual = true, anim
         }
 
         @keyframes langTwinkleFloat {
-          0%, 100% {
-            transform: translate(-50%, -50%) scale(0.96);
-            opacity: 0.65;
-            filter: brightness(1.0);
+          0% {
+            transform: translate(-50%, -50%) translateY(0px) scale(0.96);
+            opacity: 0.6;
+            filter: brightness(0.95);
           }
           50% {
-            transform: translate(-50%, calc(-50% - 6px)) scale(1.04);
+            transform: translate(-50%, -50%) translateY(calc(-1 * var(--float-amp, 7px))) scale(1.04);
             opacity: 1;
-            filter: brightness(1.3);
+            filter: brightness(1.28);
           }
+          100% {
+            transform: translate(-50%, -50%) translateY(0px) scale(0.96);
+            opacity: 0.6;
+            filter: brightness(0.95);
+          }
+        }
+
+        @keyframes langSparkleTwinkle {
+          0%, 100% {
+            opacity: 0.35;
+            transform: scale(0.8) rotate(0deg);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.25) rotate(180deg);
+            filter: drop-shadow(0 0 4px currentColor);
+          }
+        }
+
+        .stellar-lang-item {
+          position: absolute;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          user-select: none;
+          z-index: 15;
+          transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                      filter 0.3s ease,
+                      opacity 0.3s ease;
+          animation: langTwinkleFloat var(--float-dur, 4s) ease-in-out infinite alternate var(--float-delay, 0s);
+          will-change: transform, opacity;
+        }
+
+        .stellar-lang-item:hover {
+          animation-play-state: paused !important;
+          transform: translate(-50%, -50%) scale(1.15) !important;
+          opacity: 1 !important;
+          z-index: 30 !important;
+          filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85)) brightness(1.35) !important;
+        }
+
+        .stellar-lang-tooltip {
+          position: absolute;
+          bottom: calc(100% + 6px);
+          left: 50%;
+          transform: translateX(-50%) translateY(4px);
+          padding: 2px 7px;
+          border-radius: 4px;
+          font-size: 0.65rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #e2e8f0;
+          background: rgba(10, 15, 25, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+          white-space: nowrap;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .stellar-lang-item:hover .stellar-lang-tooltip {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
         }
       `}</style>
 
-      {/* Multilingual Floating Texts Positioned Symmetrically OUTSIDE the Main Title (Removed) */}
+      {/* Multilingual Floating Texts in 10 Popular Indian Languages Twinkling Around the Main Logo */}
+      {showMultilingual && MULTILINGUAL_STELLAR.map((item, idx) => (
+        <div
+          key={idx}
+          className="stellar-lang-item"
+          style={{
+            top: item.top,
+            left: item.left,
+            "--float-dur": item.duration,
+            "--float-delay": item.delay,
+            "--float-amp": item.amplitude,
+            "--lang-color": item.color,
+            "--lang-glow": item.glowColor,
+          }}
+        >
+          {/* Tooltip on Hover */}
+          <span className="stellar-lang-tooltip">
+            {item.lang} • {item.script}
+          </span>
+
+          {/* Twinkling Star Sparkle */}
+          <span
+            style={{
+              fontSize: "0.75rem",
+              color: item.color,
+              animation: `langSparkleTwinkle 2.8s ease-in-out infinite alternate ${item.delay}`,
+              lineHeight: 1,
+            }}
+          >
+            {item.sparkle}
+          </span>
+
+          {/* Stellar AI Text in Indian Language */}
+          <span
+            style={{
+              fontSize: "clamp(0.85rem, 1.25vw, 1.08rem)",
+              fontWeight: 800,
+              fontFamily: "'Nirmala UI', 'Noto Sans', 'Segoe UI', system-ui, sans-serif",
+              color: item.color,
+              textShadow: `0 0 12px ${item.glowColor}, 0 0 2px ${item.color}`,
+              letterSpacing: "0.02em",
+              whiteSpace: "nowrap",
+              lineHeight: 1.2,
+            }}
+          >
+            {item.text}
+          </span>
+        </div>
+      ))}
       {/* Glowing 3D Orbit Trajectory Line */}
       <svg width="100%" height="100%" viewBox="0 0 1000 350"
         style={{
