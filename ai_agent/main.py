@@ -118,6 +118,94 @@ from .auth import (
 UPLOAD_DIR = Path(__file__).parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+
+def _sanitize_for_json(obj: Any, _seen: Optional[set] = None) -> Any:
+    """
+    Recursively convert an object into a JSON-serializable structure.
+    Handles Pydantic models, dataclasses, enums, sets, and circular references.
+    This prevents FastAPI's jsonable_encoder from hitting recursion limits on
+    complex LangGraph state objects.
+    """
+    import dataclasses
+    from enum import Enum
+
+    if _seen is None:
+        _seen = set()
+
+    obj_id = id(obj)
+    if obj_id in _seen:
+        return "[circular reference]"
+
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+
+    if isinstance(obj, Enum):
+        return obj.value
+
+    if isinstance(obj, bytes):
+        try:
+            return obj.decode("utf-8")
+        except Exception:
+            return obj.hex()
+
+    if isinstance(obj, (list, tuple)):
+        _seen.add(obj_id)
+        result = [_sanitize_for_json(item, _seen) for item in obj]
+        _seen.discard(obj_id)
+        return result
+
+    if isinstance(obj, set):
+        _seen.add(obj_id)
+        result = [_sanitize_for_json(item, _seen) for item in sorted(obj, key=str)]
+        _seen.discard(obj_id)
+        return result
+
+    if isinstance(obj, dict):
+        _seen.add(obj_id)
+        result = {str(k): _sanitize_for_json(v, _seen) for k, v in obj.items()}
+        _seen.discard(obj_id)
+        return result
+
+    # Pydantic v1/v2 models
+    if hasattr(obj, "model_dump") and callable(obj.model_dump):
+        _seen.add(obj_id)
+        result = _sanitize_for_json(obj.model_dump(), _seen)
+        _seen.discard(obj_id)
+        return result
+
+    if hasattr(obj, "dict") and callable(obj.dict):
+        _seen.add(obj_id)
+        try:
+            result = _sanitize_for_json(obj.dict(), _seen)
+            _seen.discard(obj_id)
+            return result
+        except Exception:
+            pass
+
+    # Dataclasses
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        _seen.add(obj_id)
+        result = _sanitize_for_json(dataclasses.asdict(obj), _seen)
+        _seen.discard(obj_id)
+        return result
+
+    # Objects with __dict__ (most Python objects)
+    if hasattr(obj, "__dict__"):
+        _seen.add(obj_id)
+        result = {
+            k: _sanitize_for_json(v, _seen)
+            for k, v in obj.__dict__.items()
+            if not k.startswith("_")
+        }
+        _seen.discard(obj_id)
+        return result
+
+    # Fallback: convert to string
+    try:
+        return str(obj)
+    except Exception:
+        return "[unserializable]"
+
 app = FastAPI(
     title="Stellar AI Agent Microservice",
     description="Agentic AI Microservice for Earth Observation & Satellite Intelligence (Python 3 + FastAPI + LangGraph)",
@@ -177,39 +265,32 @@ def run_query_job(
         message="Background orchestration started.",
     )
 
-        agent37_req = Agent37QueryRequest(
+        model = AgentStateModel(
+            raw_query=q,
             query=q,
             geo_context=geo,
+            modalities=mod,
+            user_id=uid,
             session_id=sid,
-            user_id=uid
         )
-        
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-        agent37_result = loop.run_until_complete(agent37_controller.process_query(agent37_req))
+        initial_state = model.to_graph_state()
+        result_state = orchestrator.run(q, initial_state)
 
-        result_state = {
-            "final_response": agent37_result.final_response,
-            "artifacts": [], 
-            "intermediate_outputs": {},
-            "tool_outputs": {}
-        }
+        # Sanitize result_state to plain JSON-serializable dict to prevent
+        # FastAPI's jsonable_encoder from hitting recursion limits on complex
+        # LangGraph state objects (compiled regex, Pydantic models, dataclasses).
+        safe_result = _sanitize_for_json(result_state)
 
         JOB_TRACES[job_id]["status"] = "completed"
         JOB_TRACES[job_id]["completed_at"] = (
             __import__("datetime").datetime.utcnow().isoformat() + "Z"
         )
-        JOB_TRACES[job_id]["result"] = result_state
+        JOB_TRACES[job_id]["result"] = safe_result
 
         update_query(
             job_id=job_id,
             status="completed",
-            result=result_state,
+            result=safe_result,
         )
 
         # Persist artifacts reported by the orchestrator/specialist models.
@@ -966,7 +1047,7 @@ async def query_with_image(
 
         initial_state = model.to_graph_state()
         result_state = orchestrator.run(query, initial_state)
-        return result_state
+        return _sanitize_for_json(result_state)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image query execution failure: {str(e)}")
 
@@ -1028,7 +1109,7 @@ async def analyze_bitemporal(
         )
         initial_state = model.to_graph_state()
         result_state = orchestrator.run(query, initial_state)
-        return result_state
+        return _sanitize_for_json(result_state)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Bi-temporal analysis failure: {str(e)}")
 
@@ -1106,7 +1187,7 @@ async def analyze_crossmodal(
         )
         initial_state = model.to_graph_state()
         result_state = orchestrator.run(query, initial_state)
-        return result_state
+        return _sanitize_for_json(result_state)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cross-modal analysis failure: {str(e)}")
 @app.websocket("/api/v1/ws/{job_id}")
